@@ -1,52 +1,56 @@
-// js/game/shop.js — Shop logic: pool management, rerolling, tier odds
+// js/game/shop.js — Shop logic and AI team simulation
+
+// ─── Player Pool ──────────────────────────────────────────────────────────────
 
 function initPool(state) {
   state.playerPool = buildPlayerPool();
   shuffleArray(state.playerPool);
 }
 
+// ─── Shop Draw / Reroll ───────────────────────────────────────────────────────
+
 function drawShop(state) {
-  if (state.shopLocked) return; // Keep current shop
+  if (state.shopLocked) return;
 
-  // Return current shop items to pool (un-bought ones)
+  // Return un-bought shop players to pool
   state.shopSlots.forEach(slot => {
-    if (slot) state.playerPool.push({ ...slot });
+    if (slot) state.playerPool.push({ ...slot, stats: { ...slot.stats }, champions: [...slot.champions], traits: [...(slot.traits||[])] });
   });
-
   state.shopSlots = [];
 
   for (let i = 0; i < CONFIG.SHOP_SIZE; i++) {
-    const player = drawFromPool(state);
-    state.shopSlots.push(player); // null if pool empty
+    state.shopSlots.push(drawFromPool(state));
   }
 }
 
 function drawFromPool(state) {
-  if (state.playerPool.length === 0) return null;
+  if (!state.playerPool.length) return null;
 
-  const odds = CONFIG.TIER_ODDS[state.level] || CONFIG.TIER_ODDS[1];
-  const roll = Math.random() * 100;
-  let cumulative = 0;
-  let targetTier = 1;
+  const odds       = CONFIG.TIER_ODDS[state.level] || CONFIG.TIER_ODDS[1];
+  const roll       = Math.random() * 100;
+  let   cumulative = 0;
+  let   targetTier = 2; // default minimum
 
   for (let t = 1; t <= 5; t++) {
     cumulative += odds[t - 1];
-    if (roll < cumulative) {
-      targetTier = t;
-      break;
+    if (roll < cumulative) { targetTier = t; break; }
+  }
+
+  // Find a player of target tier; fallback to nearest available tier
+  let idx = state.playerPool.findIndex(p => p.tier === targetTier);
+
+  if (idx === -1) {
+    // Try adjacent tiers: lower first, then higher
+    for (let delta = 1; delta <= 4; delta++) {
+      const lo = targetTier - delta;
+      const hi = targetTier + delta;
+      if (lo >= 1) idx = state.playerPool.findIndex(p => p.tier === lo);
+      if (idx === -1 && hi <= 5) idx = state.playerPool.findIndex(p => p.tier === hi);
+      if (idx !== -1) break;
     }
   }
 
-  // Find a player of the target tier in the pool
-  let idx = state.playerPool.findIndex(p => p.tier === targetTier);
-
-  // If none of that tier, fallback to any available
-  if (idx === -1) {
-    idx = 0;
-  }
-
-  if (idx === -1 || state.playerPool.length === 0) return null;
-
+  if (idx === -1) idx = 0; // last resort
   const [player] = state.playerPool.splice(idx, 1);
   return player;
 }
@@ -67,81 +71,185 @@ function toggleLockShop(state) {
 function buyShopPlayer(state, shopIndex) {
   const player = state.shopSlots[shopIndex];
   if (!player) return false;
-
   if (!buyPlayer(state, player)) return false;
-
   state.shopSlots[shopIndex] = null;
   return true;
 }
 
-// Swap a player between roster and bench (or between two roster slots)
-function swapRosterBench(state, fromType, fromIndex, toType, toIndex) {
-  const getRoster = () => state.roster;
-  const getBench  = () => state.bench;
+// ─── AI Team Simulation ───────────────────────────────────────────────────────
 
-  const fromArr = fromType === 'roster' ? getRoster() : getBench();
-  const toArr   = toType   === 'roster' ? getRoster() : getBench();
+const AI_TEAM_CONFIGS = [
+  { name: 'Team Nexus',      strategy: 'economy',    startStrength: 0.5 },
+  { name: 'Dragon Guard',    strategy: 'synergy',    startStrength: 0.55 },
+  { name: 'Iron Vanguard',   strategy: 'aggressor',  startStrength: 0.6 },
+  { name: 'Shadow Protocol', strategy: 'reroller',   startStrength: 0.45 },
+  { name: 'Phoenix Rising',  strategy: 'leveler',    startStrength: 0.5 },
+  { name: 'Storm Raiders',   strategy: 'aggressor',  startStrength: 0.55 },
+  { name: 'Void Walkers',    strategy: 'synergy',    startStrength: 0.45 },
+];
 
-  // Check roster size constraint
-  if (toType === 'roster' && toIndex >= maxRosterSize(state)) return false;
+function initAITeam(cfg) {
+  // Each AI has its own private pool (independent from human pool)
+  const privatePool = buildPlayerPool();
+  shuffleArray(privatePool);
 
-  const fromPlayer = fromArr[fromIndex];
-  const toPlayer   = toArr[toIndex];
+  // Pick target trait for synergy strategy
+  const traitKeys   = Object.keys(CONFIG.TRAITS);
+  const targetTrait = traitKeys[Math.floor(Math.random() * traitKeys.length)];
 
-  if (fromType === 'roster') fromArr[fromIndex] = toPlayer || null;
-  else { fromArr.splice(fromIndex, 1); if (toPlayer) fromArr.push(toPlayer); }
-
-  if (toType === 'roster') toArr[toIndex] = fromPlayer;
-  else { if (fromPlayer) toArr.push(fromPlayer); }
-
-  return true;
+  return {
+    id:          cfg.name.replace(/\s+/g, '_').toLowerCase(),
+    name:        cfg.name,
+    strategy:    cfg.strategy,
+    targetTrait,
+    gold:        CONFIG.STARTING_GOLD,
+    xp:          0,
+    level:       1,
+    roster:      [null, null, null, null, null],
+    bench:       [],
+    privatePool,
+    wins:        0,
+    losses:      0,
+    kills:       0,
+    deaths:      0,
+    isHuman:     false,
+  };
 }
 
-// Generate a random roster for an AI team of given strength (0-1)
-function generateAIRoster(strengthBias) {
-  // strength 0.8-1.0 = strong (T4-T5 preferred)
-  // strength 0.5-0.7 = medium (T3-T4 preferred)
-  // strength 0.2-0.4 = weak (T2-T3 preferred)
-  const positions = ['top', 'jungle', 'mid', 'adc', 'support'];
-  const roster = [];
+// Simulate one round of shopping for an AI team
+function simulateAIShopRound(aiTeam, round) {
+  // ─ Income ─
+  const base      = CONFIG.BASE_GOLD;
+  const interest  = Math.min(Math.floor(aiTeam.gold / 10), CONFIG.MAX_INTEREST);
+  const winBonus  = aiTeam.winStreak  >= 2 ? (CONFIG.WIN_STREAK_GOLD[Math.min(aiTeam.winStreak,5)]  || 0) : 0;
+  const loseBonus = aiTeam.loseStreak >= 2 ? (CONFIG.LOSE_STREAK_GOLD[Math.min(aiTeam.loseStreak,5)]|| 0) : 0;
+  aiTeam.gold += base + interest + winBonus + loseBonus;
 
-  positions.forEach(pos => {
-    // Filter templates by position
-    const candidates = PLAYER_TEMPLATES.filter(p => p.position === pos);
+  // ─ Auto XP ─
+  if (!aiTeam.xp) aiTeam.xp = 0;
+  aiTeam.xp += CONFIG.XP_PER_ROUND;
+  // Level up from XP
+  while (aiTeam.level < 5 && aiTeam.xp >= CONFIG.LEVEL_XP[aiTeam.level + 1]) {
+    aiTeam.level++;
+  }
 
-    // Sort by tier
-    candidates.sort((a, b) => b.tier - a.tier);
+  const strategy = aiTeam.strategy;
 
-    // Pick based on strength bias
-    let picked;
-    const roll = Math.random();
-    if (strengthBias >= 0.8) {
-      // Strong: prefer T4-T5
-      picked = roll < 0.6
-        ? candidates.find(p => p.tier >= 4) || candidates[0]
-        : candidates.find(p => p.tier >= 3) || candidates[0];
-    } else if (strengthBias >= 0.5) {
-      // Medium: prefer T3-T4
-      picked = roll < 0.6
-        ? candidates.find(p => p.tier >= 3 && p.tier <= 4) || candidates[Math.floor(candidates.length / 2)]
-        : candidates.find(p => p.tier >= 2) || candidates[0];
-    } else {
-      // Weak: prefer T2-T3
-      picked = roll < 0.6
-        ? candidates.find(p => p.tier <= 3) || candidates[candidates.length - 1]
-        : candidates[candidates.length - 1];
+  // ─ Level-up decisions ─
+  if (strategy === 'leveler' && aiTeam.level < 5 && aiTeam.gold >= CONFIG.XP_COST + 3) {
+    aiTeam.gold -= CONFIG.XP_COST;
+    aiTeam.xp   += CONFIG.XP_PER_BUY;
+    while (aiTeam.level < 5 && aiTeam.xp >= CONFIG.LEVEL_XP[aiTeam.level + 1]) aiTeam.level++;
+  }
+  if (strategy === 'aggressor' && aiTeam.level < 5 && aiTeam.gold >= CONFIG.XP_COST + 5 && round % 2 === 0) {
+    aiTeam.gold -= CONFIG.XP_COST;
+    aiTeam.xp   += CONFIG.XP_PER_BUY;
+    while (aiTeam.level < 5 && aiTeam.xp >= CONFIG.LEVEL_XP[aiTeam.level + 1]) aiTeam.level++;
+  }
+
+  // ─ Draw virtual shop ─
+  const shopPool = { playerPool: [...aiTeam.privatePool], level: aiTeam.level, shopSlots: [], shopLocked: false, gold: aiTeam.gold };
+  for (let i = 0; i < CONFIG.SHOP_SIZE; i++) shopPool.shopSlots.push(drawFromPool(shopPool));
+  // Remove drawn cards from AI private pool
+  aiTeam.privatePool = shopPool.playerPool;
+
+  // ─ Reroll decision ─
+  let rerolls = 0;
+  const maxRerolls = strategy === 'reroller' ? 4 : strategy === 'synergy' ? 2 : 1;
+
+  while (rerolls < maxRerolls && aiTeam.gold >= CONFIG.REROLL_COST) {
+    const wantReroll = shouldAIReroll(aiTeam, shopPool.shopSlots, strategy);
+    if (!wantReroll) break;
+    // Return shop to pool, redraw
+    shopPool.shopSlots.forEach(p => { if (p) aiTeam.privatePool.push({...p}); });
+    shopPool.shopSlots = [];
+    shopPool.playerPool = aiTeam.privatePool;
+    for (let i = 0; i < CONFIG.SHOP_SIZE; i++) shopPool.shopSlots.push(drawFromPool(shopPool));
+    aiTeam.privatePool = shopPool.playerPool;
+    aiTeam.gold -= CONFIG.REROLL_COST;
+    rerolls++;
+  }
+
+  // ─ Buy players ─
+  const toBuy = shopPool.shopSlots.filter(Boolean).filter(p => aiShouldBuy(aiTeam, p, strategy));
+
+  toBuy.forEach(p => {
+    const cost = CONFIG.TIER_COST[p.tier];
+    const owned = aiTeam.roster.filter(Boolean).length + aiTeam.bench.length;
+
+    // Economy: maintain interest breakpoints
+    if (strategy === 'economy') {
+      const newGold = aiTeam.gold - cost;
+      const lostInterest = Math.floor(aiTeam.gold / 10) - Math.floor(newGold / 10);
+      if (lostInterest > 0 && newGold > 20) return; // skip if it costs interest
     }
 
-    if (picked) {
-      const instance = createPlayerInstance(picked);
-      roster.push(instance);
-    }
+    if (aiTeam.gold < cost) return;
+    if (owned >= CONFIG.ROSTER_MAX + CONFIG.BENCH_MAX) return;
+
+    aiTeam.gold -= cost;
+    const instance = createPlayerInstance(p);
+    const emptyIdx = aiTeam.roster.findIndex(r => !r);
+    if (emptyIdx !== -1) aiTeam.roster[emptyIdx] = instance;
+    else aiTeam.bench.push(instance);
   });
 
-  return roster;
+  // ─ Star upgrades ─
+  checkStarUpgrades(aiTeam);
+
+  // ─ Manage bench: sell weakest if over limit ─
+  while (aiTeam.bench.length > CONFIG.BENCH_MAX) {
+    let weakestIdx = 0;
+    for (let i = 1; i < aiTeam.bench.length; i++) {
+      if (statTotal(aiTeam.bench[i]) < statTotal(aiTeam.bench[weakestIdx])) weakestIdx = i;
+    }
+    const w = aiTeam.bench[weakestIdx];
+    aiTeam.gold += CONFIG.TIER_SELL[w.tier];
+    aiTeam.bench.splice(weakestIdx, 1);
+  }
+
+  // ─ Optimize lineup: best player at each position ─
+  optimizeAILineup(aiTeam);
 }
 
-// Utility: shuffle array in place
+function shouldAIReroll(aiTeam, shopSlots, strategy) {
+  if (strategy === 'reroller') return true;
+  if (strategy === 'synergy') {
+    return !shopSlots.some(p => p && (p.traits||[]).includes(aiTeam.targetTrait));
+  }
+  return false;
+}
+
+function aiShouldBuy(aiTeam, player, strategy) {
+  if (!player) return false;
+  const tier = player.tier;
+
+  if (strategy === 'aggressor') return tier >= aiTeam.level; // buy if tier >= level
+  if (strategy === 'synergy')   return (player.traits||[]).includes(aiTeam.targetTrait);
+  if (strategy === 'reroller')  return tier <= 3; // only buy cheap players to 3-star
+  if (strategy === 'leveler')   return tier >= Math.max(2, aiTeam.level - 1);
+  if (strategy === 'economy')   return tier <= 3 || aiTeam.gold > 30;
+
+  return tier >= 2;
+}
+
+function optimizeAILineup(aiTeam) {
+  const all = [...aiTeam.roster.filter(Boolean), ...aiTeam.bench];
+  const byPos = {};
+  CONFIG.POSITIONS.forEach(pos => {
+    byPos[pos] = all.filter(p => p.position === pos).sort((a, b) => {
+      const aS = getEffectiveStats(a);
+      const bS = getEffectiveStats(b);
+      return Object.values(bS).reduce((x,y)=>x+y,0) - Object.values(aS).reduce((x,y)=>x+y,0);
+    });
+  });
+
+  aiTeam.roster = CONFIG.POSITIONS.map(pos => byPos[pos].shift() || null);
+  aiTeam.bench  = Object.values(byPos).flat();
+}
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

@@ -1,121 +1,121 @@
-// js/game/tournament.js — Schedule, standings, and bracket management
+// js/game/tournament.js — Schedule, standings, bracket, AI simulation
 
-const AI_TEAM_CONFIGS = [
-  { name: 'Team Nexus',      strength: 0.72 },
-  { name: 'Dragon Guard',    strength: 0.85 },
-  { name: 'Iron Vanguard',   strength: 0.88 },
-  { name: 'Shadow Protocol', strength: 0.40 },
-  { name: 'Phoenix Rising',  strength: 0.65 },
-  { name: 'Storm Raiders',   strength: 0.60 },
-  { name: 'Void Walkers',    strength: 0.35 },
-];
+// ─── Schedule ─────────────────────────────────────────────────────────────────
 
-// Round-robin schedule for 8 teams (indices 0-7, 0 = human player)
-// Standard round-robin rotation: fix team 0, rotate others
-function generateSchedule(teamCount) {
+// Standard round-robin rotation for N teams; returns array of rounds, each round is an array of [a,b] pairs
+function generateHalfSchedule(n) {
   const schedule = [];
-  const teams = Array.from({ length: teamCount }, (_, i) => i);
+  const teams    = Array.from({ length: n }, (_, i) => i);
 
-  for (let round = 0; round < teamCount - 1; round++) {
-    const roundPairs = [];
-    for (let i = 0; i < teamCount / 2; i++) {
-      roundPairs.push([teams[i], teams[teamCount - 1 - i]]);
-    }
-    schedule.push(roundPairs);
-
-    // Rotate all but first: move last to index 1
+  for (let r = 0; r < n - 1; r++) {
+    const pairs = [];
+    for (let i = 0; i < n / 2; i++) pairs.push([teams[i], teams[n - 1 - i]]);
+    schedule.push(pairs);
+    // Rotate: fix teams[0], move last to index 1
     const last = teams.pop();
     teams.splice(1, 0, last);
   }
-
   return schedule;
 }
 
-function initTournament(state) {
-  // Generate AI teams
-  state.aiTeams = AI_TEAM_CONFIGS.map((cfg, i) => ({
-    id: `ai${i + 1}`,
-    name: cfg.name,
-    strength: cfg.strength,
-    roster: generateAIRoster(cfg.strength),
-    wins: 0,
-    losses: 0,
-    kills: 0,
-    deaths: 0,
-  }));
+// Double round-robin: play each team TWICE (14 rounds for 8 teams)
+function generateSchedule(n) {
+  const half = generateHalfSchedule(n);
+  // Second half: same matchups, reversed home/away for variety
+  const second = half.map(round => round.map(([a,b]) => [b, a]));
+  return [...half, ...second];
+}
 
-  // All participants: human (index 0) + 7 AI
+// ─── Tournament Init ──────────────────────────────────────────────────────────
+
+function initTournament(state) {
+  state.aiTeams = AI_TEAM_CONFIGS.map(cfg => initAITeam(cfg));
+
   state.allTeams = [
-    { id: 'human', name: state.teamName, isHuman: true, wins: 0, losses: 0, kills: 0, deaths: 0 },
-    ...state.aiTeams.map(t => ({ ...t, isHuman: false })),
+    { id:'human', name: state.teamName, isHuman:true, wins:0, losses:0, kills:0, deaths:0, winStreak:0, loseStreak:0 },
+    ...state.aiTeams,
   ];
 
-  // Generate 7-round round-robin schedule
   state.schedule = generateSchedule(CONFIG.TOTAL_TEAMS);
   state.round    = 1;
   state.bracket  = null;
 }
 
-// Returns the human player's opponent for the current round
+// Human's opponent for the current round
 function getHumanOpponent(state) {
   const roundPairs = state.schedule[state.round - 1];
+  if (!roundPairs) return null;
   const pair = roundPairs.find(p => p.includes(0));
   if (!pair) return null;
-  const opponentIdx = pair[0] === 0 ? pair[1] : pair[0];
-  return state.allTeams[opponentIdx];
+  const oppIdx = pair[0] === 0 ? pair[1] : pair[0];
+  return state.allTeams[oppIdx];
 }
 
-// Simulate all non-human matches for the current round and update standings
-function simulateAIRoundMatches(state) {
-  const roundPairs = state.schedule[state.round - 1];
-  roundPairs.forEach(pair => {
-    const [ai, bi] = pair;
-    if (ai === 0 || bi === 0) return; // Skip human match
+// ─── Round Simulation ─────────────────────────────────────────────────────────
 
-    const teamA = state.allTeams[ai];
-    const teamB = state.allTeams[bi];
-    const aStr  = teamA.strength || 0.5;
-    const bStr  = teamB.strength || 0.5;
-    const winner = quickSimulate(aStr, bStr);
-
-    const winnerTeam = winner === 'blue' ? teamA : teamB;
-    const loserTeam  = winner === 'blue' ? teamB : teamA;
-
-    winnerTeam.wins++;
-    loserTeam.losses++;
-
-    // Give some fake kills for standings display
-    winnerTeam.kills  += randInt(8, 18);
-    winnerTeam.deaths += randInt(2, 8);
-    loserTeam.kills   += randInt(2, 8);
-    loserTeam.deaths  += randInt(8, 18);
+// Run AI shop phases for all AI teams this round
+function runAIShopPhases(state) {
+  state.aiTeams.forEach(ai => {
+    simulateAIShopRound(ai, state.round);
   });
 }
 
-// Apply human match result to standings
+// Simulate all non-human matches for the current round
+function simulateAIRoundMatches(state) {
+  const roundPairs = state.schedule[state.round - 1];
+  if (!roundPairs) return;
+
+  roundPairs.forEach(([ai, bi]) => {
+    if (ai === 0 || bi === 0) return;
+    const teamA = state.allTeams[ai];
+    const teamB = state.allTeams[bi];
+
+    const aRoster = (teamA.roster || []).filter(Boolean);
+    const bRoster = (teamB.roster || []).filter(Boolean);
+
+    const winner = quickSimulate(aRoster.length ? aRoster : teamA.strength || 0.5,
+                                  bRoster.length ? bRoster : teamB.strength || 0.5);
+
+    const win  = winner === 'blue' ? teamA : teamB;
+    const lose = winner === 'blue' ? teamB : teamA;
+
+    win.wins++;  lose.losses++;
+
+    // Fake kill stats for standings display (realistic ranges)
+    const totalKills = randInt(16, 26);
+    win.kills   += Math.round(totalKills * 0.62);
+    win.deaths  += Math.round(totalKills * 0.38);
+    lose.kills  += Math.round(totalKills * 0.38);
+    lose.deaths += Math.round(totalKills * 0.62);
+
+    // Update streaks
+    win.winStreak   = (win.winStreak  || 0) + 1; win.loseStreak  = 0;
+    lose.loseStreak = (lose.loseStreak|| 0) + 1; lose.winStreak  = 0;
+  });
+}
+
 function applyHumanResult(state, won, matchStats) {
   const human = state.allTeams[0];
-  const opponent = getHumanOpponent(state);
+  const opp   = getHumanOpponent(state);
 
   if (won) {
-    human.wins++;
-    if (opponent) opponent.losses++;
-    state.winStreak++;
-    state.loseStreak = 0;
+    human.wins++; if (opp) opp.losses++;
+    state.winStreak++; state.loseStreak = 0;
+    human.winStreak  = (human.winStreak  || 0) + 1;
+    human.loseStreak = 0;
   } else {
-    human.losses++;
-    if (opponent) opponent.wins++;
-    state.loseStreak++;
-    state.winStreak = 0;
+    human.losses++; if (opp) opp.wins++;
+    state.loseStreak++; state.winStreak = 0;
+    human.loseStreak = (human.loseStreak || 0) + 1;
+    human.winStreak  = 0;
   }
 
-  // Record kills/deaths from the match
   if (matchStats) {
     human.kills  += matchStats.blue.kills;
-    human.deaths += matchStats.blue.deaths;
-    if (opponent) {
-      opponent.kills  += matchStats.red.kills;
-      opponent.deaths += matchStats.red.deaths;
+    human.deaths += matchStats.red.kills; // deaths = opp kills
+    if (opp) {
+      opp.kills  += matchStats.red.kills;
+      opp.deaths += matchStats.blue.kills;
     }
   }
 }
@@ -123,9 +123,8 @@ function applyHumanResult(state, won, matchStats) {
 function getStandings(state) {
   return [...state.allTeams].sort((a, b) => {
     if (b.wins !== a.wins) return b.wins - a.wins;
-    // Tiebreaker: kill differential
-    const aDiff = a.kills - a.deaths;
-    const bDiff = b.kills - b.deaths;
+    const aDiff = (a.kills||0) - (a.deaths||0);
+    const bDiff = (b.kills||0) - (b.deaths||0);
     return bDiff - aDiff;
   });
 }
@@ -133,102 +132,99 @@ function getStandings(state) {
 // ─── Bracket ──────────────────────────────────────────────────────────────────
 
 function initBracket(state) {
-  const standings = getStandings(state);
-  const top4 = standings.slice(0, 4);
+  const top4 = getStandings(state).slice(0, 4);
 
   state.bracket = {
     semis: [
-      { teamA: top4[0], teamB: top4[3], winner: null, seed: '1v4' },
-      { teamA: top4[1], teamB: top4[2], winner: null, seed: '2v3' },
+      { teamA: top4[0], teamB: top4[3], winner: null, label: 'Semi-Final 1 (1st vs 4th)' },
+      { teamA: top4[1], teamB: top4[2], winner: null, label: 'Semi-Final 2 (2nd vs 3rd)' },
     ],
-    final: { teamA: null, teamB: null, winner: null },
-    champion: null,
-    bracketRound: 'semis', // 'semis' | 'finals' | 'done'
+    final:       { teamA: null, teamB: null, winner: null },
+    champion:    null,
+    bracketRound: 'semis', // 'semis' | 'finals' | 'eliminated' | 'done'
   };
 
   return state.bracket;
 }
 
-// Get the human player's current bracket match
+function humanInBracket(state) {
+  if (!state.bracket) return false;
+  const { bracket } = state;
+
+  if (bracket.bracketRound === 'semis') {
+    return bracket.semis.some(m => m.teamA?.isHuman || m.teamB?.isHuman);
+  }
+  if (bracket.bracketRound === 'finals') {
+    return bracket.final.teamA?.isHuman || bracket.final.teamB?.isHuman;
+  }
+  return false;
+}
+
 function getHumanBracketMatch(state) {
   if (!state.bracket) return null;
   const { bracket } = state;
 
   if (bracket.bracketRound === 'semis') {
-    const match = bracket.semis.find(m => m.teamA?.isHuman || m.teamB?.isHuman);
-    return match || null;
+    return bracket.semis.find(m => m.teamA?.isHuman || m.teamB?.isHuman) || null;
   }
   if (bracket.bracketRound === 'finals') {
-    if (bracket.final.teamA?.isHuman || bracket.final.teamB?.isHuman) {
-      return bracket.final;
-    }
+    const f = bracket.final;
+    return (f.teamA?.isHuman || f.teamB?.isHuman) ? f : null;
   }
   return null;
 }
 
-function humanInBracket(state) {
-  return !!getHumanBracketMatch(state);
-}
+// Simulate AI-only semi-final matches, advance winners to final
+function resolveAISemis(state) {
+  state.bracket.semis.forEach(match => {
+    if (match.winner) return;
+    if (match.teamA?.isHuman || match.teamB?.isHuman) return; // skip human matches
 
-// Simulate semi-final matches and advance winners
-function resolveSemis(state) {
-  const { semis, final } = state.bracket;
-
-  semis.forEach(match => {
-    if (match.winner) return; // already resolved
-
-    const aIsHuman = match.teamA?.isHuman;
-    const bIsHuman = match.teamB?.isHuman;
-
-    if (!aIsHuman && !bIsHuman) {
-      // AI vs AI
-      const aStr = match.teamA?.strength || 0.5;
-      const bStr = match.teamB?.strength || 0.5;
-      match.winner = quickSimulate(aStr, bStr) === 'blue' ? match.teamA : match.teamB;
-    }
-    // Human match is resolved externally
+    const aRoster = match.teamA?.roster?.filter(Boolean) || [];
+    const bRoster = match.teamB?.roster?.filter(Boolean) || [];
+    const result  = quickSimulate(aRoster.length ? aRoster : 0.5, bRoster.length ? bRoster : 0.5);
+    match.winner  = result === 'blue' ? match.teamA : match.teamB;
   });
 
-  // Set finalists
-  const winners = semis.map(m => m.winner).filter(Boolean);
+  // Set finalists if both semis resolved
+  const winners = state.bracket.semis.map(m => m.winner).filter(Boolean);
   if (winners.length === 2) {
-    final.teamA = winners[0];
-    final.teamB = winners[1];
-    state.bracket.bracketRound = 'finals';
+    state.bracket.final.teamA = winners[0];
+    state.bracket.final.teamB = winners[1];
+    if (state.bracket.bracketRound === 'semis') state.bracket.bracketRound = 'finals';
   }
 }
 
-function resolveFinals(state) {
-  const { final } = state.bracket;
-  if (!final.winner) {
-    const aStr = final.teamA?.strength || 0.5;
-    const bStr = final.teamB?.strength || 0.5;
-    final.winner = quickSimulate(aStr, bStr) === 'blue' ? final.teamA : final.teamB;
-  }
-  state.bracket.champion = final.winner;
-  state.bracket.bracketRound = 'done';
-}
-
-function applyBracketResult(state, won, matchResult) {
-  const human = state.allTeams[0];
+function applyBracketResult(state, won) {
+  const human   = state.allTeams[0];
   const { bracket } = state;
 
   if (bracket.bracketRound === 'semis') {
     const match = bracket.semis.find(m => m.teamA?.isHuman || m.teamB?.isHuman);
-    if (match) {
-      match.winner = won ? human : (match.teamA?.isHuman ? match.teamB : match.teamA);
-      if (!won) {
-        bracket.bracketRound = 'eliminated';
-        bracket.champion = null;
-      } else {
-        // Simulate the other semi if not done
-        resolveSemis(state);
-      }
+    if (!match) return;
+
+    const opponent = match.teamA?.isHuman ? match.teamB : match.teamA;
+    match.winner   = won ? human : opponent;
+
+    if (!won) {
+      bracket.bracketRound = 'eliminated';
+      return;
+    }
+
+    // Resolve the other semi
+    resolveAISemis(state);
+
+    // Advance to finals
+    const allWinners = bracket.semis.map(m => m.winner).filter(Boolean);
+    if (allWinners.length === 2) {
+      bracket.final.teamA = allWinners[0];
+      bracket.final.teamB = allWinners[1];
+      bracket.bracketRound = 'finals';
     }
   } else if (bracket.bracketRound === 'finals') {
-    const final = bracket.final;
-    final.winner = won ? human : (final.teamA?.isHuman ? final.teamB : final.teamA);
-    bracket.champion = final.winner;
+    const opponent = bracket.final.teamA?.isHuman ? bracket.final.teamB : bracket.final.teamA;
+    bracket.final.winner = won ? human : opponent;
+    bracket.champion     = bracket.final.winner;
     bracket.bracketRound = 'done';
   }
 }

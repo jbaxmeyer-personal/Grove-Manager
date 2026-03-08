@@ -1,6 +1,6 @@
 // js/ui.js — All rendering functions
 
-// ─── Screen Management ────────────────────────────────────────────────────────
+// ─── Screen / Tab Management ─────────────────────────────────────────────────
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -11,410 +11,440 @@ function showScreen(id) {
 function showTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
-  const content = document.getElementById(`tab-${tabName}`);
-  if (btn) btn.classList.add('active');
-  if (content) content.classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${tabName}"]`)?.classList.add('active');
+  document.getElementById(`tab-${tabName}`)?.classList.add('active');
 }
 
-// ─── Header ───────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function tierColor(tier)  { return ['','#95a5a6','#2ecc71','#3498db','#9b59b6','#d4af37'][tier]||'#aaa'; }
+function tierLabel(tier)  { return ['','Iron','Silver','Gold','Platinum','Diamond'][tier]||''; }
+function posIcon(pos)     { return { top:'⚔️', jungle:'🌿', mid:'🔮', adc:'🏹', support:'🛡️' }[pos]||'👤'; }
+function starBadge(stars) { return stars === 3 ? '<span class="star-badge s3">★★★</span>' : stars === 2 ? '<span class="star-badge s2">★★</span>' : ''; }
+
+function statAbbr(key) {
+  return { mechanics:'MEC', laning:'LAN', gameSense:'GS', teamfighting:'TF', communication:'COM', clutch:'CLU', consistency:'CON', draftIQ:'DIQ' }[key] || key.slice(0,3).toUpperCase();
+}
+
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+// ─── Header ──────────────────────────────────────────────────────────────────
 
 function renderHeader(state) {
-  document.getElementById('header-team-name').textContent = state.teamName;
-  document.getElementById('header-record').textContent = `${state.allTeams[0].wins}W - ${state.allTeams[0].losses}L`;
-  document.getElementById('header-gold').textContent = state.gold;
-  document.getElementById('header-level').textContent = state.level;
-
-  const phaseLabels = {
-    shop: `Round ${state.round} of ${CONFIG.ROUND_ROBIN_ROUNDS} — Shop`,
-    bracket_shop: 'Playoffs — Shop',
-  };
-  const phaseLabelEl = document.getElementById('header-phase');
-  if (phaseLabelEl) phaseLabelEl.textContent = phaseLabels[state.phase] || '';
+  setText('header-team-name', state.teamName);
+  setText('header-record',    `${(state.allTeams[0]||{}).wins||0}W – ${(state.allTeams[0]||{}).losses||0}L`);
+  setText('header-gold',      state.gold);
+  setText('header-level',     state.level);
 }
 
-// ─── XP Bar ───────────────────────────────────────────────────────────────────
+// ─── XP Bar ──────────────────────────────────────────────────────────────────
 
 function renderXPBar(state) {
-  const currentLevelXP = CONFIG.LEVEL_XP[state.level] || 0;
-  const nextLevelXP    = CONFIG.LEVEL_XP[state.level + 1] || currentLevelXP;
-  const xpInLevel      = state.xp - currentLevelXP;
-  const xpNeeded       = nextLevelXP - currentLevelXP;
-  const pct            = state.level >= 5 ? 100 : (xpInLevel / xpNeeded) * 100;
+  const curXP    = CONFIG.LEVEL_XP[state.level]     || 0;
+  const nextXP   = CONFIG.LEVEL_XP[state.level + 1] || curXP;
+  const inLevel  = state.xp - curXP;
+  const needed   = nextXP - curXP;
+  const pct      = state.level >= 5 ? 100 : (inLevel / needed) * 100;
 
   const fill  = document.getElementById('xp-fill');
   const label = document.getElementById('xp-label');
   if (fill)  fill.style.width = `${pct}%`;
-  if (label) label.textContent = state.level >= 5
-    ? 'MAX LEVEL'
-    : `${xpInLevel}/${xpNeeded} XP · Level ${state.level}`;
-
-  const countEl = document.getElementById('roster-count');
-  if (countEl) countEl.textContent = `${state.roster.filter(Boolean).length}/${maxRosterSize(state)}`;
+  if (label) label.textContent = state.level >= 5 ? 'MAX LEVEL' : `${inLevel}/${needed} XP · Lv${state.level}`;
 }
 
-// ─── Tier helpers ─────────────────────────────────────────────────────────────
+// ─── Player Card ─────────────────────────────────────────────────────────────
 
-function tierColor(tier) {
-  const colors = { 1:'#95a5a6', 2:'#2ecc71', 3:'#3498db', 4:'#9b59b6', 5:'#d4af37' };
-  return colors[tier] || '#aaa';
-}
-
-function tierLabel(tier) {
-  return ['', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'][tier] || 'Unknown';
-}
-
-function starDisplay(stars) {
-  return stars === 3 ? '★★★' : stars === 2 ? '★★' : '';
-}
-
-function posIcon(pos) {
-  const icons = { top:'⚔️', jungle:'🌿', mid:'🔮', adc:'🏹', support:'🛡️' };
-  return icons[pos] || '👤';
-}
-
-// ─── Player Card ──────────────────────────────────────────────────────────────
-
-function playerCardHTML(player, context = 'shop', shopIndex = null) {
+function playerCardHTML(player, ctx, extra = {}) {
   if (!player) {
-    return `<div class="player-card empty"><span class="empty-label">${context === 'roster' ? 'Empty Slot' : 'Empty'}</span></div>`;
+    const label = extra.locked ? `🔒 Slot ${extra.slotNum}` : 'Empty';
+    return `<div class="player-card empty${extra.locked?' locked':''}"><span class="empty-label">${label}</span></div>`;
   }
 
-  const cost   = CONFIG.TIER_COST[player.tier];
-  const sell   = CONFIG.TIER_SELL[player.tier];
-  const color  = tierColor(player.tier);
-  const stars  = starDisplay(player.stars);
-  const stats  = context === 'shop' ? player.stats : getEffectiveStats(player);
+  const color    = tierColor(player.tier);
+  const eStats   = getEffectiveStats(player);
+  const top3     = Object.entries(eStats).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const isSelected = extra.selectedId && extra.selectedId === player.instanceId;
 
-  let actionBtn = '';
-  if (context === 'shop') {
-    actionBtn = `<button class="btn-buy" data-shop-index="${shopIndex}" onclick="onBuyPlayer(${shopIndex})">Buy · ${cost}g</button>`;
-  } else if (context === 'roster' || context === 'bench') {
-    actionBtn = `<button class="btn-sell" onclick="onSellPlayer('${player.instanceId}')">Sell · ${sell}g</button>`;
+  const traitBadges = (player.traits || []).map(t => {
+    const def = CONFIG.TRAITS[t];
+    return def ? `<span class="trait-chip" style="border-color:${def.color};color:${def.color}">${def.icon} ${t}</span>` : '';
+  }).join('');
+
+  const champList = (player.champions || []).join(' · ');
+
+  let actionRow = '';
+  if (ctx === 'shop') {
+    const cost = CONFIG.TIER_COST[player.tier];
+    actionRow = `<button class="btn-buy" onclick="onBuyPlayer(${extra.shopIndex})">Buy <b>${cost}g</b></button>`;
+  } else if (ctx === 'roster') {
+    const sell = CONFIG.TIER_SELL[player.tier];
+    actionRow = `
+      <div class="card-btn-row">
+        <button class="btn-to-bench" onclick="onMoveToBench('${player.instanceId}')">▼ Bench</button>
+        <button class="btn-sell" onclick="onSellPlayer('${player.instanceId}')">Sell ${sell}g</button>
+      </div>`;
+  } else if (ctx === 'bench') {
+    const sell = CONFIG.TIER_SELL[player.tier];
+    actionRow = `
+      <div class="card-btn-row">
+        <button class="btn-to-roster" onclick="onMoveToRoster('${player.instanceId}')">▲ Start</button>
+        <button class="btn-sell" onclick="onSellPlayer('${player.instanceId}')">Sell ${sell}g</button>
+      </div>`;
   }
-
-  const champList = (player.champions || []).join(', ');
-  const topStat   = getTopStats(player.stats);
 
   return `
-    <div class="player-card tier-${player.tier}" style="border-color:${color}" data-instance="${player.instanceId || ''}">
-      <div class="card-header" style="background:${color}22">
+    <div class="player-card tier-${player.tier}${isSelected?' selected':''}" style="border-color:${color}">
+      <div class="card-top" style="background:${color}18">
         <span class="card-pos">${posIcon(player.position)}</span>
-        <span class="card-name">${player.name}${stars ? ` <span class="stars">${stars}</span>` : ''}</span>
+        <span class="card-name">${player.name}${starBadge(player.stars)}</span>
         <span class="card-tier" style="color:${color}">${tierLabel(player.tier)}</span>
       </div>
       <div class="card-region">${player.region}</div>
+      <div class="card-traits">${traitBadges}</div>
       <div class="card-champs" title="Champion Pool">🎮 ${champList}</div>
-      <div class="card-stats-mini">${topStat}</div>
-      <div class="card-actions">${actionBtn}</div>
+      <div class="card-stats">
+        ${top3.map(([k,v]) => `<span class="stat-pip">${statAbbr(k)}<b>${v}</b></span>`).join('')}
+      </div>
+      ${actionRow ? `<div class="card-actions">${actionRow}</div>` : ''}
     </div>`;
 }
 
-function getTopStats(stats) {
-  const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  return sorted.map(([k, v]) => `<span class="stat-pill">${statAbbr(k)}<b>${v}</b></span>`).join('');
-}
-
-function statAbbr(key) {
-  const map = { mechanics:'MEC', laning:'LAN', gameSense:'GS', teamfighting:'TF', communication:'COM', clutch:'CLU', consistency:'CON', draftIQ:'DIQ' };
-  return map[key] || key.toUpperCase().slice(0,3);
-}
-
-// ─── Shop ─────────────────────────────────────────────────────────────────────
+// ─── Shop Rendering ───────────────────────────────────────────────────────────
 
 function renderShop(state) {
-  const container = document.getElementById('shop-slots');
-  if (!container) return;
+  // Shop slots
+  const shopEl = document.getElementById('shop-slots');
+  if (shopEl) {
+    shopEl.innerHTML = state.shopSlots.map((p, i) =>
+      p ? playerCardHTML(p, 'shop', { shopIndex: i })
+        : `<div class="player-card empty"><span class="empty-label">—</span></div>`
+    ).join('');
+  }
 
-  container.innerHTML = state.shopSlots.map((p, i) =>
-    p ? playerCardHTML(p, 'shop', i) : `<div class="player-card empty"><span class="empty-label">Sold Out</span></div>`
-  ).join('');
+  // Active roster (always 5 slots)
+  const rosterEl = document.getElementById('active-roster');
+  if (rosterEl) {
+    rosterEl.innerHTML = Array.from({ length: CONFIG.ROSTER_MAX }, (_, i) => {
+      const p = state.roster[i] || null;
+      return p ? playerCardHTML(p, 'roster', { selectedId: state.selectedUnit?.instanceId })
+               : `<div class="player-card empty"><span class="empty-label">Empty Slot</span></div>`;
+    }).join('');
+  }
 
-  renderRosterInShop(state);
-  renderBench(state);
+  // Bench
+  const benchEl = document.getElementById('bench-slots');
+  if (benchEl) {
+    benchEl.innerHTML = state.bench.map(p =>
+      playerCardHTML(p, 'bench', { selectedId: state.selectedUnit?.instanceId })
+    ).join('') || '<div class="bench-empty">No bench players</div>';
+    setText('bench-count', `${state.bench.length}/${CONFIG.BENCH_MAX}`);
+  }
+
   renderXPBar(state);
+  renderSynergies(state);
   renderHeader(state);
 
+  // Lock button text
   const lockBtn = document.getElementById('btn-lock-shop');
   if (lockBtn) lockBtn.textContent = state.shopLocked ? '🔓 Unlock Shop' : '🔒 Lock Shop';
 }
 
-function renderRosterInShop(state) {
-  const container = document.getElementById('active-roster');
-  if (!container) return;
+// ─── Synergy Panel ───────────────────────────────────────────────────────────
 
-  const maxSlots = maxRosterSize(state);
-  const slots    = Array.from({ length: CONFIG.ROSTER_MAX }, (_, i) => state.roster[i] || null);
+function renderSynergies(state) {
+  const el = document.getElementById('synergy-panel');
+  if (!el) return;
 
-  container.innerHTML = slots.map((p, i) => {
-    if (i >= maxSlots) {
-      return `<div class="player-card locked"><span class="empty-label">🔒 Lv${i+1}</span></div>`;
-    }
-    return playerCardHTML(p, 'roster', i);
+  const roster = state.roster.filter(Boolean);
+  if (!roster.length) { el.innerHTML = '<p class="syn-empty">Add players to see synergies</p>'; return; }
+
+  const traitResult  = calcTraitSynergies(roster);
+  const regionResult = calcRegionSynergy(roster);
+
+  // Trait rows
+  const traitRows = traitResult.active.map(s => {
+    const def       = CONFIG.TRAITS[s.trait];
+    const isActive  = s.activeTier >= 0;
+    const nextNote  = s.nextAt ? ` (${s.nextAt - s.count} more for tier ${s.activeTier+2})` : '';
+    const bonusText = isActive ? def.desc[s.activeTier] : def.thresholds[0] - s.count > 0
+      ? `need ${def.thresholds[0] - s.count} more` : '';
+    return `
+      <div class="syn-row${isActive?' syn-active':''}">
+        <span class="syn-icon" style="color:${def.color}">${def.icon}</span>
+        <span class="syn-name">${s.trait}</span>
+        <span class="syn-count${isActive?' count-active':''}">${s.count}</span>
+        <span class="syn-bonus">${bonusText}${nextNote}</span>
+      </div>`;
   }).join('');
-}
 
-function renderBench(state) {
-  const container = document.getElementById('bench-slots');
-  const countEl   = document.getElementById('bench-count');
-  if (!container) return;
+  // Region row
+  let regionRow = '';
+  if (regionResult.maxCount >= 2) {
+    const color = CONFIG.REGION_COLORS[regionResult.maxRegion] || '#aaa';
+    regionRow = `
+      <div class="syn-row syn-active syn-region">
+        <span class="syn-icon" style="color:${color}">🌍</span>
+        <span class="syn-name">${regionResult.maxRegion}</span>
+        <span class="syn-count count-active">${regionResult.maxCount}</span>
+        <span class="syn-bonus">${regionResult.desc}</span>
+      </div>`;
+  }
 
-  const maxBench = CONFIG.BENCH_MAX;
-  const slots    = Array.from({ length: maxBench }, (_, i) => state.bench[i] || null);
-
-  container.innerHTML = slots.map((p) =>
-    p ? playerCardHTML(p, 'bench') : `<div class="player-card empty small"></div>`
-  ).join('');
-
-  if (countEl) countEl.textContent = `${state.bench.length}/${maxBench}`;
+  el.innerHTML = `
+    <div class="syn-title">Team Synergies</div>
+    ${traitRows || '<p class="syn-empty">No trait synergies yet</p>'}
+    ${regionRow}`;
 }
 
 // ─── Standings ────────────────────────────────────────────────────────────────
 
 function renderStandings(state) {
-  const container = document.getElementById('standings-table');
-  if (!container) return;
+  const el = document.getElementById('standings-table');
+  if (!el) return;
 
   const standings = getStandings(state);
+  const roundDone = Math.max(0, state.round - 1);
 
-  container.innerHTML = `
-    <h3>Season Standings — Round ${state.round - 1} of ${CONFIG.ROUND_ROBIN_ROUNDS}</h3>
+  el.innerHTML = `
+    <h3 style="color:var(--gold);margin-bottom:12px">
+      Season Standings — Round ${roundDone}/${CONFIG.ROUND_ROBIN_ROUNDS}
+    </h3>
     <table class="standings">
-      <thead>
-        <tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>K/D</th></tr>
-      </thead>
+      <thead><tr><th>#</th><th>Team</th><th>Strategy</th><th>W</th><th>L</th><th>K/D</th></tr></thead>
       <tbody>
-        ${standings.map((team, i) => {
-          const isHuman  = team.isHuman;
+        ${standings.map((t, i) => {
           const inBracket = i < CONFIG.BRACKET_SIZE;
-          const rowClass  = isHuman ? 'row-human' : (inBracket ? 'row-bracket' : '');
-          const diff      = team.kills - team.deaths;
-          return `<tr class="${rowClass}">
-            <td>${i + 1}${inBracket ? ' 🏆' : ''}</td>
-            <td>${isHuman ? '⭐ ' : ''}${team.name}</td>
-            <td>${team.wins}</td>
-            <td>${team.losses}</td>
-            <td>${team.kills}/${team.deaths} (${diff >= 0 ? '+' : ''}${diff})</td>
+          const diff = (t.kills||0) - (t.deaths||0);
+          return `<tr class="${t.isHuman?'row-human':''} ${inBracket?'row-bracket':''}">
+            <td>${i+1}${inBracket?' 🏆':''}</td>
+            <td>${t.isHuman?'⭐ ':''}${t.name}</td>
+            <td><span class="strat-badge">${t.isHuman?'You':t.strategy||'—'}</span></td>
+            <td><b>${t.wins||0}</b></td>
+            <td>${t.losses||0}</td>
+            <td>${t.kills||0}/${t.deaths||0} <span style="color:${diff>=0?'var(--win)':'var(--loss)'}">(${diff>=0?'+':''}${diff})</span></td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>
-    <p class="bracket-note">Top 4 teams advance to playoffs.</p>`;
+    <p class="bracket-note">🏆 Top ${CONFIG.BRACKET_SIZE} advance to Playoffs</p>`;
 }
 
 // ─── Opponent Preview ─────────────────────────────────────────────────────────
 
 function renderOpponentPreview(state) {
-  const container = document.getElementById('opponent-info');
-  if (!container) return;
+  const el = document.getElementById('opponent-info');
+  if (!el) return;
 
-  const opp = getHumanOpponent(state);
-  if (!opp) { container.innerHTML = '<p>No opponent found.</p>'; return; }
+  const opp = state._bracketOpponent || getHumanOpponent(state);
+  if (!opp) { el.innerHTML = '<p style="color:var(--text-dim)">No opponent found.</p>'; return; }
 
-  const roster = opp.roster || [];
-  const rosterHTML = roster.map(p =>
-    `<div class="opp-player"><span>${posIcon(p.position)}</span><span class="opp-name">${p.name}</span><span class="opp-region">${p.region}</span><span class="opp-tier" style="color:${tierColor(p.tier)}">${tierLabel(p.tier)}</span></div>`
-  ).join('');
+  const roster = (opp.roster || []).filter(Boolean);
 
-  container.innerHTML = `
+  el.innerHTML = `
     <div class="opp-header">
       <span class="opp-team-name">${opp.name}</span>
-      <span class="opp-record">${opp.wins}W - ${opp.losses}L</span>
+      <span class="opp-record">${opp.wins||0}W–${opp.losses||0}L</span>
     </div>
-    <div class="opp-roster">${rosterHTML || '<p>Unknown roster</p>'}</div>`;
+    <div class="opp-strategy">Strategy: <b>${opp.strategy||'Unknown'}</b></div>
+    <div class="opp-roster">
+      ${roster.length ? roster.map(p => `
+        <div class="opp-player">
+          <span>${posIcon(p.position)}</span>
+          <span class="opp-name">${p.name}${p.stars>1?` ★${p.stars}`:''}</span>
+          <span style="color:${tierColor(p.tier)};font-size:11px">${tierLabel(p.tier)}</span>
+        </div>`).join('')
+      : '<p style="color:var(--text-dim);font-size:12px">Roster building...</p>'}
+    </div>`;
 }
 
-// ─── Match Screen ─────────────────────────────────────────────────────────────
+// ─── Match — Draft ────────────────────────────────────────────────────────────
 
 function renderDraft(matchResult, blueTeamName, redTeamName) {
-  document.getElementById('match-blue-name').textContent = blueTeamName;
-  document.getElementById('match-red-name').textContent  = redTeamName;
+  setText('match-blue-name', blueTeamName);
+  setText('match-red-name',  redTeamName);
 
-  const blueEl = document.getElementById('draft-blue');
-  const redEl  = document.getElementById('draft-red');
-  if (!blueEl || !redEl) return;
-
-  const renderDraftTeam = (picks) => picks.filter(Boolean).map(pick =>
-    `<div class="draft-pick">
+  const renderPicks = (picks) => picks.filter(Boolean).map(pick => `
+    <div class="draft-pick">
       <span class="pick-pos">${posIcon(pick.position)}</span>
       <span class="pick-player">${pick.player}</span>
-      <span class="pick-champ">on ${pick.champion}</span>
-    </div>`
-  ).join('');
+      <span class="pick-champ">→ ${pick.champion}</span>
+    </div>`).join('');
 
-  blueEl.innerHTML = renderDraftTeam(matchResult.draft.blue.filter(Boolean));
-  redEl.innerHTML  = renderDraftTeam(matchResult.draft.red.filter(Boolean));
+  document.getElementById('draft-blue').innerHTML = renderPicks(matchResult.draft.blue.filter(Boolean));
+  document.getElementById('draft-red').innerHTML  = renderPicks(matchResult.draft.red.filter(Boolean));
 
-  // Comp synergies
-  const synergyEl = document.getElementById('comp-synergies');
-  if (synergyEl) {
-    const blueSyn = matchResult.draft.blueComp ? COMP_SYNERGIES[matchResult.draft.blueComp] : null;
-    const redSyn  = matchResult.draft.redComp  ? COMP_SYNERGIES[matchResult.draft.redComp]  : null;
-    const parts   = [];
-    if (blueSyn) parts.push(`<span class="synergy blue-syn">🔵 ${blueSyn.name}: ${blueSyn.desc}</span>`);
-    if (redSyn)  parts.push(`<span class="synergy red-syn">🔴 ${redSyn.name}: ${redSyn.desc}</span>`);
-    synergyEl.innerHTML = parts.join('');
+  const synEl = document.getElementById('comp-synergies');
+  if (synEl) {
+    const bSyn = matchResult.draft.blueComp ? COMP_SYNERGIES[matchResult.draft.blueComp] : null;
+    const rSyn = matchResult.draft.redComp  ? COMP_SYNERGIES[matchResult.draft.redComp]  : null;
+    const parts = [];
+    if (bSyn) parts.push(`<span class="synergy blue-syn">🔵 ${bSyn.name}: ${bSyn.desc}</span>`);
+    if (rSyn) parts.push(`<span class="synergy red-syn">🔴 ${rSyn.name}: ${rSyn.desc}</span>`);
+    synEl.innerHTML = parts.join('');
+  }
+
+  // Show rating comparison
+  const ratingEl = document.getElementById('rating-compare');
+  if (ratingEl && matchResult.ratings) {
+    const bR = matchResult.ratings.blue;
+    const rR = matchResult.ratings.red;
+    ratingEl.innerHTML = `
+      <div class="rating-bar-group">
+        ${ratingBar('Early Game', bR.earlyRating, rR.earlyRating)}
+        ${ratingBar('Teamfighting', bR.tfRating, rR.tfRating)}
+        ${ratingBar('Late Game', bR.lateRating, rR.lateRating)}
+        ${ratingBar('Draft', bR.draftRating, rR.draftRating)}
+      </div>`;
   }
 }
 
+function ratingBar(label, bVal, rVal) {
+  const total = bVal + rVal || 1;
+  const bPct  = Math.round((bVal / total) * 100);
+  return `
+    <div class="r-bar-row">
+      <span class="r-label">${label}</span>
+      <div class="r-bar-wrap">
+        <div class="r-bar-blue" style="width:${bPct}%"></div>
+        <div class="r-bar-red"  style="width:${100-bPct}%"></div>
+      </div>
+      <span class="r-vals">${Math.round(bVal)} | ${Math.round(rVal)}</span>
+    </div>`;
+}
+
+// ─── Match — Play-by-Play ─────────────────────────────────────────────────────
+
 function renderMatchPhase(matchResult, phase) {
-  const container = document.getElementById('play-by-play');
-  if (!container) return;
+  const el = document.getElementById('play-by-play');
+  if (!el) return;
 
   const events = matchResult.events[phase] || [];
-  container.innerHTML = events.map(e => eventHTML(e)).join('');
+  el.innerHTML = events.map((e, i) => `
+    <div class="event-entry event-${e.type}" style="animation-delay:${i*0.05}s">
+      <span class="event-time">${e.time}</span>
+      <span class="event-text">${e.text}</span>
+    </div>`).join('');
 
-  // Animate entries
-  container.querySelectorAll('.event-entry').forEach((el, i) => {
-    el.style.animationDelay = `${i * 0.06}s`;
-    el.classList.add('fade-in');
-  });
-
+  el.querySelectorAll('.event-entry').forEach(el => el.classList.add('fade-in'));
   updateScoreBar(matchResult);
 }
 
-function eventHTML(e) {
-  const typeClass = {
-    kill:'event-kill', objective:'event-objective', teamfight:'event-teamfight',
-    commentary:'event-commentary', result:'event-result'
-  }[e.type] || '';
-  return `<div class="event-entry ${typeClass}">
-    <span class="event-time">${e.time}</span>
-    <span class="event-text">${e.text}</span>
-  </div>`;
-}
-
-function updateScoreBar(matchResult) {
-  const { stats, advantage } = matchResult;
-
-  setText('score-blue-kills',   stats.blue.kills);
-  setText('score-blue-dragons', `🐉${stats.blue.dragons}`);
-  setText('score-blue-towers',  `🏰${stats.blue.towers}`);
-  setText('score-red-kills',    stats.red.kills);
-  setText('score-red-dragons',  `🐉${stats.red.dragons}`);
-  setText('score-red-towers',   `🏰${stats.red.towers}`);
+function updateScoreBar(mr) {
+  const s = mr.stats;
+  setText('score-blue-kills',   `${s.blue.kills}K`);
+  setText('score-blue-dragons', `🐉${s.blue.dragons}`);
+  setText('score-blue-towers',  `🏰${s.blue.towers}`);
+  setText('score-red-kills',    `${s.red.kills}K`);
+  setText('score-red-dragons',  `🐉${s.red.dragons}`);
+  setText('score-red-towers',   `🏰${s.red.towers}`);
 
   const fill = document.getElementById('advantage-fill');
   if (fill) {
-    fill.style.width    = `${advantage}%`;
-    fill.style.background = advantage >= 50
-      ? `linear-gradient(90deg, #1a4a8c ${100 - advantage}%, #4fc3f7 100%)`
-      : `linear-gradient(90deg, #ff7b7b 0%, #8c1a1a ${advantage}%)`;
+    fill.style.width = `${mr.advantage}%`;
+    fill.style.background = mr.advantage >= 50
+      ? `linear-gradient(90deg, #0d2a5a ${100-mr.advantage}%, #4fc3f7 100%)`
+      : `linear-gradient(90deg, #ff7b7b 0%, #5a0d0d ${mr.advantage}%)`;
   }
 }
 
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
-
-// ─── Results Screen ───────────────────────────────────────────────────────────
+// ─── Results ──────────────────────────────────────────────────────────────────
 
 function renderResults(state, matchResult, won, income) {
-  const banner  = document.getElementById('results-banner');
-  const goldDiv = document.getElementById('results-gold');
-  const statsDiv= document.getElementById('results-stats');
-  if (!banner) return;
+  const bannerEl = document.getElementById('results-banner');
+  const goldEl   = document.getElementById('results-gold');
+  const statsEl  = document.getElementById('results-stats');
+  if (!bannerEl) return;
 
-  banner.className  = `results-banner ${won ? 'win' : 'loss'}`;
-  banner.innerHTML  = won
+  bannerEl.className = `results-banner ${won ? 'win' : 'loss'}`;
+  bannerEl.innerHTML = won
     ? `<span class="result-icon">🏆</span><span class="result-text">VICTORY</span>`
     : `<span class="result-icon">💀</span><span class="result-text">DEFEAT</span>`;
 
-  goldDiv.innerHTML = `
+  goldEl.innerHTML = `
     <h3>Gold Earned</h3>
     <div class="gold-breakdown">
-      <span>Base: <b>${income.base}g</b></span>
-      <span>Interest: <b>${income.interest}g</b></span>
-      <span>Streak: <b>${income.streakBonus}g</b></span>
-      <span class="gold-total">Total: <b>${income.total}g</b></span>
+      <span>Base <b>${income.base}g</b></span>
+      <span>Interest <b>${income.interest}g</b></span>
+      <span>Streak <b>${income.streakBonus}g</b></span>
+      <span class="gold-total">Total <b>${income.total}g</b></span>
     </div>`;
 
   const s = matchResult.stats;
-  statsDiv.innerHTML = `
+  statsEl.innerHTML = `
     <h3>Match Stats</h3>
     <table class="match-stats-table">
-      <thead><tr><th>${state.teamName}</th><th>Stat</th><th>Opponent</th></tr></thead>
+      <thead><tr><th>${state.teamName}</th><th></th><th>Opponent</th></tr></thead>
       <tbody>
-        <tr><td>${s.blue.kills}</td><td>Kills</td><td>${s.red.kills}</td></tr>
-        <tr><td>${s.blue.deaths}</td><td>Deaths</td><td>${s.red.deaths}</td></tr>
-        <tr><td>${s.blue.dragons}</td><td>Dragons</td><td>${s.red.dragons}</td></tr>
-        <tr><td>${s.blue.towers}</td><td>Towers</td><td>${s.red.towers}</td></tr>
-        <tr><td>${s.blue.barons||0}</td><td>Barons</td><td>${s.red.barons||0}</td></tr>
+        <tr><td class="blue-val">${s.blue.kills}</td><td>Kills</td><td class="red-val">${s.red.kills}</td></tr>
+        <tr><td class="blue-val">${s.blue.dragons}</td><td>Dragons</td><td class="red-val">${s.red.dragons}</td></tr>
+        <tr><td class="blue-val">${s.blue.towers}</td><td>Towers</td><td class="red-val">${s.red.towers}</td></tr>
+        <tr><td class="blue-val">${s.blue.barons}</td><td>Barons</td><td class="red-val">${s.red.barons}</td></tr>
       </tbody>
     </table>`;
 }
 
-// ─── Bracket Screen ───────────────────────────────────────────────────────────
+// ─── Bracket ──────────────────────────────────────────────────────────────────
 
 function renderBracket(state) {
-  const container = document.getElementById('bracket-view');
-  if (!container || !state.bracket) return;
+  const el = document.getElementById('bracket-view');
+  if (!el || !state.bracket) return;
 
   const { semis, final, champion } = state.bracket;
 
-  const matchHTML = (match, label) => {
-    const aWon = match.winner && match.winner.id === match.teamA?.id;
-    const bWon = match.winner && match.winner.id === match.teamB?.id;
+  const matchCard = (match, label) => {
+    const aW = match.winner?.id === match.teamA?.id;
+    const bW = match.winner?.id === match.teamB?.id;
     return `
       <div class="bracket-match">
         <div class="bracket-label">${label}</div>
-        <div class="bracket-team ${aWon ? 'winner' : ''} ${match.teamA?.isHuman ? 'human-team' : ''}">
-          ${match.teamA?.isHuman ? '⭐ ' : ''}${match.teamA?.name || 'TBD'}
-          ${aWon ? ' 🏆' : ''}
+        <div class="bracket-team ${aW?'winner':''} ${match.teamA?.isHuman?'human-team':''}">
+          ${match.teamA?.isHuman?'⭐ ':''}${match.teamA?.name||'TBD'}${aW?' 🏆':''}
         </div>
-        <div class="vs-label">VS</div>
-        <div class="bracket-team ${bWon ? 'winner' : ''} ${match.teamB?.isHuman ? 'human-team' : ''}">
-          ${match.teamB?.isHuman ? '⭐ ' : ''}${match.teamB?.name || 'TBD'}
-          ${bWon ? ' 🏆' : ''}
+        <div class="vs-label">vs</div>
+        <div class="bracket-team ${bW?'winner':''} ${match.teamB?.isHuman?'human-team':''}">
+          ${match.teamB?.isHuman?'⭐ ':''}${match.teamB?.name||'TBD'}${bW?' 🏆':''}
         </div>
       </div>`;
   };
 
-  container.innerHTML = `
+  el.innerHTML = `
     <div class="bracket-grid">
       <div class="bracket-col">
         <h3>Semi-Finals</h3>
-        ${semis.map((m, i) => matchHTML(m, `Match ${i+1}`)).join('')}
+        ${semis.map((m,i) => matchCard(m, m.label||`Match ${i+1}`)).join('')}
       </div>
+      <div class="bracket-arrow">→</div>
       <div class="bracket-col">
         <h3>Grand Final</h3>
-        ${matchHTML(final, 'Final')}
+        ${matchCard(final, 'Final')}
         ${champion ? `<div class="champion-banner">🏆 Champion: ${champion.name}</div>` : ''}
       </div>
     </div>`;
 }
 
-// ─── Game Over Screen ─────────────────────────────────────────────────────────
+// ─── Game Over ────────────────────────────────────────────────────────────────
 
 function renderGameOver(state, isChampion) {
   const el = document.getElementById('gameover-content');
   if (!el) return;
 
-  const human = state.allTeams[0];
+  const human    = state.allTeams[0];
   const standings = getStandings(state);
-  const finalPlace = standings.findIndex(t => t.isHuman) + 1;
+  const place    = standings.findIndex(t => t.isHuman) + 1;
 
-  if (isChampion) {
-    el.innerHTML = `
-      <div class="gameover-win">
-        <div class="trophy-big">🏆</div>
-        <h1>WORLD CHAMPIONS!</h1>
-        <p>${state.teamName} has conquered the season!</p>
-        <p class="final-record">${human.wins}W - ${human.losses}L · ${human.kills}K / ${human.deaths}D</p>
-      </div>`;
-  } else {
-    const messages = {
-      2: 'Runner-up — so close!',
-      3: 'Semifinalist — respectable!',
-      4: 'Semifinalist — came up short.',
-    };
-    el.innerHTML = `
-      <div class="gameover-loss">
-        <div class="trophy-big">💀</div>
-        <h2>Season Over</h2>
-        <p>${messages[finalPlace] || `Finished ${finalPlace}th in the regular season.`}</p>
-        <p>${state.teamName} ended with a record of ${human.wins}W - ${human.losses}L</p>
-      </div>`;
-  }
+  const placeText = { 1:'🥇 Champions!', 2:'🥈 Runner-Up', 3:'🥉 3rd Place', 4:'4th Place' }[place] || `${place}th`;
+
+  el.innerHTML = isChampion ? `
+    <div class="gameover-win">
+      <div class="trophy-big">🏆</div>
+      <h1>WORLD CHAMPIONS!</h1>
+      <p>${state.teamName} defeats all challengers!</p>
+      <p class="final-record">${human.wins}W – ${human.losses}L · ${human.kills}K</p>
+    </div>` : `
+    <div class="gameover-loss">
+      <div class="trophy-big">${place <= 2 ? '🥈' : '💀'}</div>
+      <h2>${placeText}</h2>
+      <p>${state.teamName} ends the season with ${human.wins}W – ${human.losses}L</p>
+      ${place > 4 ? '<p>Didn\'t make playoffs — rebuild for next season.</p>' : '<p>So close! Better luck next time.</p>'}
+    </div>`;
 }
