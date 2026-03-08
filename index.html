@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rift Manager — LoL Auto-Battler</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ══════════════════ SETUP SCREEN ══════════════════ -->
+  <div id="screen-setup" class="screen active">
+    <div class="setup-container">
+      <div class="setup-logo">⚔️</div>
+      <h1 class="game-title">RIFT MANAGER</h1>
+      <p class="game-subtitle">Build your LoL pro team. Survive the season. Win the Finals.</p>
+      <div class="setup-form">
+        <label for="team-name-input">Team Name</label>
+        <input type="text" id="team-name-input" placeholder="e.g. Team Phoenix..." maxlength="24" />
+        <button id="btn-start-game" class="btn-primary btn-large">▶ Start Season</button>
+      </div>
+      <div class="setup-hints">
+        <div class="hint">🛒 Draft pros from the shop each round</div>
+        <div class="hint">⚔️ Watch your team battle play-by-play</div>
+        <div class="hint">🏆 Top 4 advance to the Playoffs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ MAIN GAME SCREEN ══════════════════ -->
+  <div id="screen-game" class="screen">
+
+    <!-- Header -->
+    <header class="game-header">
+      <div class="header-left">
+        <span id="header-team-name" class="header-team"></span>
+        <span id="header-record" class="header-record"></span>
+      </div>
+      <div class="header-center">
+        <span id="header-phase" class="header-phase"></span>
+      </div>
+      <div class="header-right">
+        <span class="resource-badge gold-badge">💰 <span id="header-gold">0</span>g</span>
+        <span class="resource-badge level-badge">Lv <span id="header-level">1</span></span>
+      </div>
+    </header>
+
+    <!-- Tab Nav -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="shop">🛒 Shop</button>
+      <button class="tab-btn" data-tab="roster">📋 Roster</button>
+      <button class="tab-btn" data-tab="standings">📊 Standings</button>
+    </nav>
+
+    <!-- ── SHOP TAB ── -->
+    <div id="tab-shop" class="tab-content active">
+      <div class="shop-layout">
+
+        <!-- Left: Controls + Shop + Active Roster -->
+        <div class="shop-main">
+          <div class="shop-controls">
+            <button id="btn-reroll"    class="btn-secondary">🔄 Reroll <span class="cost-badge">2g</span></button>
+            <button id="btn-lock-shop" class="btn-secondary">🔒 Lock Shop</button>
+            <button id="btn-buy-xp"   class="btn-secondary">⬆️ Buy XP <span class="cost-badge">4g</span></button>
+            <div class="xp-area">
+              <div class="xp-bar-wrap">
+                <div class="xp-bar"><div id="xp-fill" class="xp-fill"></div></div>
+              </div>
+              <span id="xp-label" class="xp-label">0/2 XP · Lv1</span>
+            </div>
+          </div>
+
+          <div class="section-label">Shop</div>
+          <div id="shop-slots" class="shop-slots"></div>
+
+          <div class="section-label">
+            Active Roster
+            <span id="roster-count" class="slot-count">0/1</span>
+          </div>
+          <div id="active-roster" class="active-roster"></div>
+
+          <div class="section-label">
+            Bench
+            <span id="bench-count" class="slot-count">0/9</span>
+          </div>
+          <div id="bench-slots" class="bench-slots"></div>
+        </div>
+
+        <!-- Right: Opponent Preview + Ready -->
+        <div class="shop-sidebar">
+          <div class="sidebar-card">
+            <h3 class="sidebar-title">Next Opponent</h3>
+            <div id="opponent-info"></div>
+          </div>
+          <button id="btn-ready" class="btn-primary btn-ready">⚔️ Ready for Battle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ROSTER TAB ── -->
+    <div id="tab-roster" class="tab-content">
+      <div class="roster-layout">
+        <div class="roster-section">
+          <h3>Active (up to 5)</h3>
+          <div id="active-roster" class="active-roster"></div>
+        </div>
+        <div class="roster-section">
+          <h3>Bench</h3>
+          <div id="bench-slots" class="bench-slots"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STANDINGS TAB ── -->
+    <div id="tab-standings" class="tab-content">
+      <div id="standings-table"></div>
+    </div>
+
+  </div><!-- /screen-game -->
+
+  <!-- ══════════════════ MATCH SCREEN ══════════════════ -->
+  <div id="screen-match" class="screen">
+    <div class="match-wrapper">
+
+      <!-- Match Header -->
+      <div class="match-header">
+        <div class="team-banner blue-banner">
+          <span id="match-blue-name">Your Team</span>
+        </div>
+        <div class="vs-circle">VS</div>
+        <div class="team-banner red-banner">
+          <span id="match-red-name">Opponent</span>
+        </div>
+      </div>
+
+      <!-- Draft Phase -->
+      <div id="draft-phase" class="draft-phase">
+        <h3 class="phase-title">Champion Draft</h3>
+        <div class="draft-grid">
+          <div class="draft-col blue-col">
+            <div class="draft-col-label blue-text">Your Team</div>
+            <div id="draft-blue" class="draft-picks"></div>
+          </div>
+          <div class="draft-col red-col">
+            <div class="draft-col-label red-text">Opponent</div>
+            <div id="draft-red" class="draft-picks"></div>
+          </div>
+        </div>
+        <div id="comp-synergies" class="comp-synergies"></div>
+        <button id="btn-start-match" class="btn-primary btn-large">▶ Simulate Match</button>
+      </div>
+
+      <!-- Match Phases / Play-by-Play -->
+      <div id="match-phases" class="match-phases" style="display:none">
+
+        <!-- Score Bar -->
+        <div class="score-bar">
+          <div class="score-side blue-score">
+            <span id="score-blue-kills">0K</span>
+            <span id="score-blue-dragons">🐉0</span>
+            <span id="score-blue-towers">🏰0</span>
+          </div>
+          <div class="adv-bar-wrap">
+            <div class="adv-bar"><div id="advantage-fill" class="adv-fill"></div></div>
+          </div>
+          <div class="score-side red-score">
+            <span id="score-red-kills">0K</span>
+            <span id="score-red-dragons">🐉0</span>
+            <span id="score-red-towers">🏰0</span>
+          </div>
+        </div>
+
+        <!-- Phase Tabs -->
+        <div class="phase-tabs">
+          <button class="phase-tab active" data-phase="laning">⚔️ Laning</button>
+          <button class="phase-tab" data-phase="midgame">🐉 Mid Game</button>
+          <button class="phase-tab" data-phase="lategame">🟣 Late Game</button>
+        </div>
+
+        <!-- Play-by-Play Feed -->
+        <div id="play-by-play" class="play-by-play"></div>
+
+        <!-- View Results -->
+        <div class="match-footer">
+          <button id="btn-view-results" class="btn-primary">📊 View Results</button>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /screen-match -->
+
+  <!-- ══════════════════ RESULTS SCREEN ══════════════════ -->
+  <div id="screen-results" class="screen">
+    <div class="results-wrapper">
+      <div id="results-banner" class="results-banner"></div>
+      <div id="results-gold"   class="results-section"></div>
+      <div id="results-stats"  class="results-section"></div>
+      <button id="btn-continue" class="btn-primary btn-large">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════ BRACKET SCREEN ══════════════════ -->
+  <div id="screen-bracket" class="screen">
+    <div class="bracket-wrapper">
+      <h2 class="bracket-title">🏆 Playoffs</h2>
+      <div id="bracket-view" class="bracket-view"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ GAME OVER SCREEN ══════════════════ -->
+  <div id="screen-gameover" class="screen">
+    <div class="gameover-wrapper">
+      <div id="gameover-content"></div>
+      <button id="btn-play-again" class="btn-primary btn-large">🔄 Play Again</button>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Scripts — load order matters! -->
+  <script src="js/data/config.js"></script>
+  <script src="js/data/champions.js"></script>
+  <script src="js/data/players.js"></script>
+  <script src="js/game/economy.js"></script>
+  <script src="js/game/shop.js"></script>
+  <script src="js/game/simulation.js"></script>
+  <script src="js/game/tournament.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>
