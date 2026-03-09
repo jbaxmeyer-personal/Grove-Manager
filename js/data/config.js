@@ -33,13 +33,12 @@ const CONFIG = {
   BRACKET_SIZE: 4,
 
   // Shop tier odds by player level [T1%, T2%, T3%, T4%, T5%]
-  // Minimum tier is T2 (no T1 players exist) — level 1 gets all T2
   TIER_ODDS: {
-    1: [  0, 100,  0,  0,  0],
-    2: [  0,  72, 24,  4,  0],
-    3: [  0,  45, 35, 17,  3],
-    4: [  0,  22, 35, 30, 13],
-    5: [  0,   8, 22, 38, 32],
+    1: [ 38,  52,  10,   0,  0],
+    2: [ 14,  58,  22,   6,  0],
+    3: [  3,  38,  38,  18,  3],
+    4: [  0,  16,  34,  34, 16],
+    5: [  0,   6,  22,  38, 34],
   },
 
   // Star upgrade multipliers (applied to base stats)
@@ -144,7 +143,7 @@ const CONFIG = {
   },
   REGION_COLORS: {
     Korea: '#4fc3f7', China: '#ff7043', EU: '#ab47bc',
-    NA: '#26a69a', SEA: '#d4e157', SA: '#ffa726',
+    NA: '#26a69a', SEA: '#d4e157', LATAM: '#ffa726',
   },
 
   // ─── AI STRATEGIES ────────────────────────────────────────────

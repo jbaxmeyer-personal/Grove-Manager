@@ -314,19 +314,134 @@ function ratingBar(label, bVal, rVal) {
 
 // ─── Match — Play-by-Play ─────────────────────────────────────────────────────
 
-function renderMatchPhase(matchResult, phase) {
-  const el = document.getElementById('play-by-play');
-  if (!el) return;
+let _pbpTimeouts = [];
 
-  const events = matchResult.events[phase] || [];
-  el.innerHTML = events.map((e, i) => `
-    <div class="event-entry event-${e.type}" style="animation-delay:${i*0.05}s">
-      <span class="event-time">${e.time}</span>
-      <span class="event-text">${e.text}</span>
-    </div>`).join('');
+function startPlayByPlay(matchResult, blueTeamName, redTeamName) {
+  // Clear any existing timeouts
+  _pbpTimeouts.forEach(t => clearTimeout(t));
+  _pbpTimeouts = [];
 
-  el.querySelectorAll('.event-entry').forEach(el => el.classList.add('fade-in'));
-  updateScoreBar(matchResult);
+  const eventsEl = document.getElementById('pbp-events');
+  const resultsEl = document.getElementById('pbp-results');
+  const skipBtn = document.getElementById('btn-skip-pbp');
+  if (!eventsEl) return;
+
+  eventsEl.innerHTML = '';
+  if (resultsEl) resultsEl.style.display = 'none';
+
+  // Initialize score bar to 0
+  setText('score-blue-kills', '0K');
+  setText('score-blue-dragons', '🐉0');
+  setText('score-blue-towers', '🏰0');
+  setText('score-red-kills', '0K');
+  setText('score-red-dragons', '🐉0');
+  setText('score-red-towers', '🏰0');
+
+  // Set advantage fill to 50% (neutral start)
+  const fill = document.getElementById('advantage-fill');
+  if (fill) { fill.style.transition = 'none'; fill.style.width = '50%'; }
+
+  // Build the event queue: phase headers + events
+  const PHASE_HEADERS = {
+    laning:   '⚔️ Laning Phase  (0–14 min)',
+    midgame:  '🐉 Mid Game  (14–26 min)',
+    lategame: '🟣 Late Game  (26+ min)',
+  };
+
+  const queue = [];
+  ['laning', 'midgame', 'lategame'].forEach(phase => {
+    const phaseEvents = matchResult.events[phase] || [];
+    if (phaseEvents.length) {
+      queue.push({ type: 'header', phase, text: PHASE_HEADERS[phase] });
+      phaseEvents.forEach(e => queue.push(e));
+    }
+  });
+
+  // Live stat tracking
+  const live = { blue: { kills:0, towers:0, dragons:0, barons:0 }, red: { kills:0, towers:0, dragons:0, barons:0 } };
+
+  const DELAY = 3200; // ms per line
+  let idx = 0;
+  let skipped = false;
+
+  function updateLiveScoreBar(ev) {
+    if (ev.killBlue !== undefined)    { live[ev.killBlue?'blue':'red'].kills++; }
+    if (ev.tfBlueKills !== undefined) { live.blue.kills += ev.tfBlueKills; live.red.kills += ev.tfRedKills; }
+    if (ev.towerBlue !== undefined)   { live[ev.towerBlue?'blue':'red'].towers++; }
+    if (ev.dragonBlue !== undefined)  { live[ev.dragonBlue?'blue':'red'].dragons++; }
+    if (ev.baronBlue !== undefined)   { live[ev.baronBlue?'blue':'red'].barons++; }
+
+    setText('score-blue-kills',   `${live.blue.kills}K`);
+    setText('score-blue-dragons', `🐉${live.blue.dragons}`);
+    setText('score-blue-towers',  `🏰${live.blue.towers}`);
+    setText('score-red-kills',    `${live.red.kills}K`);
+    setText('score-red-dragons',  `🐉${live.red.dragons}`);
+    setText('score-red-towers',   `🏰${live.red.towers}`);
+
+    if (ev.advAfter !== undefined) {
+      const pct = ev.advAfter;
+      if (fill) {
+        fill.style.transition = 'width 0.8s ease';
+        fill.style.width = `${pct}%`;
+        fill.style.background = pct >= 50
+          ? `linear-gradient(90deg, #0d2a5a ${100-pct}%, #4fc3f7 100%)`
+          : `linear-gradient(90deg, #ff7b7b 0%, #5a0d0d ${pct}%)`;
+      }
+    }
+  }
+
+  function addEventLine(ev) {
+    const el = document.createElement('div');
+    if (ev.type === 'header') {
+      el.className = 'pbp-phase-header';
+      el.textContent = ev.text;
+    } else {
+      el.className = `pbp-line pbp-${ev.type || 'commentary'}`;
+      el.innerHTML = `<span class="pbp-time">${ev.time || ''}</span><span class="pbp-text">${ev.text || ''}</span>`;
+      updateLiveScoreBar(ev);
+    }
+    eventsEl.appendChild(el);
+    // Trigger animation
+    requestAnimationFrame(() => el.classList.add('pbp-visible'));
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function revealNext() {
+    if (idx >= queue.length) {
+      onPlayByPlayComplete();
+      return;
+    }
+    addEventLine(queue[idx++]);
+    const t = setTimeout(revealNext, DELAY);
+    _pbpTimeouts.push(t);
+  }
+
+  function skipAll() {
+    if (skipped) return;
+    skipped = true;
+    _pbpTimeouts.forEach(t => clearTimeout(t));
+    _pbpTimeouts = [];
+    // Reveal all remaining at once
+    while (idx < queue.length) addEventLine(queue[idx++]);
+    onPlayByPlayComplete();
+  }
+
+  if (skipBtn) {
+    skipBtn.onclick = skipAll;
+    skipBtn.style.display = 'inline-block';
+  }
+
+  function onPlayByPlayComplete() {
+    if (skipBtn) skipBtn.style.display = 'none';
+    // Show final canonical stats in score bar
+    updateScoreBar(matchResult);
+    // Apply result and show inline results
+    applyMatchResultAndShowInline();
+  }
+
+  // Start after brief delay
+  const t0 = setTimeout(revealNext, 400);
+  _pbpTimeouts.push(t0);
 }
 
 function updateScoreBar(mr) {
@@ -347,40 +462,44 @@ function updateScoreBar(mr) {
   }
 }
 
-// ─── Results ──────────────────────────────────────────────────────────────────
+// ─── Inline Results (shown after play-by-play completes) ──────────────────────
 
-function renderResults(state, matchResult, won, income) {
-  const bannerEl = document.getElementById('results-banner');
-  const goldEl   = document.getElementById('results-gold');
-  const statsEl  = document.getElementById('results-stats');
-  if (!bannerEl) return;
-
-  bannerEl.className = `results-banner ${won ? 'win' : 'loss'}`;
-  bannerEl.innerHTML = won
-    ? `<span class="result-icon">🏆</span><span class="result-text">VICTORY</span>`
-    : `<span class="result-icon">💀</span><span class="result-text">DEFEAT</span>`;
-
-  goldEl.innerHTML = `
-    <h3>Gold Earned</h3>
-    <div class="gold-breakdown">
-      <span>Base <b>${income.base}g</b></span>
-      <span>Interest <b>${income.interest}g</b></span>
-      <span>Streak <b>${income.streakBonus}g</b></span>
-      <span class="gold-total">Total <b>${income.total}g</b></span>
-    </div>`;
+function renderInlineResults(state, matchResult, won, income) {
+  const el = document.getElementById('pbp-results');
+  const contentEl = document.getElementById('pbp-results-content');
+  if (!el || !contentEl) return;
 
   const s = matchResult.stats;
-  statsEl.innerHTML = `
-    <h3>Match Stats</h3>
-    <table class="match-stats-table">
-      <thead><tr><th>${state.teamName}</th><th></th><th>Opponent</th></tr></thead>
-      <tbody>
-        <tr><td class="blue-val">${s.blue.kills}</td><td>Kills</td><td class="red-val">${s.red.kills}</td></tr>
-        <tr><td class="blue-val">${s.blue.dragons}</td><td>Dragons</td><td class="red-val">${s.red.dragons}</td></tr>
-        <tr><td class="blue-val">${s.blue.towers}</td><td>Towers</td><td class="red-val">${s.red.towers}</td></tr>
-        <tr><td class="blue-val">${s.blue.barons}</td><td>Barons</td><td class="red-val">${s.red.barons}</td></tr>
-      </tbody>
-    </table>`;
+  const oppName = matchResult._opponent?.name || 'Opponent';
+
+  contentEl.innerHTML = `
+    <div class="pbp-result-banner ${won ? 'win' : 'loss'}">
+      <span class="result-icon">${won ? '🏆' : '💀'}</span>
+      <span class="result-text">${won ? 'VICTORY' : 'DEFEAT'}</span>
+    </div>
+    <div class="pbp-result-body">
+      <div class="pbp-stats-table">
+        <table class="match-stats-table">
+          <thead><tr><th>${state.teamName}</th><th></th><th>${oppName}</th></tr></thead>
+          <tbody>
+            <tr><td class="blue-val">${s.blue.kills}</td><td>Kills</td><td class="red-val">${s.red.kills}</td></tr>
+            <tr><td class="blue-val">${s.blue.towers}</td><td>Towers</td><td class="red-val">${s.red.towers}</td></tr>
+            <tr><td class="blue-val">${s.blue.dragons}</td><td>Dragons</td><td class="red-val">${s.red.dragons}</td></tr>
+            <tr><td class="blue-val">${s.blue.barons}</td><td>Barons</td><td class="red-val">${s.red.barons}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pbp-gold-earned">
+        <span>💰 Gold Earned: </span>
+        <span>${income.base}g base</span>
+        ${income.interest > 0 ? `<span>+ ${income.interest}g interest</span>` : ''}
+        ${income.streakBonus > 0 ? `<span>+ ${income.streakBonus}g streak</span>` : ''}
+        <span class="gold-total-inline">= <b>${income.total}g</b></span>
+      </div>
+    </div>`;
+
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // ─── Bracket ──────────────────────────────────────────────────────────────────

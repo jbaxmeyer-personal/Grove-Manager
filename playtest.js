@@ -15,8 +15,8 @@ const CONFIG = {
   STAR_MULTIPLIER:{1:1.0,2:1.22,3:1.55}, COPIES_TO_UPGRADE:3,
   POSITIONS:['top','jungle','mid','adc','support'],
   TIER_ODDS:{
-    1:[0,100,0,0,0], 2:[0,72,24,4,0], 3:[0,45,35,17,3],
-    4:[0,22,35,30,13], 5:[0,8,22,38,32]
+    1:[38,52,10,0,0], 2:[14,58,22,6,0], 3:[3,38,38,18,3],
+    4:[0,16,34,34,16], 5:[0,6,22,38,34]
   },
   TRAITS:{
     Carry:      {thresholds:[2,4], bonuses:[{mechanics:8,laning:5},        {mechanics:16,laning:10,teamfighting:6}]},
@@ -56,27 +56,27 @@ const PLAYER_TEMPLATES = [
   {id:'p03',name:'Summit',     pos:'top',    tier:5,region:'NA',   traits:['Mechanical','Playmaker'], stats:{mechanics:90,laning:86,gameSense:70,teamfighting:72,communication:62,clutch:94,consistency:68,draftIQ:70}},
   {id:'p04',name:'DragonFist', pos:'top',    tier:4,region:'China',traits:['Fragger','Carry'],        stats:{mechanics:75,laning:80,gameSense:75,teamfighting:90,communication:80,clutch:72,consistency:78,draftIQ:72}},
   {id:'p05',name:'Colossus',   pos:'top',    tier:2,region:'SEA',  traits:['Utility','Veteran'],      stats:{mechanics:46,laning:50,gameSense:58,teamfighting:60,communication:68,clutch:46,consistency:62,draftIQ:54}},
-  {id:'p06',name:'Vanguard',   pos:'top',    tier:2,region:'SA',   traits:['Veteran','Utility'],      stats:{mechanics:42,laning:52,gameSense:54,teamfighting:57,communication:58,clutch:44,consistency:66,draftIQ:50}},
+  {id:'p06',name:'Vanguard',   pos:'top',    tier:2,region:'LATAM',   traits:['Veteran','Utility'],      stats:{mechanics:42,laning:52,gameSense:54,teamfighting:57,communication:58,clutch:44,consistency:66,draftIQ:50}},
   // JUNGLE
   {id:'p07',name:'PhantomStep',pos:'jungle', tier:5,region:'Korea',traits:['Mechanical','Playmaker'], stats:{mechanics:92,laning:80,gameSense:90,teamfighting:84,communication:80,clutch:90,consistency:84,draftIQ:88}},
   {id:'p08',name:'WildCard',   pos:'jungle', tier:4,region:'EU',   traits:['Playmaker','Fragger'],   stats:{mechanics:84,laning:70,gameSense:80,teamfighting:78,communication:68,clutch:86,consistency:64,draftIQ:76}},
   {id:'p09',name:'Cyclone',    pos:'jungle', tier:4,region:'China',traits:['Fragger','Utility'],     stats:{mechanics:74,laning:68,gameSense:80,teamfighting:92,communication:84,clutch:72,consistency:78,draftIQ:74}},
   {id:'p10',name:'Volt',       pos:'jungle', tier:3,region:'NA',   traits:['Fragger','Playmaker'],   stats:{mechanics:68,laning:62,gameSense:70,teamfighting:74,communication:64,clutch:82,consistency:62,draftIQ:62}},
   {id:'p11',name:'Raptor',     pos:'jungle', tier:3,region:'SEA',  traits:['Mechanical','Fragger'],  stats:{mechanics:78,laning:62,gameSense:62,teamfighting:64,communication:54,clutch:76,consistency:52,draftIQ:58}},
-  {id:'p12',name:'AncientOne', pos:'jungle', tier:2,region:'SA',   traits:['Utility','Macro'],       stats:{mechanics:42,laning:40,gameSense:58,teamfighting:62,communication:66,clutch:42,consistency:60,draftIQ:52}},
+  {id:'p12',name:'AncientOne', pos:'jungle', tier:2,region:'LATAM',   traits:['Utility','Macro'],       stats:{mechanics:42,laning:40,gameSense:58,teamfighting:62,communication:66,clutch:42,consistency:60,draftIQ:52}},
   // MID
   {id:'p13',name:'Phantom',    pos:'mid',    tier:5,region:'Korea',traits:['Carry','Shotcaller'],    stats:{mechanics:92,laning:88,gameSense:94,teamfighting:88,communication:84,clutch:90,consistency:90,draftIQ:90}},
   {id:'p14',name:'Apex',       pos:'mid',    tier:5,region:'EU',   traits:['Carry','Macro'],         stats:{mechanics:86,laning:83,gameSense:92,teamfighting:86,communication:84,clutch:80,consistency:88,draftIQ:92}},
   {id:'p15',name:'Viper',      pos:'mid',    tier:4,region:'China',traits:['Mechanical','Carry'],    stats:{mechanics:90,laning:80,gameSense:74,teamfighting:72,communication:64,clutch:86,consistency:68,draftIQ:74}},
   {id:'p16',name:'Nova',       pos:'mid',    tier:3,region:'NA',   traits:['Macro','Carry'],         stats:{mechanics:70,laning:68,gameSense:76,teamfighting:70,communication:67,clutch:64,consistency:74,draftIQ:76}},
   {id:'p17',name:'Prism',      pos:'mid',    tier:3,region:'SEA',  traits:['Mechanical','Fragger'],  stats:{mechanics:80,laning:70,gameSense:60,teamfighting:62,communication:52,clutch:80,consistency:52,draftIQ:58}},
-  {id:'p18',name:'Blitz',      pos:'mid',    tier:2,region:'SA',   traits:['Carry','Utility'],       stats:{mechanics:50,laning:54,gameSense:52,teamfighting:50,communication:52,clutch:46,consistency:58,draftIQ:50}},
+  {id:'p18',name:'Blitz',      pos:'mid',    tier:2,region:'LATAM',   traits:['Carry','Utility'],       stats:{mechanics:50,laning:54,gameSense:52,teamfighting:50,communication:52,clutch:46,consistency:58,draftIQ:50}},
   // ADC
   {id:'p19',name:'Blaze',      pos:'adc',    tier:5,region:'Korea',traits:['Carry','Mechanical'],    stats:{mechanics:92,laning:86,gameSense:84,teamfighting:90,communication:78,clutch:88,consistency:90,draftIQ:84}},
   {id:'p20',name:'Dragon',     pos:'adc',    tier:5,region:'China',traits:['Carry','Fragger'],       stats:{mechanics:92,laning:90,gameSense:80,teamfighting:90,communication:72,clutch:86,consistency:88,draftIQ:80}},
   {id:'p21',name:'Valor',      pos:'adc',    tier:4,region:'EU',   traits:['Carry','Veteran'],       stats:{mechanics:80,laning:86,gameSense:78,teamfighting:78,communication:76,clutch:78,consistency:86,draftIQ:80}},
   {id:'p22',name:'Legend',     pos:'adc',    tier:5,region:'NA',   traits:['Carry','Playmaker'],     stats:{mechanics:86,laning:84,gameSense:80,teamfighting:80,communication:80,clutch:92,consistency:84,draftIQ:82}},
-  {id:'p23',name:'Crest',      pos:'adc',    tier:3,region:'SA',   traits:['Fragger','Carry'],       stats:{mechanics:76,laning:82,gameSense:62,teamfighting:64,communication:56,clutch:74,consistency:56,draftIQ:60}},
+  {id:'p23',name:'Crest',      pos:'adc',    tier:3,region:'LATAM',   traits:['Fragger','Carry'],       stats:{mechanics:76,laning:82,gameSense:62,teamfighting:64,communication:56,clutch:74,consistency:56,draftIQ:60}},
   {id:'p24',name:'Flash',      pos:'adc',    tier:2,region:'SEA',  traits:['Carry','Utility'],       stats:{mechanics:50,laning:58,gameSense:54,teamfighting:52,communication:58,clutch:46,consistency:64,draftIQ:52}},
   // SUPPORT
   {id:'p25',name:'Anchor',     pos:'support',tier:4,region:'Korea',traits:['Utility','Playmaker'],   stats:{mechanics:80,laning:72,gameSense:82,teamfighting:84,communication:90,clutch:80,consistency:82,draftIQ:82}},
@@ -84,7 +84,24 @@ const PLAYER_TEMPLATES = [
   {id:'p27',name:'Monk',       pos:'support',tier:4,region:'China',traits:['Utility','Macro'],       stats:{mechanics:70,laning:76,gameSense:82,teamfighting:84,communication:92,clutch:68,consistency:86,draftIQ:84}},
   {id:'p28',name:'Sage',       pos:'support',tier:4,region:'NA',   traits:['Playmaker','Shotcaller'],stats:{mechanics:72,laning:66,gameSense:72,teamfighting:72,communication:76,clutch:80,consistency:62,draftIQ:68}},
   {id:'p29',name:'Guardian',   pos:'support',tier:2,region:'SEA',  traits:['Utility','Veteran'],     stats:{mechanics:42,laning:50,gameSense:58,teamfighting:54,communication:68,clutch:42,consistency:64,draftIQ:54}},
-  {id:'p30',name:'Shield',     pos:'support',tier:2,region:'SA',   traits:['Utility','Veteran'],     stats:{mechanics:38,laning:46,gameSense:52,teamfighting:52,communication:64,clutch:40,consistency:62,draftIQ:50}},
+  {id:'p30',name:'Shield',     pos:'support',tier:2,region:'LATAM',   traits:['Utility','Veteran'],     stats:{mechanics:38,laning:46,gameSense:52,teamfighting:52,communication:64,clutch:40,consistency:62,draftIQ:50}},
+  // T1
+  {id:'p31',name:'Gravel',  pos:'top',    tier:1,region:'LATAM',traits:['Veteran','Utility'],   stats:{mechanics:42,laning:44,gameSense:40,teamfighting:44,communication:42,clutch:38,consistency:46,draftIQ:38}},
+  {id:'p32',name:'Wisp',    pos:'jungle', tier:1,region:'SEA',  traits:['Fragger','Mechanical'],stats:{mechanics:46,laning:38,gameSense:40,teamfighting:42,communication:36,clutch:48,consistency:38,draftIQ:36}},
+  {id:'p33',name:'Static',  pos:'mid',    tier:1,region:'LATAM',traits:['Carry','Utility'],     stats:{mechanics:44,laning:46,gameSense:40,teamfighting:40,communication:40,clutch:40,consistency:44,draftIQ:40}},
+  {id:'p34',name:'Pebble',  pos:'adc',    tier:1,region:'SEA',  traits:['Carry','Veteran'],     stats:{mechanics:42,laning:46,gameSense:40,teamfighting:42,communication:40,clutch:38,consistency:48,draftIQ:38}},
+  {id:'p35',name:'Tide',    pos:'support',tier:1,region:'LATAM',traits:['Utility','Macro'],     stats:{mechanics:36,laning:40,gameSense:44,teamfighting:42,communication:48,clutch:34,consistency:44,draftIQ:40}},
+  {id:'p36',name:'Flicker', pos:'jungle', tier:1,region:'NA',   traits:['Playmaker','Fragger'], stats:{mechanics:44,laning:38,gameSense:42,teamfighting:46,communication:38,clutch:46,consistency:36,draftIQ:38}},
+  // T2 new
+  {id:'p37',name:'Ironside', pos:'top',    tier:2,region:'NA',   traits:['Mechanical','Veteran'],stats:{mechanics:50,laning:52,gameSense:50,teamfighting:56,communication:48,clutch:48,consistency:54,draftIQ:46}},
+  {id:'p38',name:'Ember',    pos:'jungle', tier:2,region:'China',traits:['Fragger','Utility'],   stats:{mechanics:48,laning:44,gameSense:52,teamfighting:58,communication:54,clutch:46,consistency:52,draftIQ:48}},
+  {id:'p39',name:'Aria',     pos:'support',tier:2,region:'EU',   traits:['Utility','Shotcaller'],stats:{mechanics:44,laning:48,gameSense:54,teamfighting:50,communication:60,clutch:42,consistency:54,draftIQ:52}},
+  // T3 new
+  {id:'p40',name:'Titan',   pos:'top',    tier:3,region:'China',traits:['Fragger','Veteran'],   stats:{mechanics:68,laning:72,gameSense:62,teamfighting:78,communication:64,clutch:70,consistency:60,draftIQ:60}},
+  {id:'p41',name:'Ghost',   pos:'mid',    tier:3,region:'EU',   traits:['Macro','Shotcaller'],  stats:{mechanics:62,laning:66,gameSense:80,teamfighting:70,communication:74,clutch:60,consistency:70,draftIQ:78}},
+  {id:'p42',name:'Arrow',   pos:'adc',    tier:3,region:'NA',   traits:['Carry','Mechanical'],  stats:{mechanics:74,laning:72,gameSense:62,teamfighting:66,communication:60,clutch:76,consistency:56,draftIQ:60}},
+  {id:'p43',name:'Echo',    pos:'support',tier:3,region:'Korea',traits:['Utility','Playmaker'], stats:{mechanics:66,laning:60,gameSense:68,teamfighting:72,communication:76,clutch:74,consistency:58,draftIQ:64}},
+  {id:'p44',name:'Rex',     pos:'jungle', tier:3,region:'LATAM',traits:['Fragger','Playmaker'], stats:{mechanics:70,laning:58,gameSense:62,teamfighting:68,communication:58,clutch:76,consistency:52,draftIQ:56}},
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────

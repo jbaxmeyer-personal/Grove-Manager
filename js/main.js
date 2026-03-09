@@ -43,6 +43,14 @@ function startGame() {
 
   initPool(G);
   initTournament(G);
+
+  // Give human the T0 starter pack
+  const pack = getStarterPack();
+  pack.forEach(p => {
+    const posIdx = CONFIG.POSITIONS.indexOf(p.position);
+    if (posIdx !== -1) G.roster[posIdx] = p;
+  });
+
   enterShopPhase();
 }
 
@@ -96,41 +104,26 @@ function enterMatchPhase() {
 
   showScreen('screen-match');
 
-  document.getElementById('draft-phase').style.display  = 'block';
-  document.getElementById('match-phases').style.display = 'none';
+  document.getElementById('draft-phase').style.display = 'block';
+  const pbpContainerInit = document.getElementById('pbp-container');
+  if (pbpContainerInit) pbpContainerInit.style.display = 'none';
 
   renderDraft(G.lastMatchResult, G.teamName, opp.name);
 }
 
 function onStartMatch() {
-  document.getElementById('draft-phase').style.display  = 'none';
-  document.getElementById('match-phases').style.display = 'block';
-
-  // Default to laning tab
-  document.querySelectorAll('.phase-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector('.phase-tab[data-phase="laning"]')?.classList.add('active');
-  renderMatchPhase(G.lastMatchResult, 'laning');
-  updateScoreBar(G.lastMatchResult);
+  document.getElementById('draft-phase').style.display = 'none';
+  const pbpContainer = document.getElementById('pbp-container');
+  if (pbpContainer) pbpContainer.style.display = 'block';
+  startPlayByPlay(G.lastMatchResult, G.teamName, G.lastMatchResult._opponent?.name || 'Opponent');
 }
 
-function onPhaseTab(phase) {
-  document.querySelectorAll('.phase-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`.phase-tab[data-phase="${phase}"]`)?.classList.add('active');
-  renderMatchPhase(G.lastMatchResult, phase);
-}
-
-function onViewResults() {
+function applyMatchResultAndShowInline() {
   const result  = G.lastMatchResult;
   const blueWin = result.winner === 'blue';
-
-  // Apply result to standings
   applyHumanResult(G, blueWin, result.stats);
-
-  // Calculate income (apply after user clicks Continue)
   G.lastIncome = calcGoldIncome(G);
-
-  showScreen('screen-results');
-  renderResults(G, result, blueWin, G.lastIncome);
+  renderInlineResults(G, result, blueWin, G.lastIncome);
 }
 
 function continueAfterResults() {
@@ -244,7 +237,12 @@ function onBuyPlayer(shopIndex) {
 }
 
 function onSellPlayer(instanceId) {
-  sellPlayer(G, instanceId);
+  const result = sellPlayer(G, instanceId);
+  if (result === 'need_bench') {
+    showToast('Need a bench player in the same role to replace this starter!');
+    return;
+  }
+  if (!result) return;
   G.selectedUnit = null;
   renderShop(G);
   renderHeader(G);
@@ -257,7 +255,11 @@ function onMoveToRoster(instanceId) {
 }
 
 function onMoveToBench(instanceId) {
-  moveToBench(G, instanceId);
+  const result = moveToBench(G, instanceId);
+  if (result === 'need_swap') {
+    showToast('Need a bench player in the same role to swap with!');
+    return;
+  }
   G.selectedUnit = null;
   renderShop(G);
 }
@@ -340,14 +342,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Match screen
-  document.getElementById('btn-start-match') ?.addEventListener('click', onStartMatch);
-  document.getElementById('btn-view-results')?.addEventListener('click', onViewResults);
+  document.getElementById('btn-start-match')?.addEventListener('click', onStartMatch);
 
-  document.querySelectorAll('.phase-tab').forEach(btn => {
-    btn.addEventListener('click', () => onPhaseTab(btn.dataset.phase));
-  });
-
-  // Results
+  // Results / Continue (now inside pbp-results inline)
   document.getElementById('btn-continue')?.addEventListener('click', continueAfterResults);
 
   // Game over

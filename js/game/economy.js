@@ -73,7 +73,12 @@ function sellPlayer(state, instanceId, returnToPool = true) {
   const ri = state.roster.findIndex(p => p && p.instanceId === instanceId);
   if (ri !== -1) {
     player = state.roster[ri];
-    state.roster[ri] = null;
+    // Selling from active roster: need bench replacement of same position
+    const benchIdx = state.bench.findIndex(p => p && p.position === player.position);
+    if (benchIdx === -1) return 'need_bench'; // caller shows toast
+    // Auto-promote bench player into the starter slot
+    state.roster[ri] = state.bench[benchIdx];
+    state.bench.splice(benchIdx, 1);
   } else {
     const bi = state.bench.findIndex(p => p && p.instanceId === instanceId);
     if (bi !== -1) {
@@ -83,8 +88,8 @@ function sellPlayer(state, instanceId, returnToPool = true) {
   }
   if (!player) return false;
 
-  state.gold += CONFIG.TIER_SELL[player.tier];
-  if (returnToPool && state.playerPool) {
+  state.gold += CONFIG.TIER_SELL[player.tier] || 0;
+  if (returnToPool && state.playerPool && player.tier > 0) {
     const template = getPlayerTemplate(player.id);
     if (template) state.playerPool.push({ ...template, stats: { ...template.stats }, champions: [...template.champions], traits: [...(template.traits||[])] });
   }
@@ -256,13 +261,17 @@ function moveToRoster(state, instanceId) {
   return false; // Roster full (5 different positions)
 }
 
-// Move a player from roster to bench
+// Move a player from roster to bench (requires same-position bench player to swap with)
 function moveToBench(state, instanceId) {
   const ri = state.roster.findIndex(p => p && p.instanceId === instanceId);
   if (ri === -1) return false;
   const player = state.roster[ri];
-  state.roster[ri] = null;
-  state.bench.push(player);
+  // Need a same-position bench player to swap with (roster must stay full)
+  const benchIdx = state.bench.findIndex(p => p && p.position === player.position);
+  if (benchIdx === -1) return 'need_swap';
+  // Swap: bench player becomes starter, starter goes to bench
+  state.roster[ri] = state.bench[benchIdx];
+  state.bench[benchIdx] = player;
   return true;
 }
 

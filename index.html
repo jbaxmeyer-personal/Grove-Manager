@@ -138,9 +138,10 @@
       <button id="btn-start-match" class="btn-primary btn-large" style="margin-top:14px">▶ Simulate Match</button>
     </div>
 
-    <!-- Play-by-Play -->
-    <div id="match-phases" class="match-phases" style="display:none">
+    <!-- Play-by-Play Container (shown after clicking Simulate) -->
+    <div id="pbp-container" style="display:none">
 
+      <!-- Live score bar -->
       <div class="score-bar">
         <div class="score-side blue-score">
           <span id="score-blue-kills">0K</span>
@@ -158,29 +159,21 @@
         </div>
       </div>
 
-      <div class="phase-tabs">
-        <button class="phase-tab active" data-phase="laning">⚔️ Laning (0–14)</button>
-        <button class="phase-tab" data-phase="midgame">🐉 Mid Game (14–26)</button>
-        <button class="phase-tab" data-phase="lategame">🟣 Late Game (26+)</button>
+      <div class="pbp-controls">
+        <button id="btn-skip-pbp" class="btn-secondary" style="display:none">⏩ Skip to End</button>
       </div>
 
-      <div id="play-by-play" class="play-by-play"></div>
+      <!-- Events scroll area -->
+      <div id="pbp-events" class="pbp-events"></div>
 
-      <div class="match-footer">
-        <button id="btn-view-results" class="btn-primary">📊 View Results →</button>
+      <!-- Inline results (shown after events complete) -->
+      <div id="pbp-results" class="pbp-results" style="display:none">
+        <div id="pbp-results-content"></div>
+        <button id="btn-continue" class="btn-primary btn-large">Continue →</button>
       </div>
+
     </div>
 
-  </div>
-</div>
-
-<!-- ══════════════ RESULTS SCREEN ══════════════ -->
-<div id="screen-results" class="screen">
-  <div class="results-wrapper">
-    <div id="results-banner" class="results-banner"></div>
-    <div id="results-gold"   class="results-section"></div>
-    <div id="results-stats"  class="results-section"></div>
-    <button id="btn-continue" class="btn-primary btn-large">Continue →</button>
   </div>
 </div>
 

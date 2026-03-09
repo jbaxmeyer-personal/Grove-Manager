@@ -97,6 +97,13 @@ function initAITeam(cfg) {
   const traitKeys   = Object.keys(CONFIG.TRAITS);
   const targetTrait = traitKeys[Math.floor(Math.random() * traitKeys.length)];
 
+  const starterRoster = [null, null, null, null, null];
+  // Give AI the starter pack (one T0 per position)
+  getStarterPack().forEach(p => {
+    const posIdx = CONFIG.POSITIONS.indexOf(p.position);
+    if (posIdx !== -1) starterRoster[posIdx] = p;
+  });
+
   return {
     id:          cfg.name.replace(/\s+/g, '_').toLowerCase(),
     name:        cfg.name,
@@ -105,7 +112,7 @@ function initAITeam(cfg) {
     gold:        CONFIG.STARTING_GOLD,
     xp:          0,
     level:       1,
-    roster:      [null, null, null, null, null],
+    roster:      starterRoster,
     bench:       [],
     privatePool,
     wins:        0,
@@ -244,7 +251,7 @@ function optimizeAILineup(aiTeam) {
     });
   });
 
-  aiTeam.roster = CONFIG.POSITIONS.map(pos => byPos[pos].shift() || null);
+  aiTeam.roster = CONFIG.POSITIONS.map((pos, i) => byPos[pos].shift() || aiTeam.roster[i] || null);
   aiTeam.bench  = Object.values(byPos).flat();
 }
 

@@ -1,8 +1,23 @@
-// js/data/players.js — 30 balanced fake pro players with traits
+// js/data/players.js — Pro players with traits
 // Balance pass: Phantom nerfed (no more 774-stat outlier), IronKing T5→T4,
 // Specter (Korea mid) moved to SEA as "Prism", Legend promoted T4→T5 (NA),
 // Anchor reduced to T4, Sage promoted T3→T4, all T2–T3 players slightly buffed,
 // region distribution: Korea max 3 T5s (jg/mid/adc), NA gets first T5 (top/adc)
+// SA renamed to LATAM; T0 Rookie Starter Pack added; T1–T3 new players added.
+
+// ─── T0 STARTER PACK (not in pool, given at game start) ──────────────────────
+const STARTER_PACK = [
+  { id:'s-top', name:'Rookie Top',     position:'top',     tier:0, region:null, traits:[], champions:['Garen','Malphite'],       bio:'A fresh prospect just starting their pro career.', stars:1,
+    stats:{mechanics:28,laning:30,gameSense:26,teamfighting:28,communication:25,clutch:26,consistency:30,draftIQ:24} },
+  { id:'s-jg',  name:'Rookie Jungler', position:'jungle',  tier:0, region:null, traits:[], champions:['Warwick','Amumu'],         bio:'Learning the art of objective control.', stars:1,
+    stats:{mechanics:26,laning:24,gameSense:28,teamfighting:30,communication:26,clutch:28,consistency:28,draftIQ:24} },
+  { id:'s-mid', name:'Rookie Mid',     position:'mid',     tier:0, region:null, traits:[], champions:['Annie','Lux'],             bio:'Building fundamentals in the mid lane.', stars:1,
+    stats:{mechanics:30,laning:30,gameSense:26,teamfighting:26,communication:24,clutch:26,consistency:28,draftIQ:26} },
+  { id:'s-adc', name:'Rookie ADC',     position:'adc',     tier:0, region:null, traits:[], champions:['Ashe','Caitlyn'],          bio:'Learning to farm and position safely.', stars:1,
+    stats:{mechanics:28,laning:28,gameSense:26,teamfighting:28,communication:28,clutch:26,consistency:30,draftIQ:24} },
+  { id:'s-sup', name:'Rookie Support', position:'support', tier:0, region:null, traits:[], champions:['Soraka','Blitzcrank'],     bio:'Keeping the team alive from the bottom lane.', stars:1,
+    stats:{mechanics:24,laning:26,gameSense:28,teamfighting:28,communication:32,clutch:24,consistency:28,draftIQ:26} },
+];
 
 const PLAYER_TEMPLATES = [
 
@@ -43,7 +58,7 @@ const PLAYER_TEMPLATES = [
     stats: { mechanics:46, laning:50, gameSense:58, teamfighting:60, communication:68, clutch:46, consistency:62, draftIQ:54 }
   },
   {
-    id: 'p06', name: 'Vanguard', position: 'top', tier: 2, region: 'SA',
+    id: 'p06', name: 'Vanguard', position: 'top', tier: 2, region: 'LATAM',
     champions: ['Garen', 'Nasus', 'Mordekaiser'],
     traits: ['Veteran', 'Utility'],
     bio: 'Consistent player with improving game sense.',
@@ -87,7 +102,7 @@ const PLAYER_TEMPLATES = [
     stats: { mechanics:78, laning:62, gameSense:62, teamfighting:64, communication:54, clutch:76, consistency:52, draftIQ:58 }
   },
   {
-    id: 'p12', name: 'AncientOne', position: 'jungle', tier: 2, region: 'SA',
+    id: 'p12', name: 'AncientOne', position: 'jungle', tier: 2, region: 'LATAM',
     champions: ['Amumu', 'Sejuani', 'Zac'],
     traits: ['Utility', 'Macro'],
     bio: 'Reliable engage jungler, brings the team together.',
@@ -131,7 +146,7 @@ const PLAYER_TEMPLATES = [
     stats: { mechanics:80, laning:70, gameSense:60, teamfighting:62, communication:52, clutch:80, consistency:52, draftIQ:58 }
   },
   {
-    id: 'p18', name: 'Blitz', position: 'mid', tier: 2, region: 'SA',
+    id: 'p18', name: 'Blitz', position: 'mid', tier: 2, region: 'LATAM',
     champions: ['Lux', 'Vex', 'Annie'],
     traits: ['Carry', 'Utility'],
     bio: 'Up-and-coming talent with room to grow.',
@@ -168,7 +183,7 @@ const PLAYER_TEMPLATES = [
     stats: { mechanics:86, laning:84, gameSense:80, teamfighting:80, communication:80, clutch:92, consistency:84, draftIQ:82 }
   },
   {
-    id: 'p23', name: 'Crest', position: 'adc', tier: 3, region: 'SA',
+    id: 'p23', name: 'Crest', position: 'adc', tier: 3, region: 'LATAM',
     champions: ['Draven', 'Lucian', 'Jinx'],
     traits: ['Fragger', 'Carry'],
     bio: 'Aggressive lane bully who dominates early game.',
@@ -219,19 +234,54 @@ const PLAYER_TEMPLATES = [
     stats: { mechanics:42, laning:50, gameSense:58, teamfighting:54, communication:68, clutch:42, consistency:64, draftIQ:54 }
   },
   {
-    id: 'p30', name: 'Shield', position: 'support', tier: 2, region: 'SA',
+    id: 'p30', name: 'Shield', position: 'support', tier: 2, region: 'LATAM',
     champions: ['Lulu', 'Soraka', 'Braum'],
     traits: ['Utility', 'Veteran'],
     bio: 'Developing enchanter with potential to grow.',
     stats: { mechanics:38, laning:46, gameSense:52, teamfighting:52, communication:64, clutch:40, consistency:62, draftIQ:50 }
   },
+
+  // ─── T1 PLAYERS ───────────────────────────────────────────────
+  { id:'p31', name:'Gravel',  position:'top',     tier:1, region:'LATAM', traits:['Veteran','Utility'],   champions:['Garen','Mordekaiser','Nasus'],    bio:'Gritty LATAM top laner with raw determination.', stars:1,
+    stats:{mechanics:42,laning:44,gameSense:40,teamfighting:44,communication:42,clutch:38,consistency:46,draftIQ:38} },
+  { id:'p32', name:'Wisp',    position:'jungle',  tier:1, region:'SEA',   traits:['Fragger','Mechanical'],champions:['Warwick','Xin Zhao','Udyr'],      bio:'SEA jungle prodigy with aggressive instincts.', stars:1,
+    stats:{mechanics:46,laning:38,gameSense:40,teamfighting:42,communication:36,clutch:48,consistency:38,draftIQ:36} },
+  { id:'p33', name:'Static',  position:'mid',     tier:1, region:'LATAM', traits:['Carry','Utility'],     champions:['Lux','Annie','Brand'],            bio:'LATAM mid laner with solid lane fundamentals.', stars:1,
+    stats:{mechanics:44,laning:46,gameSense:40,teamfighting:40,communication:40,clutch:40,consistency:44,draftIQ:40} },
+  { id:'p34', name:'Pebble',  position:'adc',     tier:1, region:'SEA',   traits:['Carry','Veteran'],     champions:['Ashe','Sivir','Miss Fortune'],    bio:'Reliable SEA ADC who plays safe and scales.', stars:1,
+    stats:{mechanics:42,laning:46,gameSense:40,teamfighting:42,communication:40,clutch:38,consistency:48,draftIQ:38} },
+  { id:'p35', name:'Tide',    position:'support', tier:1, region:'LATAM', traits:['Utility','Macro'],     champions:['Soraka','Nami','Sona'],           bio:'Soft-spoken LATAM support with great fundamentals.', stars:1,
+    stats:{mechanics:36,laning:40,gameSense:44,teamfighting:42,communication:48,clutch:34,consistency:44,draftIQ:40} },
+  { id:'p36', name:'Flicker', position:'jungle',  tier:1, region:'NA',    traits:['Playmaker','Fragger'], champions:['Vi','Olaf','Hecarim'],            bio:'NA jungle talent with high-energy playstyle.', stars:1,
+    stats:{mechanics:44,laning:38,gameSense:42,teamfighting:46,communication:38,clutch:46,consistency:36,draftIQ:38} },
+
+  // ─── T2 NEW PLAYERS ───────────────────────────────────────────
+  { id:'p37', name:'Ironside', position:'top',     tier:2, region:'NA',    traits:['Mechanical','Veteran'], champions:['Malphite','Ornn','Gnar'],      bio:'Steady NA top laner with a knack for teamfights.', stars:1,
+    stats:{mechanics:50,laning:52,gameSense:50,teamfighting:56,communication:48,clutch:48,consistency:54,draftIQ:46} },
+  { id:'p38', name:'Ember',    position:'jungle',  tier:2, region:'China', traits:['Fragger','Utility'],    champions:['Jarvan IV','Hecarim','Zac'],   bio:'Scrappy Chinese jungler developing his macro.', stars:1,
+    stats:{mechanics:48,laning:44,gameSense:52,teamfighting:58,communication:54,clutch:46,consistency:52,draftIQ:48} },
+  { id:'p39', name:'Aria',     position:'support', tier:2, region:'EU',    traits:['Utility','Shotcaller'], champions:['Lulu','Karma','Janna'],        bio:'EU support with strong voice and vision control.', stars:1,
+    stats:{mechanics:44,laning:48,gameSense:54,teamfighting:50,communication:60,clutch:42,consistency:54,draftIQ:52} },
+
+  // ─── T3 NEW PLAYERS ───────────────────────────────────────────
+  { id:'p40', name:'Titan',   position:'top',     tier:3, region:'China', traits:['Fragger','Veteran'],    champions:['Renekton','Darius','Wukong'],   bio:'Explosive Chinese top laner who thrives in extended fights.', stars:1,
+    stats:{mechanics:68,laning:72,gameSense:62,teamfighting:78,communication:64,clutch:70,consistency:60,draftIQ:60} },
+  { id:'p41', name:'Ghost',   position:'mid',     tier:3, region:'EU',    traits:['Macro','Shotcaller'],   champions:['Galio','Twisted Fate','Ryze'],  bio:'EU mid laner who dominates with vision and rotations.', stars:1,
+    stats:{mechanics:62,laning:66,gameSense:80,teamfighting:70,communication:74,clutch:60,consistency:70,draftIQ:78} },
+  { id:'p42', name:'Arrow',   position:'adc',     tier:3, region:'NA',    traits:['Carry','Mechanical'],   champions:['Ezreal','Lucian','Tristana'],   bio:'NA ADC with silky mechanics and big game moments.', stars:1,
+    stats:{mechanics:74,laning:72,gameSense:62,teamfighting:66,communication:60,clutch:76,consistency:56,draftIQ:60} },
+  { id:'p43', name:'Echo',    position:'support', tier:3, region:'Korea', traits:['Utility','Playmaker'],  champions:['Thresh','Rakan','Blitzcrank'],  bio:'Up-and-coming Korean support with elite engagement.', stars:1,
+    stats:{mechanics:66,laning:60,gameSense:68,teamfighting:72,communication:76,clutch:74,consistency:58,draftIQ:64} },
+  { id:'p44', name:'Rex',     position:'jungle',  tier:3, region:'LATAM', traits:['Fragger','Playmaker'],  champions:['Lee Sin','Rengar',"Kha'Zix"], bio:'LATAM jungle breakthrough — aggressive and creative.', stars:1,
+    stats:{mechanics:70,laning:58,gameSense:62,teamfighting:68,communication:58,clutch:76,consistency:52,draftIQ:56} },
 ];
 
-// Build the player pool: each player repeated by tier pool size
+// Build the player pool: each player repeated by tier pool size (T0 excluded — only in STARTER_PACK)
 function buildPlayerPool() {
   const pool = [];
   PLAYER_TEMPLATES.forEach(p => {
-    const copies = CONFIG.TIER_POOL_SIZE[p.tier];
+    if (p.tier === 0) return; // T0 only lives in STARTER_PACK
+    const copies = CONFIG.TIER_POOL_SIZE[p.tier] || 0;
     for (let i = 0; i < copies; i++) {
       pool.push({ ...p, stats: { ...p.stats }, champions: [...p.champions], traits: [...p.traits] });
     }
@@ -253,6 +303,18 @@ function createPlayerInstance(template) {
     instanceId: Math.random().toString(36).substr(2, 9),
     champion: null,
   };
+}
+
+// Return fresh copies of the starter pack players with instance IDs
+function getStarterPack() {
+  return STARTER_PACK.map(p => ({
+    ...p,
+    stats: { ...p.stats },
+    champions: [...p.champions],
+    traits: [...p.traits],
+    instanceId: Math.random().toString(36).substr(2, 9),
+    champion: null,
+  }));
 }
 
 // Get effective stats accounting for star level
