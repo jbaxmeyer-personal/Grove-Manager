@@ -280,6 +280,9 @@ function applyFight(state, result, tally) {
   state.gold[winSide]  += winnerKills * 350;
   state.gold[loseSide] += loserKills  * 350;
 
+  // Keep goldDiff in sync so gold chart has real variance
+  tally.goldDiff = state.gold.blue - state.gold.red;
+
   return { winSide, loseSide, loseDead, winDead };
 }
 
@@ -716,9 +719,13 @@ function simulateLateGame(blue, red, bR, rR, state, events, tally) {
 
     state.mapAdvantage = clamp(state.mapAdvantage + (result.blueWins ? result.winnerKills*2 : -result.winnerKills*2), 5, 95);
     const inhibText = inhibFalls ? ` The ${inhibLane} inhibitor falls!` : '';
+    const baronLabel = baronWinSide === 'blue' ? 'Blue' : 'Red';
+    const pushText = baronWinSide === pushSide
+      ? `💥 ${baronLabel} side uses Baron buff — wins ${fightScore(result)}, ${towersDown} tower${towersDown>1?'s':''} down!${inhibText}`
+      : `💥 ${baronLabel} side pushes with Baron buff but ${pushSide === 'blue' ? 'Blue' : 'Red'} side DEFENDS ${fightScore(result)} — ${towersDown} tower${towersDown>1?'s':''} traded!${inhibText}`;
     events.push({
       time: padTime(state.t),
-      text: `💥 ${pushSide === 'blue' ? 'Blue' : 'Red'} side uses Baron buff to win ${fightScore(result)} — ${towersDown} towers down!${inhibText}`,
+      text: pushText,
       type: 'teamfight', phase: 'lategame',
       tfBlueKills: result.blueWins ? result.winnerKills : result.loserKills,
       tfRedKills:  result.blueWins ? result.loserKills  : result.winnerKills,
@@ -759,7 +766,7 @@ function simulateLateGame(blue, red, bR, rR, state, events, tally) {
       state.mapAdvantage = clamp(state.mapAdvantage + (pushResult.blueWins ? pushResult.winnerKills*2 : -pushResult.winnerKills*2), 5, 95);
       events.push({
         time: padTime(state.t),
-        text: `💥 ${pushSide === 'blue' ? 'Blue' : 'Red'} side uses second Baron buff ${fightScore(pushResult)} — ${b2Towers} more tower${b2Towers>1?'s':''} fall!`,
+        text: `💥 ${winSide === 'blue' ? 'Blue' : 'Red'} side uses second Baron buff — ${fightScore(pushResult)}, ${b2Towers} more tower${b2Towers>1?'s':''} fall!`,
         type: 'teamfight', phase: 'lategame',
         tfBlueKills: pushResult.blueWins ? pushResult.winnerKills : pushResult.loserKills,
         tfRedKills:  pushResult.blueWins ? pushResult.loserKills  : pushResult.winnerKills,
@@ -787,6 +794,10 @@ function simulateLateGame(blue, red, bR, rR, state, events, tally) {
     } else {
       result = resolveFight(state, bR.lateRating, rR.lateRating);
     }
+
+    // Final fight must be decisive — winner gets an ACE or near-ACE (3–5 kills)
+    result.winnerKills = clamp(Math.max(result.winnerKills, 3), 3, 5);
+    result.loserKills  = clamp(result.loserKills, 0, 2);
 
     applyFight(state, result, tally);
     const finalWinner = result.blueWins ? 'blue' : 'red';

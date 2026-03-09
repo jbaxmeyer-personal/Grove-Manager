@@ -200,6 +200,21 @@
     red:  { top: 0, jungle: 0, mid: 0, adc: 0, support: 0 },
   };
   let _ringRaf = null;
+  let _wanderInterval = null;
+
+  // Base positions for each dot (the formation anchor; wander jiggles around this)
+  const _base = {
+    blue: { top:{cx:28,cy:75},    jungle:{cx:82,cy:170},  mid:{cx:92,cy:208},   adc:{cx:72,cy:268},   support:{cx:90,cy:274}  },
+    red:  { top:{cx:272,cy:28},   jungle:{cx:218,cy:132}, mid:{cx:208,cy:92},   adc:{cx:228,cy:268},  support:{cx:210,cy:274} },
+  };
+  // Wander radius per position (tighter for bunched fights, wider for laning)
+  const _wRadius = { top:9, jungle:12, mid:9, adc:7, support:6 };
+
+  // Current displayed dot positions (used by wander loop)
+  const _cur = {
+    blue: { top:{cx:28,cy:75},    jungle:{cx:82,cy:170},  mid:{cx:92,cy:208},   adc:{cx:72,cy:268},   support:{cx:90,cy:274}  },
+    red:  { top:{cx:272,cy:28},   jungle:{cx:218,cy:132}, mid:{cx:208,cy:92},   adc:{cx:228,cy:268},  support:{cx:210,cy:274} },
+  };
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -216,6 +231,7 @@
     });
     moveSide('blue', 'BLUE_LANE');
     moveSide('red',  'RED_LANE');
+    startWander();
   };
 
   window.updateMap = function (ev) {
@@ -249,6 +265,7 @@
     _skipMode = skip;
     const svg = document.getElementById('pbp-map-svg');
     if (svg) svg.classList.toggle('map-skip', skip);
+    if (skip) stopWander();
   };
 
   // ── Event handlers ──────────────────────────────────────────────────────────
@@ -345,7 +362,11 @@
     const formation = F[formationKey];
     if (!formation) return;
     POSITIONS.forEach((pos, i) => {
-      if (formation[i]) moveDot(side, pos, formation[i].cx, formation[i].cy);
+      if (!formation[i]) return;
+      const { cx, cy } = formation[i];
+      // Update base anchor for this position
+      _base[side][pos] = { cx, cy };
+      moveDot(side, pos, cx, cy);
     });
   }
 
@@ -354,6 +375,7 @@
     const dot = document.getElementById(`map-${pfx}-${pos}`);
     const lbl = document.getElementById(`map-${pfx}-${pos}-lbl`);
     if (!dot) return;
+    _cur[side][pos] = { cx, cy };
     dot.setAttribute('cx', cx);
     dot.setAttribute('cy', cy);
     if (lbl) {
@@ -452,6 +474,44 @@
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
+  }
+
+  // ── Continuous wander animation ─────────────────────────────────────────────
+  // Every 800ms each alive dot drifts ±wRadius px from its base position,
+  // giving the FM-style "dots are always moving" feel between events.
+
+  function startWander() {
+    stopWander();
+    _wanderInterval = setInterval(wanderTick, 800);
+  }
+
+  function stopWander() {
+    if (_wanderInterval) { clearInterval(_wanderInterval); _wanderInterval = null; }
+  }
+
+  function wanderTick() {
+    if (_skipMode) return;
+    ['blue', 'red'].forEach(side => {
+      POSITIONS.forEach(pos => {
+        // Dead dots don't wander
+        const exp = _deathExpiry[side][pos];
+        if (exp > 0 && _currentTimeSec < exp) return;
+
+        const base = _base[side][pos];
+        const r    = _wRadius[pos] || 8;
+        // Random walk capped to wRadius from base (not from current — prevents drift)
+        const angle = Math.random() * Math.PI * 2;
+        const dist  = Math.random() * r;
+        const nx = Math.round(base.cx + Math.cos(angle) * dist);
+        const ny = Math.round(base.cy + Math.sin(angle) * dist);
+        // Move dot directly (CSS transition handles smoothing)
+        const pfx = side[0];
+        const dot = document.getElementById(`map-${pfx}-${pos}`);
+        const lbl = document.getElementById(`map-${pfx}-${pos}-lbl`);
+        if (dot) { dot.setAttribute('cx', nx); dot.setAttribute('cy', ny); }
+        if (lbl) { lbl.setAttribute('x', nx);  lbl.setAttribute('y', ny + 4); }
+      });
+    });
   }
 
 })();

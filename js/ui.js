@@ -358,7 +358,7 @@ function startPlayByPlay(matchResult, blueTeamName, redTeamName) {
     const W = goldSvg.clientWidth || 420;
     const H = 64;
     const cy = H / 2;
-    const MAX = 12000;
+    const MAX = 3500;
     const pts = _goldPoints;
     if (pts.length < 2) { goldSvg.innerHTML = ''; return; }
     const xs = (i) => (i / (pts.length - 1)) * W;
