@@ -349,6 +349,12 @@ function startPlayByPlay(matchResult, blueTeamName, redTeamName) {
   const fill = document.getElementById('advantage-fill');
   if (fill) { fill.style.transition = 'none'; fill.style.width = '50%'; }
 
+  // Reset gold bar
+  const goldFill = document.getElementById('gold-tug-fill');
+  if (goldFill) { goldFill.style.transition = 'none'; goldFill.style.left = '50%'; goldFill.style.right = '50%'; }
+  const goldTotals = document.getElementById('gold-totals');
+  if (goldTotals) goldTotals.style.display = 'none';
+
   // Build the event queue: phase headers + events
   const PHASE_HEADERS = {
     laning:   '⚔️ Laning Phase  (0–14 min)',
@@ -394,6 +400,18 @@ function startPlayByPlay(matchResult, blueTeamName, redTeamName) {
         fill.style.background = pct >= 50
           ? `linear-gradient(90deg, #0d2a5a ${100-pct}%, #4fc3f7 100%)`
           : `linear-gradient(90deg, #ff7b7b 0%, #5a0d0d ${pct}%)`;
+      }
+    }
+
+    // Gold tug bar: shift based on running gold differential from event
+    if (ev.goldDiff !== undefined) {
+      const MAX_DIFF = 15000;
+      const pct = clamp(50 + (ev.goldDiff / MAX_DIFF) * 50, 5, 95);
+      const goldFill = document.getElementById('gold-tug-fill');
+      if (goldFill) {
+        goldFill.style.transition = 'left 0.6s ease, right 0.6s ease';
+        if (pct >= 50) { goldFill.style.left = `${100 - pct}%`; goldFill.style.right = '0'; goldFill.style.background = 'linear-gradient(90deg,#1a3a6a,#4fc3f7)'; }
+        else           { goldFill.style.left = '0'; goldFill.style.right = `${pct}%`; goldFill.style.background = 'linear-gradient(90deg,#ff7b7b,#6a1a1a)'; }
       }
     }
   }
@@ -450,6 +468,17 @@ function startPlayByPlay(matchResult, blueTeamName, redTeamName) {
     if (skipBtn) skipBtn.style.display = 'none';
     // Show final canonical stats in score bar
     updateScoreBar(matchResult);
+    // Show final gold totals
+    const gt = document.getElementById('gold-totals');
+    const gbt = document.getElementById('gold-blue-total');
+    const grt = document.getElementById('gold-red-total');
+    if (gt && gbt && grt && matchResult.stats) {
+      const bg = matchResult.stats.blue.gold;
+      const rg = matchResult.stats.red.gold;
+      gbt.textContent = `💰 Blue: ${(bg/1000).toFixed(1)}k`;
+      grt.textContent = `💰 Red: ${(rg/1000).toFixed(1)}k`;
+      gt.style.display = 'flex';
+    }
     // Apply result and show inline results
     applyMatchResultAndShowInline();
   }
@@ -487,6 +516,12 @@ function renderInlineResults(state, matchResult, won, income) {
   const s = matchResult.stats;
   const oppName = matchResult._opponent?.name || 'Opponent';
 
+  const kdaRow = (side, pos) => {
+    const entry = s[side].kda?.[pos];
+    if (!entry) return '';
+    return `<tr><td class="${side}-val">${entry.name}</td><td>${entry.champion || '—'}</td><td>${entry.k}</td><td>${entry.d}</td><td>${entry.a}</td></tr>`;
+  };
+
   contentEl.innerHTML = `
     <div class="pbp-result-banner ${won ? 'win' : 'loss'}">
       <span class="result-icon">${won ? '🏆' : '💀'}</span>
@@ -510,6 +545,25 @@ function renderInlineResults(state, matchResult, won, income) {
         ${income.interest > 0 ? `<span>+ ${income.interest}g interest</span>` : ''}
         ${income.streakBonus > 0 ? `<span>+ ${income.streakBonus}g streak</span>` : ''}
         <span class="gold-total-inline">= <b>${income.total}g</b></span>
+      </div>
+    </div>
+    <div class="pbp-kda-section">
+      <h4 class="kda-title">Player KDA</h4>
+      <div class="kda-tables">
+        <table class="kda-table">
+          <thead><tr><th colspan="5" class="blue-header">${state.teamName} (Blue)</th></tr>
+          <tr><th>Player</th><th>Champion</th><th>K</th><th>D</th><th>A</th></tr></thead>
+          <tbody>
+            ${CONFIG.POSITIONS.map(pos => kdaRow('blue', pos)).join('')}
+          </tbody>
+        </table>
+        <table class="kda-table">
+          <thead><tr><th colspan="5" class="red-header">${oppName} (Red)</th></tr>
+          <tr><th>Player</th><th>Champion</th><th>K</th><th>D</th><th>A</th></tr></thead>
+          <tbody>
+            ${CONFIG.POSITIONS.map(pos => kdaRow('red', pos)).join('')}
+          </tbody>
+        </table>
       </div>
     </div>`;
 

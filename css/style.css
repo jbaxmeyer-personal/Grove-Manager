@@ -456,3 +456,69 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
   display: flex; flex-wrap: wrap; gap: 8px; padding: 14px;
   overflow-y: auto; flex: 1;
 }
+
+/* ── Gold Lead Tug Bar ───────────────────────────────────────────────── */
+.gold-bar-wrap {
+  margin: 6px 0 4px;
+}
+.gold-bar-inner {
+  position: relative;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.gold-tug-fill {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%; right: 50%;
+  background: var(--border);
+  border-radius: 3px;
+  transition: left 0.6s ease, right 0.6s ease;
+}
+.gold-totals {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-top: 3px;
+  gap: 8px;
+}
+.gold-blue-total { color: #4fc3f7; }
+.gold-red-total  { color: #ff7b7b; text-align: right; flex: 1; }
+.gold-totals-sep { color: var(--text-dim); flex-shrink: 0; }
+
+/* ── KDA Breakdown ────────────────────────────────────────────────────── */
+.pbp-kda-section {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.kda-title {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+.kda-tables {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.kda-table {
+  flex: 1;
+  min-width: 200px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.kda-table th, .kda-table td {
+  padding: 4px 7px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.kda-table th { color: var(--text-dim); font-weight: 600; font-size: 11px; }
+.kda-table .blue-header { color: #4fc3f7; text-align: center; font-size: 12px; padding-bottom: 2px; }
+.kda-table .red-header  { color: #ff7b7b; text-align: center; font-size: 12px; padding-bottom: 2px; }
+.kda-table td:nth-child(3) { color: #2ecc71; font-weight: 600; }  /* K green */
+.kda-table td:nth-child(4) { color: #e74c3c; }                    /* D red */
+.kda-table td:nth-child(5) { color: #4fc3f7; }                    /* A blue */
