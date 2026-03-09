@@ -18,7 +18,7 @@ const CONFIG = {
   TIER_SELL: [0, 0, 1, 2, 3, 4],
 
   // Copies of each player in the shared pool, indexed by tier
-  TIER_POOL_SIZE: [0, 18, 15, 13, 10, 9],
+  TIER_POOL_SIZE: [0, 25, 20, 15, 10, 9],
 
   STARTING_GOLD: 10,
   BASE_GOLD: 5,
