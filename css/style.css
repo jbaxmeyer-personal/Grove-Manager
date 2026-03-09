@@ -363,6 +363,7 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
   border-radius: 6px;
   background: rgba(255,255,255,0.03);
   border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
   opacity: 0;
   transform: translateY(6px);
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -377,11 +378,11 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
   font-family: monospace;
 }
 .pbp-text { flex: 1; }
-.pbp-kill        { border-left-color: #e74c3c; background: rgba(231,76,60,0.06); }
-.pbp-teamfight   { border-left-color: #9b59b6; background: rgba(155,89,182,0.06); }
-.pbp-objective   { border-left-color: #d4af37; background: rgba(212,175,55,0.06); }
-.pbp-result      { border-left-color: #4fc3f7; background: rgba(79,195,247,0.10); font-weight:700; }
-.pbp-commentary  { border-left-color: #555; }
+.pbp-kill        { border-right-color: #e74c3c; background: rgba(231,76,60,0.06); }
+.pbp-teamfight   { border-right-color: #9b59b6; background: rgba(155,89,182,0.06); }
+.pbp-objective   { border-right-color: #d4af37; background: rgba(212,175,55,0.06); }
+.pbp-result      { border-right-color: #4fc3f7; background: rgba(79,195,247,0.10); font-weight:700; }
+.pbp-commentary  { border-right-color: #555; }
 
 /* ── Inline Results ────────────────────────────────────────────────────── */
 .pbp-results {
@@ -425,8 +426,8 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 .player-card.tier-0 .card-top { background: rgba(100,100,100,0.15) !important; }
 
 /* ── PBP Blue/Red side indicators ───────────────────────────────────── */
-.pbp-blue-event { border-right: 3px solid rgba(79,195,247,0.7); }
-.pbp-red-event  { border-right: 3px solid rgba(255,123,123,0.7); }
+.pbp-blue-event { border-left-color: rgba(79,195,247,0.7); }
+.pbp-red-event  { border-left-color: rgba(255,123,123,0.7); }
 
 /* ── Team Roster Modal ───────────────────────────────────────────────── */
 .team-roster-modal {

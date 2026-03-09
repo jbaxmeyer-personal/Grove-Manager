@@ -73,7 +73,7 @@ function calcTeamRatings(team) {
 function blueWinsEvent(blueScore, redScore, bConsistency, rConsistency) {
   const diff = (blueScore - redScore);
   // Scale: a 20-point rating difference → ±10% chance
-  const raw  = clamp(50 + diff * 0.5, 15, 85);
+  const raw  = clamp(50 + diff * 0.45, 15, 85);
   // Consistency reduces variance (tightens the range toward 50)
   const avgCons = (bConsistency + rConsistency) / 2 / 100;
   const adjusted = 50 + (raw - 50) * (1.2 - avgCons * 0.4);
@@ -360,7 +360,7 @@ function deriveMatchStats(blueWins, advantage) {
   const loserDragons  = clamp(randInt(0, 2) - Math.round(dominance * 0.8), 0, 2);
 
   // Baron: most games have 1. Short stomps may have 0. Long games may have 2.
-  const isEarlyEnd   = dominance > 0.75;
+  const isEarlyEnd   = dominance > 0.7;
   const isLong       = dominance < 0.15;
   const totalBarons  = isEarlyEnd
     ? (chance(35) ? 0 : 1)
@@ -425,6 +425,12 @@ function simulateMatch(blueTeam, redTeam, blueTeamName, redTeamName) {
   const blueWins   = lateResult.blueWins;
 
   const stats = deriveMatchStats(blueWins, advantage);
+
+  // Override baron counts to exactly match what appeared in PBP events
+  const allEvents = [...laningEvents, ...midEvents, ...lateEvents];
+  const baronEvts = allEvents.filter(e => e.baronBlue !== undefined);
+  stats.blue.barons = baronEvts.filter(e => e.baronBlue).length;
+  stats.red.barons  = baronEvts.filter(e => !e.baronBlue).length;
 
   // Sort events within each phase by timestamp so they display in order
   const sortByTime = evs => evs.slice().sort((a, b) => {
