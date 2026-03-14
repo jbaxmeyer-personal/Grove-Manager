@@ -1,4 +1,4 @@
-// js/game/simulation.js — Grove Manager Phase 4A
+// js/game/simulation.js — Grove Manager Phase 4B
 // Full stat-driven sim engine for The Ancient Grove.
 //
 // Public API (unchanged):
@@ -273,12 +273,101 @@ function getPlaystyleMod(playstyle, contestType) {
   return (mods.bonus && mods.bonus[contestType] || 0) - (mods.penalty && mods.penalty[contestType] || 0);
 }
 
+// ─── SECTION 4B: Comp Synergy Contest Bonuses ────────────────────────────────
+//
+// When a team's draft triggers a COMP_SYNERGY (3+ champions of same compType),
+// they receive a flat power bonus on the contest types that synergy favours.
+// This makes the draft → power link explicit and visible in the narrative.
+
+var COMP_SYNERGY_CONTEST_BONUS = {
+  ENGAGE:    { teamfight: 4, warden_fight: 4, warden_timing: 2 },
+  POKE:      { root_siege: 4, shrine: 3 },
+  ASSASSIN:  { skirmish: 5, shrine: 2 },
+  PROTECT:   { boss_tank: 4, boss_cleanse: 4, boss_dps: 3 },
+  SPLITPUSH: { root_siege: 5, skirmish: 3 },
+  SCALING:   { boss_dps: 4, teamfight: 3, boss_tank: 2 },
+};
+
+/**
+ * Return the flat contest power bonus granted by a team's active comp synergy.
+ * @param {Array}  picks       — draft picks array ({ champion, pos, player })
+ * @param {string} contestType
+ */
+function getCompSynergyBonus(picks, contestType) {
+  if (!picks) return 0;
+  var type = getCompType(picks.map(function(p) { return { champion: p.champion }; }));
+  if (!type) return 0;
+  var table = COMP_SYNERGY_CONTEST_BONUS[type];
+  return (table && table[contestType]) || 0;
+}
+
 // ─── SECTION 5: Narrative Helpers ─────────────────────────────────────────────
 
 var DOMINANT_WIN = ['decisively', 'convincingly', 'in commanding fashion', 'with clinical precision'];
 var CLOSE_WIN    = ['narrowly', 'by the skin of their teeth', 'in a tense finish', 'after an agonizing fight'];
 var SHRINE_NAMES = ['North Ley Shrine', 'South Ley Shrine', 'Crossing Ley Shrine'];
 var POS_IDX      = { vanguard:0, ranger:1, arcanist:2, hunter:3, warden:4 };
+
+// First-blood entrance lines (ranger perspective)
+var FB_ENTRY_DOMINANT = [
+  ' reads the ward gap and burns a path through the northern brush — ',
+  ' has been tracking this gank for two minutes and finally springs the trap — ',
+  ' bursts out of the northern jungle with zero warning — ',
+  ' cuts off every escape route before the target even realises the danger — ',
+];
+var FB_ENTRY_CLOSE = [
+  ' forces a contested duel in the early jungle — ',
+  ' trades blow-for-blow before landing the decisive hit — ',
+  ' finds a marginal opening and barely converts it — ',
+  ' and the victim both commit — only one walks away — ',
+];
+
+// Shrine coordination lines (warden/support perspective)
+var SHRINE_CALL_GOOD = [
+  ' coordinates a textbook rotation — the enemy has no answer.',
+  '\'s callout cuts through the noise; the whole squad arrives in sync.',
+  ' reads the shrine cooldown to the second and calls the move.',
+  ' controls the vision around the shrine and dictates the terms of engagement.',
+];
+var SHRINE_CALL_CLOSE = [
+  ' — a chaotic scramble, but the team holds the point.',
+  ' — contested and bloody; the shrine changes hands only after the dust settles.',
+  ' — neither team wants to commit, but ultimately one blinks first.',
+  ' — both sides arrive at the same moment; the better team-fight composure wins out.',
+];
+
+// Team-fight opening lines (arcanist perspective)
+var TF_OPEN_GOOD = [
+  ' opens with a perfect $ — the enemy formation shatters.',
+  ' fires $ into a cluster of three — there is no coherent reply.',
+  ' lands $ and the fight is effectively over before it begins.',
+  ' uses $ at exactly the right moment; the enemy has used their defensive tools already.',
+];
+var TF_OPEN_CLOSE = [
+  ' unleashes $, but the enemy response is immediate — both teams grind it out.',
+  ' commits $ and the team follows — a bloody exchange.',
+  ' opens the dance with $; the counter-engage is fierce.',
+  ' activates $ and the teamfight descends into chaos.',
+];
+
+// Stat-flavour descriptors: returns a short phrase based on stat value
+function statFlair(statVal, highPhrases, lowPhrases) {
+  return statVal >= 15 ? pick(highPhrases) : pick(lowPhrases);
+}
+
+var COMPOSURE_HIGH = ['calm as stone', 'ice-cold under pressure', 'utterly composed', 'unshakeable'];
+var COMPOSURE_LOW  = ['visibly rattled', 'shaky under the pressure', 'struggling to hold it together', 'cracking at the edges'];
+var COMM_HIGH      = ['calling every step', 'with surgical callouts', 'orchestrating the team perfectly', 'in total command of the comms'];
+var COMM_LOW       = ['comms breaking down', 'with the team slightly out of sync', 'a beat slow on the callout', 'without a clean enough call'];
+var SENSE_HIGH     = ['reading the map like a book', 'anticipating every enemy rotation', 'three steps ahead', 'with perfect vision control'];
+var SENSE_LOW      = ['flying blind', 'caught unaware by the rotation', 'without enough map information', 'reacting rather than reading'];
+
+// Build a teamfight opening line from template, replacing $ with the ult name
+function tfOpenLine(side, winMargin) {
+  var ultStr = ultName(side, 'arcanist');
+  var templates = winMargin > 2 ? TF_OPEN_GOOD : TF_OPEN_CLOSE;
+  return tagline(side,'arcanist') + pick(templates).replace('$', ultStr);
+}
 
 // ─── SECTION 6: Position-Aware Draft ─────────────────────────────────────────
 
@@ -489,54 +578,69 @@ function runSeedling() {
   );
 
   // ── First Blood ──────────────────────────────────────────────────────────────
-  // Rangers duel in the jungle; arcanist roam contributes at lower weight.
+  // Rangers duel in the jungle; arcanist roam and ASSASSIN/PICK synergy contribute.
   _ms.t = rand(3.0, 6.5);
-  var bRngr = calcContestPower(getPlayer('blue','ranger'),  'skirmish') + getPlaystyleMod(blueStyle, 'skirmish') * 5;
-  var rRngr = calcContestPower(getPlayer('red', 'ranger'),  'skirmish') + getPlaystyleMod(redStyle,  'skirmish') * 5;
+  var bDraft = _ms.draft ? _ms.draft.blue : [];
+  var rDraft = _ms.draft ? _ms.draft.red  : [];
+  var bRngr = calcContestPower(getPlayer('blue','ranger'),  'skirmish')
+    + getPlaystyleMod(blueStyle, 'skirmish') * 5
+    + getCompSynergyBonus(bDraft, 'skirmish');
+  var rRngr = calcContestPower(getPlayer('red', 'ranger'),  'skirmish')
+    + getPlaystyleMod(redStyle,  'skirmish') * 5
+    + getCompSynergyBonus(rDraft, 'skirmish');
   var bArc  = calcContestPower(getPlayer('blue','arcanist'),'skirmish') * 0.4;
   var rArc  = calcContestPower(getPlayer('red', 'arcanist'),'skirmish') * 0.4;
   var fb    = resolveContest(bRngr + bArc, rRngr + rArc, 2.5);
   var fbSide   = fb.blueWins ? 'blue' : 'red';
   var fbVictim = fb.blueWins ? 'red'  : 'blue';
   var victimPos = chance(55) ? 'ranger' : (chance(50) ? 'arcanist' : 'vanguard');
-  var fbMargin  = fb.margin;
-  var entranceLine = fbMargin > 3
-    ? tagline(fbSide,'ranger') + ' reads the ward gap and sprints through the northern brush — '
-    : tagline(fbSide,'ranger') + ' forces a skirmish in the early jungle — ';
+  var entranceLine = tagline(fbSide,'ranger') + pick(fb.margin > 3 ? FB_ENTRY_DOMINANT : FB_ENTRY_CLOSE);
   doKill(
     fbSide,
     'FIRST BLOOD! ' + entranceLine +
-    tagline(fbVictim, victimPos) + ' has nowhere to retreat. ' +
+    tagline(fbVictim, victimPos) + ' has nowhere to go. ' +
     (fbSide === 'blue' ? _ms.blueName : _ms.redName) + ' draw first blood!',
     'northShrine'
   );
 
   // ── North Shrine ─────────────────────────────────────────────────────────────
   _ms.t = rand(5.5, 8.0);
-  var bNorth = teamContestPower(bPlayers, 'shrine', getPlaystyleMod(blueStyle, 'shrine') * 5);
-  var rNorth = teamContestPower(rPlayers, 'shrine', getPlaystyleMod(redStyle,  'shrine') * 5);
-  // First blood winner carries momentum
+  var bNorth = teamContestPower(bPlayers, 'shrine', getPlaystyleMod(blueStyle, 'shrine') * 5
+    + getCompSynergyBonus(bDraft, 'shrine'));
+  var rNorth = teamContestPower(rPlayers, 'shrine', getPlaystyleMod(redStyle,  'shrine') * 5
+    + getCompSynergyBonus(rDraft, 'shrine'));
   var northBonus   = fbSide === 'blue' ? rand(2, 5) : -rand(2, 5);
   var northResult  = resolveContest(bNorth + northBonus, rNorth, 1.2);
   var northSide    = northResult.blueWins ? 'blue' : 'red';
   var northSupport = getPlayer(northSide, 'warden');
-  var northCallout = northResult.margin > 3
-    ? (northSupport ? northSupport.name : 'the support') + ' coordinates a textbook rotation — the enemy has no answer.'
-    : 'a fierce clash at the shrine entrance — ' + (northSide === 'blue' ? _ms.blueName : _ms.redName) + ' barely secure it.';
+  var northSuppComm = northSupport ? (northSupport.stats.communication || 10) : 10;
+  var northCallout  = northSuppComm >= 14
+    ? (northSupport ? northSupport.name : 'the support') + pick(SHRINE_CALL_GOOD)
+    : (northSide === 'blue' ? _ms.blueName : _ms.redName) + pick(SHRINE_CALL_CLOSE);
   doShrine(northSide, SHRINE_NAMES[0], 'northShrine');
   doCommentary(
     'North Shrine: ' + northCallout + ' ' +
-    (northSide === 'blue' ? _ms.redName : _ms.blueName) + ' will need to answer on the south side.',
+    (northSide === 'blue' ? _ms.redName : _ms.blueName) + ' will need to respond on the south side.',
     'northShrine'
   );
 
   // ── South Shrine ─────────────────────────────────────────────────────────────
   _ms.t = rand(7.5, 9.5);
-  // Team that lost the north is hungrier for south
   var southBonus  = northSide === 'blue' ? -rand(3, 7) : rand(3, 7);
   var southResult = resolveContest(bNorth + southBonus, rNorth, 1.2);
   var southSide   = southResult.blueWins ? 'blue' : 'red';
   doShrine(southSide, SHRINE_NAMES[1], 'southShrine');
+  // Commentary if the same team took both shrines — or if they split
+  var bothShrines = northSide === southSide;
+  if (bothShrines) {
+    doCommentary(
+      (northSide === 'blue' ? _ms.blueName : _ms.redName) +
+      ' sweep both opening shrines — ' +
+      (northSide === 'blue' ? _ms.redName : _ms.blueName) +
+      ' will need a strong Warden contest to claw back into this.',
+      'southShrine'
+    );
+  }
 
   // ── Optional early skirmish ───────────────────────────────────────────────────
   if (chance(60)) {
@@ -544,10 +648,12 @@ function runSeedling() {
     var skResult  = resolveContest(bRngr + bArc, rRngr + rArc, 2.0);
     var skSide    = skResult.blueWins ? 'blue' : 'red';
     var skVictim  = skSide === 'blue' ? 'red' : 'blue';
+    var skRngrGs  = getStat(skSide, 'ranger', 'gameSense');
+    var skFlair   = statFlair(skRngrGs, SENSE_HIGH, SENSE_LOW);
     doKill(
       skSide,
-      tagline(skSide,'ranger') + ' catches ' + tagline(skVictim,'arcanist') +
-      ' over-extended near the South Shrine — clean solo kill in the southern jungle.',
+      tagline(skSide,'ranger') + ' — ' + skFlair + ' — catches ' +
+      tagline(skVictim,'arcanist') + ' over-extended near the South Shrine. Solo kill.',
       'southShrine'
     );
   }
@@ -573,10 +679,15 @@ function runGrowth() {
     'center'
   );
 
+  var bDraft = _ms.draft ? _ms.draft.blue : [];
+  var rDraft = _ms.draft ? _ms.draft.red  : [];
+
   // ── Outer Root falls ──────────────────────────────────────────────────────────
   _ms.t = rand(10.5, 12.5);
-  var bSiege = teamContestPower(bPlayers, 'root_siege', getPlaystyleMod(blueStyle, 'root_siege') * 5);
-  var rSiege = teamContestPower(rPlayers, 'root_siege', getPlaystyleMod(redStyle,  'root_siege') * 5);
+  var bSiege = teamContestPower(bPlayers, 'root_siege',
+    getPlaystyleMod(blueStyle, 'root_siege') * 5 + getCompSynergyBonus(bDraft, 'root_siege'));
+  var rSiege = teamContestPower(rPlayers, 'root_siege',
+    getPlaystyleMod(redStyle,  'root_siege') * 5 + getCompSynergyBonus(rDraft, 'root_siege'));
   var siegeR  = resolveContest(bSiege, rSiege, 1.5);
   var outerSide = siegeR.blueWins ? 'blue' : 'red';
   var outerLanes = ['Top-Lane Outer Root', 'Bot-Lane Outer Root', 'Mid-Lane Outer Root'];
@@ -591,14 +702,28 @@ function runGrowth() {
 
   // Stage 1: Timing contest — who reads the Warden's HP and calls it first?
   _ms.t += rand(0.5, 1.2);
-  var bWTime = teamContestPower(bPlayers, 'warden_timing', getPlaystyleMod(blueStyle, 'warden_timing') * 5);
-  var rWTime = teamContestPower(rPlayers, 'warden_timing', getPlaystyleMod(redStyle,  'warden_timing') * 5);
+  var bWTime = teamContestPower(bPlayers, 'warden_timing',
+    getPlaystyleMod(blueStyle, 'warden_timing') * 5 + getCompSynergyBonus(bDraft, 'warden_timing'));
+  var rWTime = teamContestPower(rPlayers, 'warden_timing',
+    getPlaystyleMod(redStyle,  'warden_timing') * 5 + getCompSynergyBonus(rDraft, 'warden_timing'));
   var timeR  = resolveContest(bWTime, rWTime, 1.4);
   var timingSide = timeR.blueWins ? 'blue' : 'red';
+  // Commentary on which Ranger called the timing
+  var timingRngr = getPlayer(timingSide, 'ranger');
+  var timingGs   = timingRngr ? (timingRngr.stats.gameSense || 10) : 10;
+  doCommentary(
+    tagline(timingSide,'ranger') + ' — ' + statFlair(timingGs, SENSE_HIGH, SENSE_LOW) +
+    ' — calls the Warden at ' + fmt(_ms.t) + '. ' +
+    (timingSide === 'blue' ? _ms.blueName : _ms.redName) + ' collapse first!',
+    'center'
+  );
 
   // Stage 2: Fight — who wins the chaotic 5v5 around the Warden?
-  var bWFight = teamContestPower(bPlayers, 'warden_fight', getPlaystyleMod(blueStyle, 'warden_fight') * 5);
-  var rWFight = teamContestPower(rPlayers, 'warden_fight', getPlaystyleMod(redStyle,  'warden_fight') * 5);
+  _ms.t += rand(0.3, 0.7);
+  var bWFight = teamContestPower(bPlayers, 'warden_fight',
+    getPlaystyleMod(blueStyle, 'warden_fight') * 5 + getCompSynergyBonus(bDraft, 'warden_fight'));
+  var rWFight = teamContestPower(rPlayers, 'warden_fight',
+    getPlaystyleMod(redStyle,  'warden_fight') * 5 + getCompSynergyBonus(rDraft, 'warden_fight'));
   var fightBonus = timingSide === 'blue' ? rand(2, 5) : -rand(2, 5);
   var fightR     = resolveContest(bWFight + fightBonus, rWFight, 1.5);
   var wardenSide = fightR.blueWins ? 'blue' : 'red';
@@ -607,15 +732,15 @@ function runGrowth() {
   var tankComp = getStat(wardenSide, 'vanguard', 'composure');
   var suppComm = getStat(wardenSide, 'warden', 'communication');
   var tankLine = tankComp >= 16
-    ? tagline(wardenSide,'vanguard') + ' absorbs the Root Slam with textbook positioning — '
+    ? tagline(wardenSide,'vanguard') + ' — ' + statFlair(tankComp, COMPOSURE_HIGH, COMPOSURE_LOW) + ' — absorbs the Root Slam clean. '
     : tankComp >= 12
-    ? tagline(wardenSide,'vanguard') + ' weathers the Root Slam — '
-    : tagline(wardenSide,'vanguard') + ' barely survives the Root Slam — ';
+    ? tagline(wardenSide,'vanguard') + ' weathers the Root Slam, taking the hit so the carries don\'t. '
+    : tagline(wardenSide,'vanguard') + ' barely survives the Root Slam — some damage leaks through. ';
   var healLine = suppComm >= 16
-    ? tagline(wardenSide,'warden') + ' calls the Poison Breath to the millisecond, activating ' + ultName(wardenSide,'warden') + '.'
+    ? tagline(wardenSide,'warden') + ' — ' + statFlair(suppComm, COMM_HIGH, COMM_LOW) + ' — activates ' + ultName(wardenSide,'warden') + '.'
     : suppComm >= 12
-    ? tagline(wardenSide,'warden') + ' responds in time with ' + ultName(wardenSide,'warden') + '.'
-    : tagline(wardenSide,'warden') + ' just barely clears the Poison Breath.';
+    ? tagline(wardenSide,'warden') + ' activates ' + ultName(wardenSide,'warden') + ' in time to clear the Poison Breath.'
+    : tagline(wardenSide,'warden') + ' clears the Poison Breath, though the timing was closer than anyone would like.';
 
   var wSwing = rand(5, 10);
   _ms.adv = clamp(_ms.adv + (wardenSide === 'blue' ? wSwing : -wSwing), 10, 90);
@@ -629,20 +754,20 @@ function runGrowth() {
 
   // ── Team fight erupts post-Warden ─────────────────────────────────────────────
   _ms.t += rand(0.5, 1.2);
-  var bTF = teamContestPower(bPlayers, 'teamfight', getPlaystyleMod(blueStyle, 'teamfight') * 5);
-  var rTF = teamContestPower(rPlayers, 'teamfight', getPlaystyleMod(redStyle,  'teamfight') * 5);
+  var bTF = teamContestPower(bPlayers, 'teamfight',
+    getPlaystyleMod(blueStyle, 'teamfight') * 5 + getCompSynergyBonus(bDraft, 'teamfight'));
+  var rTF = teamContestPower(rPlayers, 'teamfight',
+    getPlaystyleMod(redStyle,  'teamfight') * 5 + getCompSynergyBonus(rDraft, 'teamfight'));
   var tfBonus1 = wardenSide === 'blue' ? rand(3, 6) : -rand(3, 6);
   var tf1R     = resolveContest(bTF + tfBonus1, rTF, 1.6);
   var tf1Side  = tf1R.blueWins ? 'blue' : 'red';
   var tf1bk    = tf1Side === 'blue' ? rInt(2,4) : rInt(0,2);
   var tf1rk    = tf1Side === 'red'  ? rInt(2,4) : rInt(0,2);
-  var arcName  = tagline(tf1Side, 'arcanist');
-  var arcUlt   = ultName(tf1Side, 'arcanist');
   doTeamfight(
     tf1Side, tf1bk, tf1rk,
-    'Team fight erupts at the Grove Heart! ' + arcName + ' opens with ' + arcUlt + ' — ' +
+    'Team fight erupts at the Grove Heart! ' + tfOpenLine(tf1Side, tf1R.margin) + ' ' +
     (tf1Side === 'blue' ? _ms.blueName : _ms.redName) +
-    ' win the skirmish ' + Math.max(tf1bk,tf1rk) + '-for-' + Math.min(tf1bk,tf1rk) + '.',
+    ' win the exchange ' + Math.max(tf1bk,tf1rk) + '-for-' + Math.min(tf1bk,tf1rk) + '.',
     'center'
   );
 
@@ -654,12 +779,20 @@ function runGrowth() {
 
   // ── Crossing Shrine ───────────────────────────────────────────────────────────
   _ms.t = rand(16.0, 18.5);
-  var bCross = teamContestPower(bPlayers, 'shrine', getPlaystyleMod(blueStyle, 'shrine') * 5);
-  var rCross = teamContestPower(rPlayers, 'shrine', getPlaystyleMod(redStyle,  'shrine') * 5);
+  var bCross = teamContestPower(bPlayers, 'shrine',
+    getPlaystyleMod(blueStyle, 'shrine') * 5 + getCompSynergyBonus(bDraft, 'shrine'));
+  var rCross = teamContestPower(rPlayers, 'shrine',
+    getPlaystyleMod(redStyle,  'shrine') * 5 + getCompSynergyBonus(rDraft, 'shrine'));
   var crossBonus  = wardenSide === 'blue' ? rand(2, 5) : -rand(2, 5);
   var crossR      = resolveContest(bCross + crossBonus, rCross, 1.3);
   var crossSide   = crossR.blueWins ? 'blue' : 'red';
   doShrine(crossSide, SHRINE_NAMES[2], 'center');
+  var crossWardComm = getStat(crossSide, 'warden', 'communication');
+  doCommentary(
+    'Crossing Shrine goes to ' + (crossSide === 'blue' ? _ms.blueName : _ms.redName) + ' — ' +
+    tagline(crossSide,'warden') + ' ' + statFlair(crossWardComm, COMM_HIGH, COMM_LOW) + '.',
+    'center'
+  );
 
   // ── Optional second skirmish ──────────────────────────────────────────────────
   if (chance(65)) {
@@ -668,9 +801,11 @@ function runGrowth() {
     var tf2Side = tf2R.blueWins ? 'blue' : 'red';
     var tf2bk   = tf2Side === 'blue' ? rInt(1,3) : rInt(0,2);
     var tf2rk   = tf2Side === 'red'  ? rInt(1,3) : rInt(0,2);
+    var tf2Comp  = getStat(tf2Side, 'vanguard', 'composure');
     doTeamfight(
       tf2Side, tf2bk, tf2rk,
-      tagline(tf2Side,'vanguard') + ' forces a pick near the Inner Root — ' +
+      tagline(tf2Side,'vanguard') + ' — ' + statFlair(tf2Comp, COMPOSURE_HIGH, COMPOSURE_LOW) +
+      ' — engineers a pick near the Inner Root. ' +
       (tf2Side === 'blue' ? _ms.blueName : _ms.redName) +
       ' come out ahead ' + Math.max(tf2bk,tf2rk) + '-for-' + Math.min(tf2bk,tf2rk) + '.',
       crossSide === 'blue' ? 'northShrine' : 'southShrine'
@@ -697,10 +832,15 @@ function runBloom() {
     W === 'blue' ? 'bluePush' : 'redPush'
   );
 
+  var bDraft = _ms.draft ? _ms.draft.blue : [];
+  var rDraft = _ms.draft ? _ms.draft.red  : [];
+
   // ── Heart Root falls ──────────────────────────────────────────────────────────
   _ms.t += rand(1.0, 2.5);
-  var bSiege = teamContestPower(bPlayers, 'root_siege', getPlaystyleMod(blueStyle, 'root_siege') * 5);
-  var rSiege = teamContestPower(rPlayers, 'root_siege', getPlaystyleMod(redStyle,  'root_siege') * 5);
+  var bSiege = teamContestPower(bPlayers, 'root_siege',
+    getPlaystyleMod(blueStyle, 'root_siege') * 5 + getCompSynergyBonus(bDraft, 'root_siege'));
+  var rSiege = teamContestPower(rPlayers, 'root_siege',
+    getPlaystyleMod(redStyle,  'root_siege') * 5 + getCompSynergyBonus(rDraft, 'root_siege'));
   var heartBonus  = W === 'blue' ? rand(3, 8) : -rand(3, 8);
   var heartR      = resolveContest(bSiege + heartBonus, rSiege, 1.6);
   var heartSide   = heartR.blueWins ? 'blue' : 'red';
@@ -711,8 +851,10 @@ function runBloom() {
 
   // ── Final team fight ──────────────────────────────────────────────────────────
   _ms.t += rand(1.5, 3.0);
-  var bTF = teamContestPower(bPlayers, 'teamfight', getPlaystyleMod(blueStyle, 'teamfight') * 5);
-  var rTF = teamContestPower(rPlayers, 'teamfight', getPlaystyleMod(redStyle,  'teamfight') * 5);
+  var bTF = teamContestPower(bPlayers, 'teamfight',
+    getPlaystyleMod(blueStyle, 'teamfight') * 5 + getCompSynergyBonus(bDraft, 'teamfight'));
+  var rTF = teamContestPower(rPlayers, 'teamfight',
+    getPlaystyleMod(redStyle,  'teamfight') * 5 + getCompSynergyBonus(rDraft, 'teamfight'));
   var ftBonus = W === 'blue' ? rand(4, 9) : -rand(4, 9);
   var ftR     = resolveContest(bTF + ftBonus, rTF, 1.7);
   var ftSide  = ftR.blueWins ? 'blue' : 'red';
@@ -751,9 +893,13 @@ function runBossFight() {
     W === 'blue' ? 'bluePush' : 'redPush'
   );
 
+  var wDraft = W === 'blue' ? (_ms.draft ? _ms.draft.blue : []) : (_ms.draft ? _ms.draft.red : []);
+
   // ── Root Slam check (Vanguard: composure + teamfightPositioning) ──────────────
   _ms.t += rand(0.4, 0.8);
-  var tankPow = calcContestPower(getPlayer(W,'vanguard'), 'boss_tank') + getPlaystyleMod(wStyle, 'boss_tank') * 5;
+  var tankPow = calcContestPower(getPlayer(W,'vanguard'), 'boss_tank')
+    + getPlaystyleMod(wStyle, 'boss_tank') * 5
+    + getCompSynergyBonus(wDraft, 'boss_tank');
   var slamOK  = chance(clamp(40 + (tankPow - 10) * 4, 20, 92));
   var tankComp = getStat(W, 'vanguard', 'composure');
   if (slamOK) {
@@ -780,7 +926,9 @@ function runBossFight() {
 
   // ── Poison Breath check (Warden: communication + objectiveExecution) ──────────
   _ms.t += rand(0.5, 1.0);
-  var healPow   = calcContestPower(getPlayer(W,'warden'), 'boss_cleanse') + getPlaystyleMod(wStyle, 'boss_cleanse') * 5;
+  var healPow   = calcContestPower(getPlayer(W,'warden'), 'boss_cleanse')
+    + getPlaystyleMod(wStyle, 'boss_cleanse') * 5
+    + getCompSynergyBonus(wDraft, 'boss_cleanse');
   var cleanseOK = chance(clamp(40 + (healPow - 10) * 4, 20, 92));
   var suppComm  = getStat(W, 'warden', 'communication');
   if (cleanseOK) {
@@ -804,16 +952,19 @@ function runBossFight() {
 
   // ── Enrage check (triggered if team DPS is mediocre or match is close) ────────
   var wPlayers  = W === 'blue' ? bPlayers : rPlayers;
-  var dpsPow    = teamContestPower(wPlayers, 'boss_dps', getPlaystyleMod(wStyle, 'boss_dps') * 5);
+  var dpsPow    = teamContestPower(wPlayers, 'boss_dps',
+    getPlaystyleMod(wStyle, 'boss_dps') * 5 + getCompSynergyBonus(wDraft, 'boss_dps'));
   var avgDps    = dpsPow / 5;
   var enrage    = isClose || avgDps < 12.5;
 
   if (enrage) {
     _ms.t += rand(0.8, 1.5);
+    var hunterAdapt = getStat(W, 'hunter', 'adaptability');
     pushEv('commentary',
       'THE ANCIENT ENRAGES AT 50% HP! Forest Wraiths erupt from the grove floor — adds swarm the arena! ' +
-      tagline(W,'arcanist') + ' pivots immediately, ' + ultName(W,'arcanist') + ' clearing the Wraiths. ' +
-      "The team's DPS races against the Ancient's escalating fury.",
+      tagline(W,'arcanist') + ' pivots immediately with ' + ultName(W,'arcanist') + ' to clear the Wraiths. ' +
+      tagline(W,'hunter') + ' — ' + statFlair(hunterAdapt, COMPOSURE_HIGH, COMPOSURE_LOW) +
+      " — keeps the DPS rolling through the chaos. The Ancient's fury is no match for this team.",
       W === 'blue' ? 'bluePush' : 'redPush'
     );
     // In close matches, the loser makes a desperate counter-play
@@ -822,7 +973,7 @@ function runBossFight() {
       doKill(
         L,
         tagline(L,'arcanist') + ' teleports back for a desperation split! ' +
-        Lname + ' pick off an isolated target — but it won\'t be enough.',
+        Lname + ' pick off an isolated target — but the Ancient is already at 20% HP.',
         L === 'blue' ? 'bluePush' : 'redPush'
       );
     }
@@ -830,13 +981,15 @@ function runBossFight() {
 
   // ── Game end ──────────────────────────────────────────────────────────────────
   _ms.t += rand(1.0, 2.0);
-  var duration  = Math.floor(_ms.t);
   var style = margin >= 8 ? pick(DOMINANT_WIN) : pick(CLOSE_WIN);
   _ms.adv = W === 'blue' ? rInt(72, 90) : rInt(10, 28);
+  // Reference the winning comp synergy if one exists
+  var wSyn = (W === 'blue' ? (_ms.draft && _ms.draft.blueSynergies[0]) : (_ms.draft && _ms.draft.redSynergies[0]));
+  var synLine = wSyn ? ' Their ' + wSyn.name + ' was the key.' : '';
 
   pushEv('result',
     'VICTORY \u2014 ' + Wname + ' defeat ' + Lname + ' ' + style + '! ' +
-    'The Corrupted Ancient falls at ' + fmt(_ms.t) + '. ' +
+    'The Corrupted Ancient falls at ' + fmt(_ms.t) + '.' + synLine + ' ' +
     'Final: ' + _ms.blueName + ' ' + _ms.blue.kills + 'K / ' + _ms.redName + ' ' + _ms.red.kills + 'K',
     W === 'blue' ? 'bluePush' : 'redPush',
     { gameOver: true, winnerBlue: W === 'blue' }
