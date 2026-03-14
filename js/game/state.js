@@ -1,16 +1,16 @@
-// js/game/state.js — Core game state for Rift Manager FM-style career mode
+// js/game/state.js — Core game state for Grove Manager FM-style career mode
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const POSITIONS = ['top', 'jungle', 'mid', 'adc', 'support'];
+const POSITIONS = ['vanguard', 'ranger', 'arcanist', 'hunter', 'warden'];
 
 const PLAYSTYLES = {
-  engage:    { name: 'Engage',     desc: 'Frontload fights, hard engage, teamfight focused' },
-  poke:      { name: 'Poke',       desc: 'Chip enemies down before committing to fights' },
-  pick:      { name: 'Pick',       desc: 'Isolate and eliminate single targets' },
-  protect:   { name: 'Protect',   desc: 'Shield the carry, peel and react' },
-  splitpush: { name: 'Splitpush', desc: 'Apply side lane pressure, force decisions' },
-  scaling:   { name: 'Scaling',   desc: 'Survive early, scale to late game dominance' },
+  engage:    { name: 'Engage',     desc: 'Frontload team fights, contest Ley Shrines aggressively' },
+  poke:      { name: 'Poke',       desc: 'Chip enemies before committing; pressure Ancient Roots safely' },
+  pick:      { name: 'Pick',       desc: 'Isolate and eliminate single targets near shrines' },
+  protect:   { name: 'Protect',   desc: 'Shield the Hunter, peel and survive the boss fight' },
+  splitpush: { name: 'Splitpush', desc: 'Apply side-lane Root pressure while contesting shrines' },
+  scaling:   { name: 'Scaling',   desc: 'Survive early, stack Verdant Blessings, dominate late' },
 };
 
 // ─── Game State ───────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ function initGame(humanTeamId) {
     selectedPlayerId: null,
   };
 
-  addNews(`Welcome to Rift Manager! You are now the manager of ${teams[humanTeamId].name}. Good luck!`, 'info');
+  addNews(`Welcome to Grove Manager! You are now the manager of ${teams[humanTeamId].name}. Good luck!`, 'info');
   addNews(`The ${G.season.split === 'spring' ? 'Spring' : 'Summer'} Split ${G.season.year} is about to begin. Your first match is in Week 1.`, 'info');
 
   return G;
@@ -112,7 +112,7 @@ function buildSeason(year, split) {
     week:  1,
     phase: 'regular',  // 'regular' | 'playoffs' | 'offseason'
     schedule,         // array of { week, matchday, homeId, awayId, played, result }
-    totalWeeks: 9,    // 9-week regular season
+    totalWeeks: 7,    // 7-week regular season (8 teams, each plays every other once)
   };
 }
 
@@ -167,7 +167,7 @@ function advanceWeek() {
   // Check for playoffs / offseason
   if (season.week > season.totalWeeks && season.phase === 'regular') {
     season.phase = 'playoffs';
-    addNews('The regular season is over! The top 6 teams advance to the playoffs.', 'info');
+    addNews('The regular season is over! The top 4 teams advance to the playoffs.', 'info');
   }
 
   return { type: 'week_advanced', week, humanMatch };

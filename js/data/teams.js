@@ -1,14 +1,54 @@
-// js/data/teams.js — LCS team data
+// js/data/teams.js — Verdant League team data
+// The Verdant League (VL) is the premier professional circuit for The Ancient Grove.
+// One region, 8 teams, 7-week round-robin Spring/Summer splits.
 
 const TEAMS_DATA = [
-  { id:'c9',   name:'Cloud9',             shortName:'C9',   color:'#4fc3f7', rival:'tl',   city:'Los Angeles',  budget:3500000, fans:920000, prestige:9 },
-  { id:'tl',   name:'Team Liquid',        shortName:'TL',   color:'#42a5f5', rival:'c9',   city:'Los Angeles',  budget:4000000, fans:980000, prestige:10 },
-  { id:'100t', name:'100 Thieves',        shortName:'100T', color:'#e53935', rival:'c9',   city:'Los Angeles',  budget:3000000, fans:850000, prestige:8 },
-  { id:'flyq', name:'FlyQuest',           shortName:'FLY',  color:'#66bb6a', rival:'nrg',  city:'Los Angeles',  budget:2200000, fans:620000, prestige:6 },
-  { id:'eg',   name:'Evil Geniuses',      shortName:'EG',   color:'#7e57c2', rival:'100t', city:'Los Angeles',  budget:2800000, fans:710000, prestige:7 },
-  { id:'dig',  name:'Dignitas',           shortName:'DIG',  color:'#ffa726', rival:'gg',   city:'Los Angeles',  budget:1800000, fans:480000, prestige:5 },
-  { id:'nrg',  name:'NRG Esports',        shortName:'NRG',  color:'#ef5350', rival:'flyq', city:'Los Angeles',  budget:2400000, fans:550000, prestige:6 },
-  { id:'shop', name:'Shopify Rebellion',  shortName:'SR',   color:'#26a69a', rival:'100t', city:'Toronto',      budget:2000000, fans:490000, prestige:5 },
-  { id:'gg',   name:'Golden Guardians',   shortName:'GG',   color:'#fdd835', rival:'dig',  city:'San Francisco',budget:1600000, fans:420000, prestige:4 },
-  { id:'imt',  name:'Immortals',          shortName:'IMT',  color:'#ab47bc', rival:'tl',   city:'Los Angeles',  budget:1500000, fans:380000, prestige:4 },
+  {
+    id:'vs',  name:'Verdant Spire',   shortName:'VS',  color:'#2e7d32',
+    rival:'ic', region:'VL', homeArena:'The Crown Canopy',
+    budget:4200000, fans:1050000, prestige:10,
+    playstyle:'engage',
+  },
+  {
+    id:'ic',  name:'Iron Canopy',     shortName:'IC',  color:'#546e7a',
+    rival:'vs', region:'VL', homeArena:'The Ironwood Arena',
+    budget:3800000, fans:940000, prestige:9,
+    playstyle:'poke',
+  },
+  {
+    id:'pa',  name:'Pale Ascent',     shortName:'PA',  color:'#6a1b9a',
+    rival:'tw', region:'VL', homeArena:'The Pale Summit',
+    budget:2800000, fans:720000, prestige:7,
+    playstyle:'scaling',
+  },
+  {
+    id:'tw',  name:'Thornwall',       shortName:'TW',  color:'#e65100',
+    rival:'pa', region:'VL', homeArena:'The Thornwall Coliseum',
+    budget:2400000, fans:610000, prestige:6,
+    playstyle:'splitpush',
+  },
+  {
+    id:'dp',  name:'Dusk Protocol',   shortName:'DP',  color:'#00695c',
+    rival:'ge', region:'VL', homeArena:'The Dusk Pavilion',
+    budget:2100000, fans:530000, prestige:6,
+    playstyle:'pick',
+  },
+  {
+    id:'ge',  name:'Grove Enders',    shortName:'GE',  color:'#b71c1c',
+    rival:'dp', region:'VL', homeArena:'The Grove Pit',
+    budget:1700000, fans:420000, prestige:4,
+    playstyle:'engage',
+  },
+  {
+    id:'af',  name:'Ashfall',         shortName:'AF',  color:'#37474f',
+    rival:'hc', region:'VL', homeArena:'The Ashfall Den',
+    budget:1400000, fans:340000, prestige:3,
+    playstyle:'poke',
+  },
+  {
+    id:'hc',  name:'Hollow Crown',    shortName:'HC',  color:'#f57f17',
+    rival:'af', region:'VL', homeArena:'The Hollow Arena',
+    budget:1100000, fans:270000, prestige:2,
+    playstyle:'engage',
+  },
 ];
