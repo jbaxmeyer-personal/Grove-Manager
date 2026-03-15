@@ -860,7 +860,12 @@ function showDraftChampInfo(champName) {
   };
 
   const roleMap = { top:'Top', jungle:'Jungle', mid:'Mid', adc:'ADC', support:'Support', arcanist:'Mid', vanguard:'Top', ranger:'Jungle', hunter:'ADC', warden:'Support' };
+  const roleKey = cd.role ? (roleMap[cd.role] ? (Object.keys(roleMap).find(k => roleMap[k] === roleMap[cd.role] && k.length <= 7) || cd.role) : cd.role) : '';
   const roleDisplay = cd.role ? (roleMap[cd.role] || cd.role) : '';
+  const COMP_COLORS = { ENGAGE:'#e67e22', POKE:'#3498db', PICK:'#9b59b6', PROTECT:'#27ae60', SCALING:'#c89b3c' };
+  const compColor = cd.compType ? (COMP_COLORS[cd.compType] || '#888') : null;
+
+  const roleCssClass = { Top:'pos-top', Jungle:'pos-jungle', Mid:'pos-mid', ADC:'pos-adc', Support:'pos-support' }[roleDisplay] || '';
 
   el.innerHTML = `
     <div class="dci-wrap">
@@ -868,8 +873,8 @@ function showDraftChampInfo(champName) {
         <div class="dci-header">
           <span class="dci-name">${_escHtml(champName)}</span>
           ${b ? `<span class="class-badge" style="color:${b.color};border-color:${b.color}">${b.label}</span>` : ''}
-          ${cd.compType ? `<span class="dci-comp">${cd.compType}</span>` : ''}
-          ${roleDisplay ? `<span class="dci-role">${roleDisplay}</span>` : ''}
+          ${compColor ? `<span class="dci-comp" style="color:${compColor};border-color:${compColor}">${cd.compType}</span>` : ''}
+          ${roleDisplay ? `<span class="pos-badge ${roleCssClass}">${roleDisplay}</span>` : ''}
         </div>
         ${cd.lore ? `<div class="dci-lore">${_escHtml(cd.lore)}</div>` : ''}
         <div class="dci-stats">
