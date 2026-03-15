@@ -1214,13 +1214,14 @@ function showDraftChampInfo(champName) {
   const b = CLASS_BADGE[(cd.class || '').toLowerCase()];
   const stat = (label, val) => `<div class="dci-stat"><span class="dci-stat-label">${label}</span><span class="dci-stat-val">${val}</span></div>`;
 
+  // Always render a desc line so all ability blocks are identical height
   const abilityHtml = (key, icon) => {
     const ab = cd.abilities?.[key];
     if (!ab || key === 'aa') return '';
     const isPhys  = ab.dmgType !== 'magic';
     const dmgStr  = ab.dmg ? `${ab.dmg}${ab.apRatio ? ` (+${ab.apRatio} AP)` : ''}` : '';
-    const typeStr = isPhys ? '⚔' : '✦';
-    const efDesc  = _effectsDesc(ab.effects);
+    const typeStr = isPhys ? '✗' : '✦';
+    const efDesc  = _effectsDesc(ab.effects) || '\u00a0'; // non-breaking space keeps height
     return `<div class="dci-ability">
       <div class="dci-ability-header">
         <span class="dci-ability-icon">${icon}</span>
@@ -1228,7 +1229,7 @@ function showDraftChampInfo(champName) {
         <span class="dci-ability-cd">cd: ${ab.cd}s</span>
         ${dmgStr ? `<span class="dci-ability-dmg">${typeStr} ${dmgStr}</span>` : ''}
       </div>
-      ${efDesc ? `<div class="dci-ability-desc">${_escHtml(efDesc)}</div>` : ''}
+      <div class="dci-ability-desc">${_escHtml(efDesc)}</div>
     </div>`;
   };
 
@@ -1250,12 +1251,16 @@ function showDraftChampInfo(champName) {
   el.innerHTML = `
     <div class="dci-wrap">
       <div class="dci-left">
+        <!-- Row 1: name LEFT, class RIGHT -->
         <div class="dci-header">
           <span class="dci-name">${_escHtml(champName)}</span>
           ${cd.class ? `<span class="dci-fullclass" style="color:${b ? b.color : '#888'}">${cd.class}</span>` : ''}
-          ${compColor ? `<span class="dci-comp" style="color:${compColor};border-color:${compColor}">${cd.compType}</span>` : ''}
         </div>
-        <div class="dci-roles-row">${infoRoleBadges}</div>
+        <!-- Row 2: comp type badge + role badges -->
+        <div class="dci-badges-row">
+          ${compColor ? `<span class="dci-comp" style="color:${compColor};border-color:${compColor}">${cd.compType}</span>` : ''}
+          ${infoRoleBadges}
+        </div>
         ${cd.lore ? `<div class="dci-lore">${_escHtml(cd.lore)}</div>` : ''}
         <div class="dci-stats">
           ${stat('HP',          cd.baseHp)}
@@ -1272,7 +1277,6 @@ function showDraftChampInfo(champName) {
         ${abilityHtml('q',   'Q')}
         ${abilityHtml('e',   'E')}
         ${abilityHtml('ult', 'R')}
-        ${cd.passive ? `<div class="dci-passive"><span class="dci-ability-icon">P</span> <span class="dci-passive-text">${_escHtml(cd.passive.desc || '')}</span></div>` : ''}
       </div>
     </div>`;
 }
