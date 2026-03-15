@@ -1543,6 +1543,11 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 }
 .stream-toggle input:checked + .stream-slider { background: #9b59b6; }
 .stream-toggle input:checked + .stream-slider::before { transform: translateX(14px); background: #fff; }
+/* ─── Statistics Panel ───────────────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stats-card { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.stats-card-title { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+
 /* ─── Champion / Item Browser ───────────────────────────── */
 .cb-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 2px; }
 .cb-layout { display: flex; gap: 14px; margin-top: 12px; min-height: 0; height: calc(100vh - 220px); }

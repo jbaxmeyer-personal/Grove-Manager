@@ -106,6 +106,7 @@ function showMain(name) {
     case 'facilities':   renderFacilities(); break;
     case 'teaminfo':     renderTeamInfo(); break;
     case 'champions':    renderChampionBrowser(); break;
+    case 'statistics':   renderStatistics(_statsTab); break;
     case 'items':        renderItemBrowser(); break;
   }
 }
@@ -1094,6 +1095,130 @@ function renderScouting() {
   }
 
   setHtml('scouting-content', scoutStatus + discoveredHtml);
+}
+
+// ─── Statistics Panel ─────────────────────────────────────────────────────────
+
+let _statsTab = 'team';
+
+function showStatsTab(tab) {
+  _statsTab = tab;
+  document.querySelectorAll('#panel-statistics .ptab').forEach(b => b.classList.remove('active'));
+  document.querySelector(`#panel-statistics .ptab[onclick="showStatsTab('${tab}')"]`)?.classList.add('active');
+  renderStatistics(tab);
+}
+
+function renderStatistics(tab = 'team') {
+  if (!G) return;
+  _statsTab = tab;
+
+  if (tab === 'team') {
+    const team = G.teams[G.humanTeamId];
+    const standings = getStandings();
+    const rank = standings.findIndex(t => t.id === G.humanTeamId) + 1;
+    // Aggregate career stats across all human team players
+    const starters = POSITIONS.map(pos => team.roster[pos] ? G.players[team.roster[pos]] : null).filter(Boolean);
+    const totalKills   = starters.reduce((s, p) => s + (p.career?.kills || 0), 0);
+    const totalDeaths  = starters.reduce((s, p) => s + (p.career?.deaths || 0), 0);
+    const totalAssists = starters.reduce((s, p) => s + (p.career?.assists || 0), 0);
+    const totalGames   = starters.reduce((s, p) => s + (p.career?.gamesPlayed || 0), 0) / 5;
+
+    setHtml('statistics-content', `
+      <div class="stats-grid">
+        <div class="stats-card">
+          <div class="stats-card-title">Career Record</div>
+          <div class="ti-stat-row"><span class="ti-label">Series W/L</span><span class="ti-val">${team.wins}W ${team.losses}L</span></div>
+          <div class="ti-stat-row"><span class="ti-label">League Rank</span><span class="ti-val">#${rank}</span></div>
+          <div class="ti-stat-row"><span class="ti-label">Points</span><span class="ti-val" style="color:var(--gold)">${team.points}</span></div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-title">Combat Totals (Career)</div>
+          <div class="ti-stat-row"><span class="ti-label">Total Kills</span><span class="ti-val">${totalKills}</span></div>
+          <div class="ti-stat-row"><span class="ti-label">Total Deaths</span><span class="ti-val">${totalDeaths}</span></div>
+          <div class="ti-stat-row"><span class="ti-label">Total Assists</span><span class="ti-val">${totalAssists}</span></div>
+          <div class="ti-stat-row"><span class="ti-label">Games Played</span><span class="ti-val">${Math.round(totalGames)}</span></div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-title">Economy</div>
+          <div class="ti-stat-row"><span class="ti-label">Budget</span><span class="ti-val">${fmtMoney(team.budget)}</span></div>
+          <div class="ti-stat-row"><span class="ti-label">Fans</span><span class="ti-val">${(team.fans/1000).toFixed(0)}K</span></div>
+          <div class="ti-stat-row"><span class="ti-label">Prestige</span><span class="ti-val">${team.prestige}/10</span></div>
+        </div>
+      </div>
+    `);
+
+  } else if (tab === 'players') {
+    const team = G.teams[G.humanTeamId];
+    const players = Object.values(G.players).filter(p =>
+      p.teamId === G.humanTeamId && p.career?.gamesPlayed > 0
+    ).sort((a, b) => {
+      const kdaA = a.career.deaths ? (a.career.kills + a.career.assists) / a.career.deaths : (a.career.kills + a.career.assists);
+      const kdaB = b.career.deaths ? (b.career.kills + b.career.assists) / b.career.deaths : (b.career.kills + b.career.assists);
+      return kdaB - kdaA;
+    });
+
+    const rows = players.map(p => {
+      const g = p.career.gamesPlayed || 1;
+      const kda = p.career.deaths
+        ? `${(p.career.kills/g).toFixed(1)}/${(p.career.deaths/g).toFixed(1)}/${(p.career.assists/g).toFixed(1)}`
+        : `${(p.career.kills/g).toFixed(1)}/0/${(p.career.assists/g).toFixed(1)}`;
+      const wr = Math.round(p.career.wins / g * 100);
+      return `<tr>
+        <td><span class="pos-badge pos-${p.position}">${posLabel(p.position)}</span></td>
+        <td style="font-weight:600;color:var(--text-hi)">${_escHtml(p.name)}</td>
+        <td style="color:var(--text-dim)">${p.career.gamesPlayed}</td>
+        <td>${kda}</td>
+        <td style="color:${wr>=50?'var(--win)':'var(--loss)'}">${wr}%</td>
+        <td style="color:var(--text-dim)">${Math.round((p.career.cs||0)/g)}</td>
+      </tr>`;
+    }).join('');
+
+    setHtml('statistics-content', `
+      <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Players with at least 1 game played, sorted by KDA.</p>
+      <table class="standings">
+        <thead><tr><th>Pos</th><th>Player</th><th>GP</th><th>KDA/g</th><th>WR</th><th>CS/g</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:20px">No matches played yet.</td></tr>'}</tbody>
+      </table>
+    `);
+
+  } else if (tab === 'champions') {
+    // Aggregate champion stats from all players in G.players
+    const champStats = {};
+    Object.values(G.players).forEach(p => {
+      Object.entries(p.career?.championStats || {}).forEach(([champ, cs]) => {
+        if (!champStats[champ]) champStats[champ] = { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
+        champStats[champ].games   += cs.games || 0;
+        champStats[champ].wins    += cs.wins  || 0;
+        champStats[champ].kills   += cs.kills || 0;
+        champStats[champ].deaths  += cs.deaths || 0;
+        champStats[champ].assists += cs.assists || 0;
+      });
+    });
+
+    const rows = Object.entries(champStats)
+      .filter(([, cs]) => cs.games >= 1)
+      .sort((a, b) => b[1].games - a[1].games)
+      .map(([name, cs]) => {
+        const cd  = CHAMPIONS[name] || {};
+        const b   = CLASS_BADGE[cd.class] || {};
+        const wr  = cs.games ? Math.round(cs.wins / cs.games * 100) : 0;
+        const kda = cs.deaths ? ((cs.kills + cs.assists) / cs.deaths).toFixed(2) : (cs.kills + cs.assists).toFixed(2);
+        return `<tr>
+          <td>${name ? `<span class="class-badge" style="color:${b.color||'#888'};border-color:${b.color||'#888'}">${b.label||'?'}</span>` : ''} ${_escHtml(name)}</td>
+          <td style="color:var(--text-dim)">${cs.games}</td>
+          <td style="color:${wr>=50?'var(--win)':'var(--loss)'}">${wr}%</td>
+          <td>${kda}</td>
+        </tr>`;
+      }).join('');
+
+    setHtml('statistics-content', `
+      <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">All-time champion performance across all players and teams.</p>
+      <table class="standings">
+        <thead><tr><th>Champion</th><th>Games</th><th>Win Rate</th><th>KDA</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:20px">No matches played yet.</td></tr>'}</tbody>
+      </table>
+    `);
+  }
 }
 
 // ─── Item Browser ─────────────────────────────────────────────────────────────

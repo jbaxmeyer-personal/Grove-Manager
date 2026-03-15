@@ -66,6 +66,7 @@
       <a class="nav-item" data-screen="champions"  onclick="showMain('champions')">⚔️ Champions</a>
       <a class="nav-item" data-screen="items"      onclick="showMain('items')">🗡️ Items</a>
       <div class="nav-divider"></div>
+      <a class="nav-item" data-screen="statistics"  onclick="showMain('statistics')">📈 Statistics</a>
       <a class="nav-item" data-screen="league"     onclick="showMain('league')">🏆 League</a>
       <a class="nav-item" data-screen="schedule"   onclick="showMain('schedule')">📅 Schedule</a>
     </nav>
@@ -173,6 +174,19 @@
       <div id="panel-schedule" class="panel">
         <div class="panel-header">Season Schedule</div>
         <div id="schedule-content"></div>
+      </div>
+
+      <!-- STATISTICS -->
+      <div id="panel-statistics" class="panel">
+        <div class="panel-header">
+          Statistics
+          <div class="panel-tabs">
+            <button class="ptab active" onclick="showStatsTab('team')">Team</button>
+            <button class="ptab" onclick="showStatsTab('players')">Players</button>
+            <button class="ptab" onclick="showStatsTab('champions')">Champions</button>
+          </div>
+        </div>
+        <div id="statistics-content"></div>
       </div>
 
       <!-- CHAMPION BROWSER -->
