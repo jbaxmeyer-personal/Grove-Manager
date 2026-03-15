@@ -38,7 +38,8 @@ Phase 6E → Engine Rewrite v2     (REAL agent simulation — positions, HP, ite
 Phase 6 → Management Depth       (training, development, finances, fans)          ✅ DONE
 Phase 7 → Career Structure       (BO3/BO5 series, full playoffs, multi-season, save/load)   ✅ DONE
 Phase 8 → Balance & Polish       (meta system, UI polish, playtesting)
-Phase 9 → Management Hub         (News, Coaching Staff, Streaming, Facilities, Team Info, Champ Info, Item Info, Statistics, Manager Traits)
+Phase 9 → Management Hub         (News, Coaching Staff, Streaming, Facilities, Team Info, Champ Info, Item Info, Statistics, Manager Traits)  ✅ DONE
+Phase 11 → Management Depth v2   (Fans/FES, Staff overhaul, Facilities queue, Multi-role champs, Tactics phase)  ✅ DONE
 Phase 10 → Visual Identity       (pixel-art 2D sprites → long-term: isometric view with PixiJS)
 ```
 
@@ -644,13 +645,13 @@ Not implementing yet. Future concept: team housing that affects chemistry, condi
 
 ---
 
-## Phase 11 — Management Depth v2 (Next Major Session)
+## Phase 11 — Management Depth v2 ✅ DONE
 **Goal:** Deep overhaul of Fans, Staff, Facilities, Champions, and Tactics based on user feedback.
-**Status:** [ ] Planned
+**Status:** ✅ Complete (March 2026)
 
 ---
 
-### 11A — Fans Screen & Fan Engagement System
+### 11A — Fans Screen & Fan Engagement System ✅ DONE
 
 **Core concept:** Fans are not just a number that goes up when you win. They are an *audience* that must be actively maintained. If you stop producing content and hosting events, fans disengage and leave — even if you're winning. This is the media/celebrity layer of esports management.
 
@@ -712,7 +713,7 @@ FES = base(-0.5)
 
 ---
 
-### 11B — Staff Overhaul: Roster Format + Multi-Attribute Ratings
+### 11B — Staff Overhaul: Roster Format + Multi-Attribute Ratings ✅ DONE
 
 **Core concept:** Staff should feel like FM players — a roster of filled/empty slots, each staff member has a full attribute card (not just one stat), and the Marketing role replaces S&C Coach.
 
@@ -784,7 +785,7 @@ Each staff member has **5 attributes** instead of 1 overall stat:
 
 ---
 
-### 11C — Facilities Build Queue
+### 11C — Facilities Build Queue ✅ DONE
 
 **Core concept:** Upgrading a facility is not instant. It takes weeks to build, just like a real esports org renovating their practice room. You cannot start another upgrade on the same facility while one is in progress.
 
@@ -819,7 +820,7 @@ Each staff member has **5 attributes** instead of 1 overall stat:
 
 ---
 
-### 11D — Champion Multi-Role Support
+### 11D — Champion Multi-Role Support ✅ DONE
 
 **Core concept:** Most champions are designed for 1–2 roles. We add a `roles` array to each champion in champions.js replacing the single `role` field. The browser and draft AI use this for filtering and recommendations.
 
@@ -869,7 +870,7 @@ Each staff member has **5 attributes** instead of 1 overall stat:
 
 ---
 
-### 11E — Tactics Screen Overhaul: Post-Draft In-Game Only
+### 11E — Tactics Screen Overhaul: Post-Draft In-Game Only ✅ DONE
 
 **Core concept:** Tactics are set after the draft (you know what champions both teams picked) and before starting the match. They are shown in a full-screen TFM2-style layout with the matchup visible on the right. The main menu Tactics nav item is removed — this is purely a pre-game decision informed by your comp.
 
