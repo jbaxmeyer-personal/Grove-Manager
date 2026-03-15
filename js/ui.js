@@ -118,6 +118,8 @@ function renderIntro() {
       <div class="tsc-prestige">${'★'.repeat(Math.round(t.prestige/2))} P${t.prestige}</div>
     </div>
   `).join('');
+  const continueBtn = document.getElementById('btn-continue');
+  if (continueBtn) continueBtn.style.display = hasSave() ? 'block' : 'none';
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
@@ -126,30 +128,46 @@ function renderDashboard() {
   if (!G) return;
   const team = G.teams[G.humanTeamId];
 
-  // Next match
-  const nextMatch = G.season.schedule.find(m =>
-    !m.played && (m.homeId === G.humanTeamId || m.awayId === G.humanTeamId)
-  );
+  // Next match — check playoffs first, then regular schedule
+  let nextMatch = null;
+  if (G.season.phase === 'playoffs' && G.season.playoffMatches) {
+    nextMatch = G.season.playoffMatches.find(m =>
+      !m.played && m.homeId && (m.homeId === G.humanTeamId || m.awayId === G.humanTeamId)
+    );
+  }
+  if (!nextMatch) {
+    nextMatch = G.season.schedule.find(m =>
+      !m.played && (m.homeId === G.humanTeamId || m.awayId === G.humanTeamId)
+    );
+  }
   const nextMatchEl = document.getElementById('next-match-info');
   const playBtn     = document.getElementById('btn-play-match');
   if (nextMatch && nextMatchEl) {
     const oppId   = nextMatch.homeId === G.humanTeamId ? nextMatch.awayId : nextMatch.homeId;
     const opp     = G.teams[oppId];
     const isHome  = nextMatch.homeId === G.humanTeamId;
+    const fmtLabel = (nextMatch.format || 'bo3').toUpperCase();
+    const roundLabel = nextMatch.isPlayoff ? ` — ${nextMatch.round === 'final' ? 'Grand Final' : 'Semi-Final'}` : '';
     nextMatchEl.innerHTML = `
-      <strong>Week ${nextMatch.week}</strong><br>
+      <strong>Week ${nextMatch.week}${roundLabel}</strong><br>
       ${isHome ? team.shortName : opp.shortName}
       <span style="color:var(--text-dim)"> vs </span>
       ${isHome ? opp.shortName : team.shortName}<br>
-      <span style="font-size:11px;color:var(--text-dim)">${opp.name} · ${opp.wins}W ${opp.losses}L</span>
+      <span style="font-size:11px;color:var(--text-dim)">${opp.name} · ${opp.wins}W ${opp.losses}L · ${fmtLabel}</span>
     `;
     if (playBtn) {
       playBtn.style.display = 'block';
       playBtn._matchId = nextMatch;
     }
   } else if (nextMatchEl) {
-    nextMatchEl.textContent = G.season.phase === 'playoffs' ? 'Playoffs — Coming Soon' : 'No upcoming match';
+    nextMatchEl.textContent = G.season.phase === 'playoffs' ? 'Playoffs in progress...' : (G.season.phase === 'offseason' ? 'Season complete!' : 'No upcoming match');
     if (playBtn) playBtn.style.display = 'none';
+  }
+
+  // New season button
+  const newSeasonBtn = document.getElementById('btn-new-season');
+  if (newSeasonBtn) {
+    newSeasonBtn.style.display = G.season.phase === 'offseason' ? 'block' : 'none';
   }
 
   // Team stats
@@ -552,10 +570,14 @@ function renderSchedule() {
         const isHuman = m.homeId === G.humanTeamId || m.awayId === G.humanTeamId;
         let result = '';
         if (m.played && m.result) {
-          const humanWon = m.result.winnerId === G.humanTeamId;
-          result = isHuman
-            ? `<span class="sched-result ${humanWon ? 'sched-win':'sched-loss'}">${humanWon ? 'W' : 'L'}</span>`
-            : `<span class="sched-upcoming" style="color:${m.result.winnerId === m.homeId ? 'var(--win)':'var(--loss)'}">${G.teams[m.result.winnerId].shortName} won</span>`;
+          const score = m.result.score || '1-0';
+          if (isHuman) {
+            const humanWon = m.result.winnerId === G.humanTeamId;
+            result = `<span class="sched-result ${humanWon ? 'sched-win' : 'sched-loss'}">${humanWon ? 'W' : 'L'} ${score}</span>`;
+          } else {
+            const won = m.result.winnerId === m.homeId;
+            result = `<span class="sched-upcoming" style="color:${won ? 'var(--win)':'var(--loss)'}">${G.teams[m.result.winnerId].shortName} won ${score}</span>`;
+          }
         } else {
           result = `<span class="sched-upcoming">Upcoming</span>`;
         }

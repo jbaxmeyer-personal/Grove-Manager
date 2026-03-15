@@ -168,7 +168,11 @@ function generateRoundRobin(teamIds, year, split) {
         homeId:  a,
         awayId:  b,
         played:  false,
-        result:  null,   // { winnerId, blueScore, redScore, events }
+        format:  'bo3',
+        homeWins: 0,
+        awayWins: 0,
+        games:   [],
+        result:  null,   // { winnerId, score }
       });
     });
   }
@@ -206,12 +210,6 @@ function advanceWeek() {
     }
   });
 
-  // Fan changes based on results this week
-  matchWeek.filter(m => m.played && m.result).forEach(m => {
-    _applyFanChange(m.homeId, m.result.winnerId === m.homeId);
-    _applyFanChange(m.awayId, m.result.winnerId === m.awayId);
-  });
-
   // Process training for human team
   processTraining(G.humanTeamId, G.weeklyTraining || 'rest');
 
@@ -221,15 +219,28 @@ function advanceWeek() {
   // Advance week counter
   season.week++;
 
-  // Check for playoffs / offseason
+  // Check for end of regular season
   if (season.week > season.totalWeeks && season.phase === 'regular') {
-    season.phase = 'playoffs';
-    addNews('The regular season is over! The top 4 teams advance to the playoffs.', 'info');
+    buildPlayoffs();
+    // Reset weekly training choice
+    G.weeklyTraining = 'rest';
+    saveGame();
+    return { type: 'playoffs_start', humanMatch };
+  }
+
+  // Check for playoffs advancement
+  if (season.phase === 'playoffs') {
+    _advancePlayoffs();
+    // Reset weekly training choice
+    G.weeklyTraining = 'rest';
+    saveGame();
+    return { type: 'playoffs', humanMatch };
   }
 
   // Reset weekly training choice
   G.weeklyTraining = 'rest';
 
+  saveGame();
   return { type: 'week_advanced', week, humanMatch };
 }
 
@@ -365,14 +376,104 @@ function simulateAIMatch(match) {
 
   const homePlayers = getActiveRoster(match.homeId);
   const awayPlayers = getActiveRoster(match.awayId);
-  const result      = quickSimulateMatch(homePlayers, awayPlayers);
-  const homeWon     = result === 'blue';
+  const needed = match.format === 'bo5' ? 3 : 2;
+  let homeWins = 0, awayWins = 0;
 
-  match.played = true;
-  match.result = { winnerId: homeWon ? match.homeId : match.awayId };
+  while (homeWins < needed && awayWins < needed) {
+    const r = quickSimulateMatch(homePlayers, awayPlayers);
+    if (r === 'blue') homeWins++; else awayWins++;
+    match.games.push({ winner: r === 'blue' ? match.homeId : match.awayId });
+  }
 
-  if (homeWon) { home.wins++; home.points += 3; away.losses++; }
-  else         { away.wins++; away.points += 3; home.losses++; }
+  const homeWon = homeWins > awayWins;
+  match.played  = true;
+  match.homeWins = homeWins;
+  match.awayWins = awayWins;
+  match.result   = { winnerId: homeWon ? match.homeId : match.awayId, score: `${homeWins}-${awayWins}` };
+
+  const winner = homeWon ? home : away;
+  const loser  = homeWon ? away : home;
+  winner.wins++;   winner.points += 3;
+  loser.losses++;
+
+  _applyFanChange(match.homeId, homeWon);
+  _applyFanChange(match.awayId, !homeWon);
+}
+
+// ─── Playoffs ─────────────────────────────────────────────────────────────────
+
+function buildPlayoffs() {
+  const standings = getStandings();
+  const top4 = standings.slice(0, 4);
+  // Seeding: 1 vs 4, 2 vs 3 (then final)
+  const sf1 = { week: G.season.totalWeeks + 1, homeId: top4[0].id, awayId: top4[3].id, played: false, format: 'bo5', homeWins: 0, awayWins: 0, games: [], result: null, isPlayoff: true, round: 'semi1' };
+  const sf2 = { week: G.season.totalWeeks + 1, homeId: top4[1].id, awayId: top4[2].id, played: false, format: 'bo5', homeWins: 0, awayWins: 0, games: [], result: null, isPlayoff: true, round: 'semi2' };
+  const gf  = { week: G.season.totalWeeks + 2, homeId: null,       awayId: null,        played: false, format: 'bo5', homeWins: 0, awayWins: 0, games: [], result: null, isPlayoff: true, round: 'final' };
+  G.season.playoffMatches = [sf1, sf2, gf];
+  G.season.phase = 'playoffs';
+  G.season.playoffWeek = G.season.totalWeeks + 1;
+  addNews(`The regular season is over! The top 4 teams advance to the playoffs: ${top4.map(t=>t.name).join(', ')}.`, 'info');
+}
+
+function _advancePlayoffs() {
+  const pm = G.season.playoffMatches;
+  if (!pm) return;
+
+  // Resolve semi-finals first
+  const sf1 = pm.find(m => m.round === 'semi1');
+  const sf2 = pm.find(m => m.round === 'semi2');
+  const gf  = pm.find(m => m.round === 'final');
+
+  // Simulate unplayed semis that don't involve human
+  [sf1, sf2].forEach(sf => {
+    if (!sf.played && sf.homeId !== G.humanTeamId && sf.awayId !== G.humanTeamId) {
+      simulateAIMatch(sf);
+    }
+  });
+
+  // If both semis done, set up final
+  if (sf1.played && sf2.played && !gf.homeId) {
+    gf.homeId = sf1.result.winnerId;
+    gf.awayId = sf2.result.winnerId;
+    addNews(`${G.teams[gf.homeId].name} vs ${G.teams[gf.awayId].name} in the Grand Final!`, 'info');
+  }
+
+  // Simulate final if it doesn't involve human
+  if (gf.homeId && !gf.played && gf.homeId !== G.humanTeamId && gf.awayId !== G.humanTeamId) {
+    simulateAIMatch(gf);
+  }
+
+  // Check if all done
+  if (gf.played) {
+    const champ = G.teams[gf.result.winnerId];
+    addNews(`${champ.name} are the ${G.season.split === 'spring' ? 'Spring' : 'Summer'} Split ${G.season.year} Champions!`, 'match');
+    G.season.phase = 'offseason';
+    G.season.champion = gf.result.winnerId;
+  }
+}
+
+// ─── Multi-season ─────────────────────────────────────────────────────────────
+
+function startNewSeason() {
+  const { year, split } = G.season;
+  const nextSplit = split === 'spring' ? 'summer' : 'spring';
+  const nextYear  = split === 'summer' ? year + 1 : year;
+
+  // Reset team records
+  Object.values(G.teams).forEach(t => {
+    t.wins = 0; t.losses = 0; t.points = 0;
+  });
+
+  // Age all players +1 if starting a new year
+  if (nextSplit === 'spring') {
+    Object.values(G.players).forEach(p => { p.age++; });
+  }
+
+  G.season = buildSeason(nextYear, nextSplit);
+  addNews(`The ${nextSplit === 'spring' ? 'Spring' : 'Summer'} Split ${nextYear} begins!`, 'info');
+  G.weeklyTraining = 'rest';
+  saveGame();
+  renderAll();
 }
 
 function getActiveRoster(teamId) {
@@ -433,4 +534,29 @@ function getWeekLabel() {
   if (phase === 'playoffs')  return `Playoffs — ${year}`;
   if (phase === 'offseason') return `Offseason — ${year}`;
   return `Week ${week} — ${split === 'spring' ? 'Spring' : 'Summer'} Split ${year}`;
+}
+
+// ─── Save / Load ──────────────────────────────────────────────────────────────
+
+function saveGame() {
+  if (!G) return;
+  try {
+    localStorage.setItem('grove-manager-save-v1', JSON.stringify(G));
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem('grove-manager-save-v1');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function hasSave() {
+  return !!localStorage.getItem('grove-manager-save-v1');
+}
+
+function deleteSave() {
+  localStorage.removeItem('grove-manager-save-v1');
 }

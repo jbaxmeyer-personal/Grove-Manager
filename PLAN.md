@@ -17,8 +17,10 @@
 | Finances / Fans | ✅ Done | Weekly wages/income, finance log history, fan changes on match result — Phase 6 |
 | Training System | ✅ Done | 5 choices (rest/scrimmage/soloqueue/filmstudy/streaming), squad condition panel — Phase 6 |
 | Player Development | ✅ Done | Young players gain, veterans decline weekly — Phase 6 |
-| Series Format | ❌ Not started | Currently single-game; BO3/BO5 is Phase 7 |
-| Save / Load | ❌ Not started | localStorage — Phase 7 |
+| Series Format | ✅ Done | BO3 regular season, BO5 playoffs, between-game tactics — Phase 7 |
+| Save / Load | ✅ Done | localStorage auto-save + continue career — Phase 7 |
+| Multi-season | ✅ Done | Offseason → new season, player aging — Phase 7 |
+| Playoffs | ✅ Done | Top 4, BO5 semis + final, champion news — Phase 7 |
 
 **TAG = The Ancient Grove** (our custom MOBA)
 
@@ -34,7 +36,7 @@ Phase 4 → Sim Engine Rewrite     (rebuild around TAG mechanics)               
 Phase 5 → Draft System           (TAG champion select + synergies)                ✅ DONE
 Phase 6E → Engine Rewrite v2     (REAL agent simulation — positions, HP, items)  ✅ DONE
 Phase 6 → Management Depth       (training, development, finances, fans)          ✅ DONE
-Phase 7 → Career Structure       (BO3/BO5 series, full playoffs, multi-season, save/load)
+Phase 7 → Career Structure       (BO3/BO5 series, full playoffs, multi-season, save/load)   ✅ DONE
 Phase 8 → Balance & Polish       (meta system, UI polish, playtesting)
 ```
 
@@ -559,3 +561,4 @@ GAME_DESIGN.md        — Management game design (update to remove LoL refs)
 | 2026-03-14 | #3 | **Phase 2 complete** — Full FM shell. index.html (titles/SVG/score labels updated), css/style.css (FM layout appended), js/ui.js (all render fns: dashboard, squad, player profile, tactics, transfers, finances, league, schedule, draft), js/main.js (game loop: team select, advance week, play/skip match, PBP, return from match), js/game/simulation.js (TAG Phase 2 sim engine), js/ui/map.js (position names updated to TAG). Full game loop playable: intro → team select → dashboard → advance week → play match → PBP → result → back to dashboard. |
 | 2026-03-14 | #4 | **Phases 4E+5+6E complete** — Phase 4D–4E (per-player KDA, morale modifier), Phase 5A–5D (smart draft, bans UI, counter flags, double-draft fix), Phase 6E1 (champions.js full rewrite 30 champs + abilities, items.js 23 items, players.js updated pools, state.js career+G.stats), Phase 6E2 (simulation.js full agent-based rewrite — live positions, real HP, XP/leveling, items purchasing, phys/magic damage, vamp, ranger AI, game phases), Phase 6E3 (playback speed controls ⏸/1×/2×/4×/8×), Phase 6E4 (map.js reads real simulation positions). |
 | 2026-03-14 | #5 | **Phase 6 Management Depth complete** — Training panel (5 choices: rest/scrimmage/soloqueue/filmstudy/streaming, squad condition table, setTraining wired), player development (young gain/veteran decline weekly), weekly finances (wages out + sponsor income, G.financeLog history table), fan changes on match result (_applyFanChange called in _applyMatchResult), fix renderFinances typo, training CSS. |
+| 2026-03-14 | #6 | **Phase 7 complete** — BO3/BO5 series format, between-game tactic adjustment, playoffs (top 4 BO5 semis+final), multi-season (offseason → new season), save/load via localStorage |

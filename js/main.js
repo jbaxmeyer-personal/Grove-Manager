@@ -6,6 +6,8 @@ let _selectedTeamId = null;
 let _matchContext   = null;  // { match, blueId, redId, blueName, redName, blueRoster, redRoster, draft }
 let _matchResult    = null;  // result from simulateMatch / quickSimulate
 let _pbpTimer       = null;
+let _seriesState    = null;
+// { match, blueId, redId, blueName, redName, format, neededToWin, blueWins, redWins, games, humanSide }
 
 const DRAFT_SEQUENCE = [
   { side:'blue', type:'ban',  posIdx:null },
@@ -53,49 +55,87 @@ function onAdvanceWeek() {
   renderAll();
 }
 
+
 // ─── Match Flow ───────────────────────────────────────────────────────────────
 
 function onPlayMatch() {
   if (!G) return;
+  let match = null;
 
-  // Find the first unplayed human match in the schedule
-  const match = G.season.schedule.find(m =>
-    !m.played && (m.homeId === G.humanTeamId || m.awayId === G.humanTeamId)
-  );
+  // Check playoff matches first
+  if (G.season.phase === 'playoffs' && G.season.playoffMatches) {
+    match = G.season.playoffMatches.find(m =>
+      !m.played && m.homeId && (m.homeId === G.humanTeamId || m.awayId === G.humanTeamId)
+    );
+  }
+  // Then regular season
+  if (!match) {
+    match = G.season.schedule.find(m =>
+      !m.played && (m.homeId === G.humanTeamId || m.awayId === G.humanTeamId)
+    );
+  }
   if (!match) return;
 
+  _startSeries(match);
+}
+
+function _startSeries(match) {
   const humanIsHome = match.homeId === G.humanTeamId;
   const blueId   = match.homeId;
   const redId    = match.awayId;
   const blueName = G.teams[blueId].name;
   const redName  = G.teams[redId].name;
-
-  const blueRoster = getActiveRoster(blueId);
-  const redRoster  = getActiveRoster(redId);
-
   const humanSide = humanIsHome ? 'blue' : 'red';
-  _matchContext = { match, blueId, redId, blueName, redName, blueRoster, redRoster, humanIsHome, draft: null };
-  _matchResult  = null;
+  const neededToWin = match.format === 'bo5' ? 3 : 2;
+  const maxGames    = match.format === 'bo5' ? 5 : 3;
+
+  _seriesState = {
+    match, blueId, redId, blueName, redName,
+    format: match.format || 'bo3',
+    neededToWin, maxGames,
+    blueWins: 0, redWins: 0,
+    games: [],
+    humanSide,
+    humanIsHome,
+  };
+
+  _startSeriesGame();
+}
+
+function _startSeriesGame() {
+  const ss = _seriesState;
+  const blueRoster = getActiveRoster(ss.blueId);
+  const redRoster  = getActiveRoster(ss.redId);
+  const humanSide  = ss.humanSide;
+
+  _matchContext = {
+    match: ss.match,
+    blueId: ss.blueId, redId: ss.redId,
+    blueName: ss.blueName, redName: ss.redName,
+    blueRoster, redRoster,
+    humanIsHome: ss.humanIsHome,
+    draft: null,
+  };
+  _matchResult = null;
 
   showScreen('screen-match');
-  document.getElementById('draft-phase').style.display   = 'block';
-  document.getElementById('pbp-container').style.display = 'none';
-  document.getElementById('pbp-results').style.display   = 'none';
-  document.getElementById('pbp-events').innerHTML        = '';
-  document.getElementById('draft-actions').style.display = 'none';
-  document.getElementById('comp-synergies').innerHTML    = '';
-  setText('match-team-blue', blueName);
-  setText('match-team-red',  redName);
+  document.getElementById('draft-phase').style.display        = 'block';
+  document.getElementById('pbp-container').style.display      = 'none';
+  document.getElementById('pbp-results').style.display        = 'none';
+  document.getElementById('pbp-events').innerHTML             = '';
+  document.getElementById('draft-actions').style.display      = 'none';
+  document.getElementById('between-games-panel').style.display = 'none';
+  document.getElementById('comp-synergies').innerHTML         = '';
+  setText('match-team-blue', ss.blueName);
+  setText('match-team-red',  ss.redName);
 
   _draftState = {
     humanSide,
     blueTeamArr: blueRoster,
     redTeamArr:  redRoster,
     bans: { blue: [], red: [] },
-    bluePicks: [],
-    redPicks:  [],
-    step: 0,
-    done: false,
+    bluePicks: [], redPicks: [],
+    step: 0, done: false,
   };
   renderInteractiveDraft(null);
   advanceDraft();
@@ -139,61 +179,156 @@ function onSkipMatch() {
 }
 
 function returnFromMatch() {
-  if (_matchResult && _matchContext) {
-    _applyMatchResult();
-  }
   if (_pbpTimer) { clearTimeout(_pbpTimer); _pbpTimer = null; }
   if (typeof setMapSkipMode === 'function') setMapSkipMode(false);
 
-  _matchResult  = null;
-  _matchContext = null;
+  if (!_matchResult || !_matchContext || !_seriesState) {
+    _matchResult = null; _matchContext = null; _seriesState = null;
+    showScreen('screen-game'); showMain('dashboard');
+    return;
+  }
 
-  showScreen('screen-game');
-  showMain('dashboard');
-}
-
-// ─── Apply result to game state ───────────────────────────────────────────────
-
-function _applyMatchResult() {
-  const { match, blueId, redId } = _matchContext;
+  const ss = _seriesState;
   const blueWon = _matchResult.winner === 'blue';
 
-  match.played = true;
-  match.result = {
-    winnerId:  blueWon ? blueId : redId,
-    blueKills: _matchResult.blueKills,
-    redKills:  _matchResult.redKills,
-    duration:  _matchResult.duration,
+  // Record this game in the series
+  ss.games.push({ winner: blueWon ? ss.blueId : ss.redId, result: _matchResult });
+  if (blueWon) ss.blueWins++; else ss.redWins++;
+
+  // Update morale/form
+  _applyPostMatchMorale(ss.blueId, 'blue', blueWon);
+  _applyPostMatchMorale(ss.redId,  'red',  !blueWon);
+
+  // Check if series is over
+  if (ss.blueWins >= ss.neededToWin || ss.redWins >= ss.neededToWin) {
+    _finalizeHumanSeries();
+  } else {
+    // Show between-games panel
+    _showBetweenGames();
+  }
+
+  _matchResult  = null;
+  _matchContext = null;
+}
+
+// ─── Series finalization ──────────────────────────────────────────────────────
+
+function _finalizeHumanSeries() {
+  const ss = _seriesState;
+  const blueWon = ss.blueWins > ss.redWins;
+  const match   = ss.match;
+
+  match.played   = true;
+  match.homeWins = ss.blueWins;  // home is always blue
+  match.awayWins = ss.redWins;
+  match.games    = ss.games;
+  match.result   = {
+    winnerId: blueWon ? ss.blueId : ss.redId,
+    score: `${ss.blueWins}-${ss.redWins}`,
   };
 
-  const blueTeam = G.teams[blueId];
-  const redTeam  = G.teams[redId];
+  const blueTeam = G.teams[ss.blueId];
+  const redTeam  = G.teams[ss.redId];
+  const humanWon = (blueWon && ss.humanSide === 'blue') || (!blueWon && ss.humanSide === 'red');
 
-  if (blueWon) {
-    blueTeam.wins++;  blueTeam.points += 3;
-    redTeam.losses++;
-  } else {
-    redTeam.wins++;   redTeam.points += 3;
-    blueTeam.losses++;
-  }
+  if (blueWon) { blueTeam.wins++; blueTeam.points += 3; redTeam.losses++; }
+  else         { redTeam.wins++;  redTeam.points  += 3; blueTeam.losses++; }
 
   const winner = blueWon ? blueTeam : redTeam;
   const loser  = blueWon ? redTeam  : blueTeam;
   const wk = G.season.week > 1 ? G.season.week - 1 : 1;
   addNews(
-    `${winner.name} defeat ${loser.name} in Week ${wk}. (${_matchResult.blueKills}–${_matchResult.redKills} kills, ${_matchResult.duration} min)`,
+    `${winner.name} defeat ${loser.name} ${match.result.score} in Week ${wk}.`,
     'match'
   );
 
-  // Fan reaction to result
   if (typeof _applyFanChange === 'function') {
-    _applyFanChange(blueId, blueWon);
-    _applyFanChange(redId,  !blueWon);
+    _applyFanChange(ss.blueId, blueWon);
+    _applyFanChange(ss.redId,  !blueWon);
   }
 
-  // Update morale and form for all players in this match
-  _applyPostMatchMorale(blueId, 'blue', blueWon);
-  _applyPostMatchMorale(redId,  'red',  !blueWon);
+  _seriesState = null;
+  showScreen('screen-game');
+  showMain('dashboard');
+  saveGame();
+}
+
+// ─── Between-games panel ──────────────────────────────────────────────────────
+
+function _showBetweenGames() {
+  const ss = _seriesState;
+  const humanWins  = ss.humanSide === 'blue' ? ss.blueWins : ss.redWins;
+  const cpuWins    = ss.humanSide === 'blue' ? ss.redWins  : ss.blueWins;
+  const cpuName    = ss.humanSide === 'blue' ? ss.redName  : ss.blueName;
+  const gameNum    = ss.games.length + 1;
+  const fmt        = ss.format.toUpperCase();
+
+  document.getElementById('draft-phase').style.display        = 'none';
+  document.getElementById('pbp-container').style.display      = 'none';
+  document.getElementById('pbp-results').style.display        = 'none';
+  document.getElementById('between-games-panel').style.display = 'block';
+
+  const scoreHtml = `<div class="bgp-score">
+    <span class="bgp-you">YOU  ${humanWins}</span>
+    <span class="bgp-sep">–</span>
+    <span class="bgp-cpu">${cpuWins}  ${cpuName}</span>
+  </div>
+  <div class="bgp-label">${fmt} Series · Game ${gameNum} next</div>`;
+
+  // Tactic options
+  const tactics = Object.entries(PLAYSTYLES).map(([key, val]) => {
+    const active = G.teams[G.humanTeamId].tactics.playstyle === key;
+    return `<div class="bgp-tactic ${active ? 'bgp-tactic-active' : ''}" onclick="onBetweenGamesTactic('${key}')">
+      <div class="bgp-tactic-name">${val.name}</div>
+      <div class="bgp-tactic-desc">${val.desc}</div>
+    </div>`;
+  }).join('');
+
+  const tacticsHtml = `<div class="bgp-tactics-wrap">
+    <div class="bgp-section-label">ADJUST TACTICS FOR GAME ${gameNum}</div>
+    <div class="bgp-tactics-grid">${tactics}</div>
+  </div>`;
+
+  document.getElementById('between-games-content').innerHTML = scoreHtml + tacticsHtml;
+}
+
+function onBetweenGamesTactic(key) {
+  if (!G || !_seriesState) return;
+  G.teams[G.humanTeamId].tactics.playstyle = key;
+  _showBetweenGames(); // re-render to update active
+}
+
+function onNextGame() {
+  document.getElementById('between-games-panel').style.display = 'none';
+  _startSeriesGame();
+}
+
+function onAbandonSeries() {
+  // Forfeit: opponent wins the series
+  if (!_seriesState) { showScreen('screen-game'); showMain('dashboard'); return; }
+  const ss = _seriesState;
+  const cpuSide = ss.humanSide === 'blue' ? 'red' : 'blue';
+  // Force remaining wins to CPU
+  while (ss.blueWins < ss.neededToWin && ss.redWins < ss.neededToWin) {
+    if (cpuSide === 'red') ss.redWins++; else ss.blueWins++;
+  }
+  _finalizeHumanSeries();
+}
+
+// ─── Career continuation ──────────────────────────────────────────────────────
+
+function onContinueCareer() {
+  const saved = loadGame();
+  if (!saved) return;
+  G = saved;
+  showScreen('screen-game');
+  showMain('dashboard');
+  renderAll();
+}
+
+function onNewSeason() {
+  startNewSeason();
+  showMain('dashboard');
 }
 
 // Update morale and rolling form for each player after a match.

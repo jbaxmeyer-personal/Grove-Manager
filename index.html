@@ -18,6 +18,7 @@
   </div>
   <div class="intro-card">
     <h2>Select Your Team</h2>
+    <button id="btn-continue" class="btn-start" style="display:none" onclick="onContinueCareer()">Continue Career</button>
     <p class="intro-hint">You are joining the Verdant League as a first-time head coach. Choose your team wisely.</p>
     <div id="team-select-grid" class="team-select-grid"></div>
     <button class="btn-start" id="btn-start" disabled onclick="onStartGame()">Start Career</button>
@@ -71,6 +72,7 @@
             <div class="dash-card-title">Next Match</div>
             <div id="next-match-info" class="next-match-info">No upcoming match</div>
             <button class="btn-primary" id="btn-play-match" onclick="onPlayMatch()" style="display:none">▶ Play Match</button>
+            <button class="btn-primary" id="btn-new-season" onclick="onNewSeason()" style="display:none">🏆 Start New Season</button>
           </div>
           <div class="dash-card dash-form">
             <div class="dash-card-title">Your Team</div>
@@ -266,6 +268,15 @@
       </div>
     </div>
     <div id="pbp-results" class="pbp-results" style="display:none"></div>
+  </div>
+
+  <!-- Between Games -->
+  <div id="between-games-panel" class="between-games-panel" style="display:none">
+    <div id="between-games-content"></div>
+    <div class="bgp-actions">
+      <button class="btn-primary" onclick="onNextGame()">Next Game ▶</button>
+      <button class="btn-secondary" onclick="onAbandonSeries()">Forfeit Series</button>
+    </div>
   </div>
 
 </div>
