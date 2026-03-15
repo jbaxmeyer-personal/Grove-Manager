@@ -280,7 +280,7 @@ Some champion classes hard-counter others (affects fight outcome modifier):
 
 ## Phase 6 — Management Depth
 **Goal:** The FM layer — what you actually do between matches.
-**Status:** [ ] Not started
+**Status:** ✅ Fully Complete
 
 ### 6A — Training System
 Weekly training choices (pick one per week):
@@ -296,7 +296,7 @@ Weekly training choices (pick one per week):
 - Potential stat (hidden, 1-20): caps how high a young player can grow
 - Form stat (visible): recent performance modifier (rises/falls with results)
 
-### 6C — Personality System
+### 6C — Personality System ✅ DONE
 Each player has a personality type affecting team dynamics:
 - **Leader** — boosts Communication of nearby players; leadership bonuses
 - **Maverick** — high individual skill ceiling but clashes with team tactics
@@ -306,7 +306,7 @@ Each player has a personality type affecting team dynamics:
 
 Personality affects: training gains, morale events, locker room chemistry, performance under pressure.
 
-### 6D — Morale & Chemistry
+### 6D — Morale & Chemistry ✅ DONE
 - Individual morale (1-10): affected by results, play time, salary vs market value
 - Team chemistry (1-10): average morale + personality compatibility bonus
 - Low chemistry → Communication stat debuff in sim
@@ -319,13 +319,13 @@ Personality affects: training gains, morale events, locker room chemistry, perfo
 - Budget check before signing
 - Release players: pay termination fee
 
-### 6F — Scouting
+### 6F — Scouting ✅ DONE
 - Scout reports reveal hidden players (obscure/young talent)
 - Scouting takes 1-2 weeks, costs budget
 - Reports show: position, overall range (not exact), age, personality hint
 - Unlock full profile after scouting
 
-### 6G — Financials
+### 6G — Financials ✅ DONE
 The finances panel is the economic backbone of the career. It should feel like FM's boardroom — legible, consequential, and slightly stressful.
 
 **Budget model:**
@@ -357,7 +357,7 @@ The finances panel is the economic backbone of the career. It should feel like F
 - If budget drops below -$500K: "Board Warning" event — manager reputation takes a hit (Phase 7)
 - Smart budget management is a core skill, especially early career on low-prestige teams
 
-### 6H — Fans
+### 6H — Fans ✅ DONE
 Fans are the second major resource, alongside budget. They represent your team's cultural footprint in the Verdant League and directly gate the quality of sponsors you can attract.
 
 **Fan model:**
@@ -563,3 +563,4 @@ GAME_DESIGN.md        — Management game design (update to remove LoL refs)
 | 2026-03-14 | #5 | **Phase 6 Management Depth complete** — Training panel (5 choices: rest/scrimmage/soloqueue/filmstudy/streaming, squad condition table, setTraining wired), player development (young gain/veteran decline weekly), weekly finances (wages out + sponsor income, G.financeLog history table), fan changes on match result (_applyFanChange called in _applyMatchResult), fix renderFinances typo, training CSS. |
 | 2026-03-14 | #6 | **Phase 7 complete** — BO3/BO5 series format, between-game tactic adjustment, playoffs (top 4 BO5 semis+final), multi-season (offseason → new season), save/load via localStorage |
 | 2026-03-14 | #7 | **Phase 3 complete** — TAG hex map SVG: diamond hexagon boundary, 3 lanes (top/mid/bot), forest jungle zones, Ley Shrine markers, Grove Warden spawn, Ancient Root markers, themed Blue/Red bases. map.js JS unchanged (same coordinate system). |
+| 2026-03-14 | #8 | **Phase 6 remaining complete** — 6C Personality system (5 types: leader/maverick/grinder/volatile/pro, training multipliers, personality badges in squad + player profile), 6D team chemistry (morale average + personality compatibility bar in squad view), 6F Scouting panel (12 prospects in SCOUT_POOL, send scout for $50K, report after 1 week, free agent pipeline), 6G Sponsors (per-team sponsors with milestone bonuses and weekly income replacing flat fan/8 formula), 6H Fan milestones (5 thresholds 100K/250K/500K/1M/2M with news events). |

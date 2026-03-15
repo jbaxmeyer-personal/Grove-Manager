@@ -331,6 +331,18 @@ function onNewSeason() {
   showMain('dashboard');
 }
 
+// ─── Scouting ────────────────────────────────────────────────────────────────
+
+function onStartScouting() {
+  const result = startScouting();
+  if (result === 'started') {
+    renderAll();
+    showMain('scouting');
+  } else if (result === 'no_budget') {
+    alert('Insufficient budget to send a scout.');
+  }
+}
+
 // Update morale and rolling form for each player after a match.
 // Win/loss sets the base; individual KDA adjusts further.
 function _applyPostMatchMorale(teamId, side, won) {

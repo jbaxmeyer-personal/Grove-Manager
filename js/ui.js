@@ -38,6 +38,23 @@ function posLabel(pos) {
   return { vanguard:'Vanguard', ranger:'Ranger', arcanist:'Arcanist', hunter:'Hunter', warden:'Warden' }[pos] || pos;
 }
 
+// ─── Personality Badge ────────────────────────────────────────────────────────
+
+const PERSONALITY_LABEL = { leader:'Leader', maverick:'Maverick', grinder:'Grinder', volatile:'Volatile', pro:'Pro' };
+const PERSONALITY_COLOR = { leader:'#4fc3f7', maverick:'#ff7b7b', grinder:'#8bc34a', volatile:'#ffd740', pro:'#b0bec5' };
+const PERSONALITY_DESC  = {
+  leader:   'Boosts team morale',
+  maverick: 'High upside, trains unevenly',
+  grinder:  'Improves faster in training',
+  volatile: 'Big swings in training gains',
+  pro:      'Consistent and reliable',
+};
+function personalityBadge(p) {
+  const label = PERSONALITY_LABEL[p] || p;
+  const color = PERSONALITY_COLOR[p] || '#888';
+  return `<span class="personality-badge" style="color:${color};border-color:${color}">${label}</span>`;
+}
+
 function statLabel(key) {
   return {
     mechanics:'Mechanics', csAccuracy:'CS Accuracy', teamfightPositioning:'TF Positioning',
@@ -55,6 +72,13 @@ function setText(id, val) {
 function setHtml(id, val) {
   const el = document.getElementById(id);
   if (el) el.innerHTML = val;
+}
+
+function _escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 // ─── Panel / Sidebar routing ──────────────────────────────────────────────────
@@ -76,6 +100,7 @@ function showMain(name) {
     case 'finances':   renderFinances(); break;
     case 'league':     renderLeague(); break;
     case 'schedule':   renderSchedule(); break;
+    case 'scouting':   renderScouting(); break;
   }
 }
 
@@ -231,16 +256,24 @@ function renderSquad(tab = 'starters') {
           </div>
         </td>
         <td style="color:var(--text-dim);font-size:11px">${p.contract.yearsLeft}yr</td>
+        <td>${personalityBadge(p.personality || 'pro')}</td>
       </tr>`;
   }).join('');
 
+  const chem = calcChemistry(G.humanTeamId);
+  const chemColor = chem >= 7 ? '#4caf50' : chem >= 5 ? '#c89b3c' : '#f44336';
+
   setHtml('squad-content', `
+    <div class="chemistry-bar">
+      Team Chemistry: <span style="color:${chemColor};font-weight:700">${chem.toFixed(1)}/10</span>
+      <span style="color:var(--text-dim);font-size:11px">— avg morale + personality compatibility</span>
+    </div>
     <table class="squad-table">
       <thead><tr>
         <th>Pos</th><th>Name</th><th>OVR</th><th>Age</th>
-        <th>Nat</th><th>Salary</th><th>Morale</th><th>Contract</th>
+        <th>Nat</th><th>Salary</th><th>Morale</th><th>Contract</th><th>Personality</th>
       </tr></thead>
-      <tbody>${rows || '<tr><td colspan="8" style="text-align:center;color:var(--text-dim);padding:20px">No players</td></tr>'}</tbody>
+      <tbody>${rows || '<tr><td colspan="9" style="text-align:center;color:var(--text-dim);padding:20px">No players</td></tr>'}</tbody>
     </table>
   `);
 }
@@ -275,14 +308,18 @@ function renderPlayerProfile(playerId) {
 
   const champPills = (p.champions || []).map(c => `<span class="champ-pill">${c}</span>`).join('');
 
+  const pers = p.personality || 'pro';
+  const persDesc = PERSONALITY_DESC[pers] || '';
+
   setHtml('player-profile-content', `
     <div class="profile-meta" style="margin-bottom:20px">
       <div class="profile-meta-main">
-        <div class="profile-name">${p.name}</div>
+        <div class="profile-name">${p.name} ${personalityBadge(pers)}</div>
         <div class="profile-detail">
           <span class="pos-badge pos-${p.position}">${posLabel(p.position)}</span>
           &nbsp; Age ${p.age} · ${p.nationality} · ${fmtMoney(p.contract.salary)}/yr · ${p.contract.yearsLeft} yr left
         </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${persDesc}</div>
         <div class="champ-pills">${champPills}</div>
       </div>
       <div style="text-align:right">
@@ -473,6 +510,34 @@ function renderFinances() {
   const net  = team.sponsorIncome - team.weeklyWages;
   const weeksLeft = Math.max(0, G.season.totalWeeks - G.season.week + 1);
 
+  // Sponsor cards section
+  const sponsors = team.sponsors || [];
+  const sponsorCardsHtml = sponsors.length ? `
+    <div class="finance-card" style="margin-top:14px">
+      <h3>Sponsors</h3>
+      <div class="sponsor-cards">
+        ${sponsors.map(sp => `
+          <div class="sponsor-card">
+            <div class="sponsor-card-header">
+              <div class="sponsor-name">${_escHtml(sp.name)}</div>
+              <div class="sponsor-income">+${fmtMoney(sp.weeklyIncome)}/wk</div>
+            </div>
+            <div class="sponsor-bonuses">
+              ${(sp.bonuses || []).map(b => `
+                <div class="sponsor-bonus">
+                  <span class="bonus-label">${_escHtml(b.label)}</span>
+                  <span>
+                    <span class="bonus-reward">${fmtMoney(b.reward)}</span>
+                    ${b.paid
+                      ? '<span class="bonus-paid"> ✓ Paid</span>'
+                      : '<span class="bonus-pending"> Pending</span>'}
+                  </span>
+                </div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
   setHtml('finances-content', `
     <div class="finance-grid">
       <div class="finance-card">
@@ -495,6 +560,7 @@ function renderFinances() {
         }).join('')}
       </div>
     </div>
+    ${sponsorCardsHtml}
     ${(G.financeLog && G.financeLog.length > 0) ? `
     <div class="finance-card" style="margin-top:14px">
       <h3>Transaction History</h3>
@@ -704,6 +770,56 @@ function renderDraftSynergies(draft) {
     ? `<span class="counter-score ${cs > 0 ? 'blue-text':'red-text'}">${cs > 0 ? _escHtml(blueName) : _escHtml(redName)} has the counter edge</span>`
     : '';
   setHtml('comp-synergies', synBadges(draft.blueSynergies,'blue') + synBadges(draft.redSynergies,'red') + csLine);
+}
+
+// ─── Scouting ────────────────────────────────────────────────────────────────
+
+function renderScouting() {
+  if (!G) return;
+  const sc = G.scouting || {};
+  const discovered = (sc.discovered || []).map(id => G.players[id]).filter(Boolean);
+  const team = G.teams[G.humanTeamId];
+
+  // Active scout status
+  let scoutStatus = '';
+  if (sc.activeScout) {
+    scoutStatus = `<div class="scout-active">Scout in the field — report in ${sc.activeScout.weeksLeft} week(s).</div>`;
+  } else {
+    const canScout = team.budget >= 50000;
+    const remaining = SCOUT_POOL.filter(p => !p.discovered && !(sc.discovered||[]).includes(p.id)).length;
+    scoutStatus = remaining > 0
+      ? `<div class="scout-idle">
+           <p>${remaining} undiscovered prospect(s) in the challenger ladder.</p>
+           <button class="btn-primary" onclick="onStartScouting()" ${canScout ? '' : 'disabled'}>
+             Send Scout ($50K)
+           </button>
+           ${!canScout ? '<p class="scout-warn">Insufficient budget.</p>' : ''}
+         </div>`
+      : '<div class="scout-idle"><p>All prospects have been scouted.</p></div>';
+  }
+
+  // Discovered players
+  let discoveredHtml = '';
+  if (discovered.length) {
+    discoveredHtml = `<div class="scout-reports">
+      <h3>Scout Reports</h3>
+      ${discovered.map(p => {
+        const ovr = calcOverall(p);
+        const inFA = G.freeAgents.includes(p.id);
+        return `<div class="scout-report-row">
+          <span class="sr-pos">${posIcon(p.position)}</span>
+          <span class="sr-name">${_escHtml(p.name)}</span>
+          <span class="ovr-badge ${overallColor(ovr)}">${ovr}</span>
+          ${personalityBadge(p.personality || 'pro')}
+          <span class="sr-age">Age ${p.age}</span>
+          <span class="sr-pot pot-${p.potential}">${p.potential} potential</span>
+          ${inFA ? '<span class="sr-fa">Free Agent</span>' : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  setHtml('scouting-content', scoutStatus + discoveredHtml);
 }
 
 // ─── renderAll ────────────────────────────────────────────────────────────────

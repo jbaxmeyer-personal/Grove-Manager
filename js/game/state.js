@@ -13,6 +13,83 @@ const PLAYSTYLES = {
   scaling:   { name: 'Scaling',   desc: 'Survive early, stack Verdant Blessings, dominate late' },
 };
 
+// ─── Scout Pool ───────────────────────────────────────────────────────────────
+
+const SCOUT_POOL = [
+  { id:'sc001', name:'Fernwick',  position:'vanguard',  age:19, nationality:'EU', potential:'high',
+    champions:['Bogveil','Thornwall','Stoneguard'],
+    contract:{ salary:45000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:11,csAccuracy:9,teamfightPositioning:12,mapMovement:10,objectiveExecution:10,championPoolDepth:8,
+            decisionMaking:10,gameSense:11,communication:9,leadership:8,adaptability:12,composure:9 },
+    personality:'grinder', playStyle:'utility', teamId:null, discovered:false },
+  { id:'sc002', name:'Ashblaze',  position:'arcanist',  age:20, nationality:'NA', potential:'medium',
+    champions:['Wraithfern','Bombspore','Vaulthorn'],
+    contract:{ salary:40000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:12,csAccuracy:13,teamfightPositioning:10,mapMovement:9,objectiveExecution:9,championPoolDepth:10,
+            decisionMaking:12,gameSense:11,communication:8,leadership:7,adaptability:11,composure:10 },
+    personality:'volatile', playStyle:'carry', teamId:null, discovered:false },
+  { id:'sc003', name:'Coldpath',  position:'ranger',    age:18, nationality:'KOR', potential:'high',
+    champions:['Shade','Hexwing','Fangwhisper'],
+    contract:{ salary:35000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:13,csAccuracy:10,teamfightPositioning:10,mapMovement:14,objectiveExecution:11,championPoolDepth:9,
+            decisionMaking:11,gameSense:12,communication:7,leadership:6,adaptability:13,composure:10 },
+    personality:'maverick', playStyle:'aggressive', teamId:null, discovered:false },
+  { id:'sc004', name:'Driftmere', position:'hunter',    age:21, nationality:'NA', potential:'medium',
+    champions:['Wildshot','Swiftarrow','Starshot'],
+    contract:{ salary:50000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:11,csAccuracy:13,teamfightPositioning:11,mapMovement:9,objectiveExecution:10,championPoolDepth:10,
+            decisionMaking:10,gameSense:10,communication:9,leadership:8,adaptability:10,composure:11 },
+    personality:'pro', playStyle:'carry', teamId:null, discovered:false },
+  { id:'sc005', name:'Groveborn', position:'warden',    age:22, nationality:'EU', potential:'medium',
+    champions:['Darkblossom','Irongrasp','Stonewall'],
+    contract:{ salary:42000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:9,csAccuracy:7,teamfightPositioning:13,mapMovement:8,objectiveExecution:11,championPoolDepth:9,
+            decisionMaking:12,gameSense:13,communication:14,leadership:12,adaptability:10,composure:11 },
+    personality:'leader', playStyle:'utility', teamId:null, discovered:false },
+  { id:'sc006', name:'Thistlerun',position:'vanguard',  age:20, nationality:'NA', potential:'medium',
+    champions:['Deeproot','Ironsong','Stormhide'],
+    contract:{ salary:38000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:10,csAccuracy:8,teamfightPositioning:11,mapMovement:9,objectiveExecution:9,championPoolDepth:8,
+            decisionMaking:9,gameSense:10,communication:10,leadership:9,adaptability:11,composure:10 },
+    personality:'grinder', playStyle:'utility', teamId:null, discovered:false },
+  { id:'sc007', name:'Ravenmoss', position:'arcanist',  age:19, nationality:'KOR', potential:'high',
+    champions:['Emberpyre','Spiritfox','Iceveil'],
+    contract:{ salary:32000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:14,csAccuracy:12,teamfightPositioning:9,mapMovement:10,objectiveExecution:8,championPoolDepth:11,
+            decisionMaking:13,gameSense:12,communication:7,leadership:6,adaptability:14,composure:9 },
+    personality:'maverick', playStyle:'carry', teamId:null, discovered:false },
+  { id:'sc008', name:'Stormcroft',position:'hunter',    age:18, nationality:'EU', potential:'high',
+    champions:['Duskwarden','Embervane','Wildshot'],
+    contract:{ salary:30000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:12,csAccuracy:14,teamfightPositioning:10,mapMovement:8,objectiveExecution:9,championPoolDepth:8,
+            decisionMaking:10,gameSense:11,communication:8,leadership:7,adaptability:12,composure:10 },
+    personality:'grinder', playStyle:'carry', teamId:null, discovered:false },
+  { id:'sc009', name:'Willowfen', position:'warden',    age:23, nationality:'NA', potential:'medium',
+    champions:['Tidecaller','Gravewarden','Darkblossom'],
+    contract:{ salary:48000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:8,csAccuracy:7,teamfightPositioning:12,mapMovement:9,objectiveExecution:11,championPoolDepth:10,
+            decisionMaking:13,gameSense:14,communication:15,leadership:13,adaptability:9,composure:12 },
+    personality:'leader', playStyle:'shotcaller', teamId:null, discovered:false },
+  { id:'sc010', name:'Ironveil',  position:'ranger',    age:21, nationality:'KOR', potential:'medium',
+    champions:['Driftblade','Shade','Hexwing'],
+    contract:{ salary:44000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:12,csAccuracy:9,teamfightPositioning:11,mapMovement:13,objectiveExecution:10,championPoolDepth:9,
+            decisionMaking:11,gameSense:12,communication:8,leadership:7,adaptability:11,composure:10 },
+    personality:'pro', playStyle:'aggressive', teamId:null, discovered:false },
+  { id:'sc011', name:'Briarcoil', position:'vanguard',  age:17, nationality:'EU', potential:'high',
+    champions:['Thornback','Sylvara','Briarvex'],
+    contract:{ salary:28000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:10,csAccuracy:7,teamfightPositioning:10,mapMovement:8,objectiveExecution:8,championPoolDepth:7,
+            decisionMaking:9,gameSense:9,communication:8,leadership:7,adaptability:13,composure:8 },
+    personality:'grinder', playStyle:'utility', teamId:null, discovered:false },
+  { id:'sc012', name:'Cinderfall',position:'arcanist',  age:24, nationality:'NA', potential:'medium',
+    champions:['Vaulthorn','Bombspore','Wraithfern'],
+    contract:{ salary:55000, yearsLeft:1, expiryYear:2027 },
+    stats:{ mechanics:11,csAccuracy:12,teamfightPositioning:10,mapMovement:8,objectiveExecution:9,championPoolDepth:11,
+            decisionMaking:12,gameSense:11,communication:10,leadership:9,adaptability:10,composure:12 },
+    personality:'pro', playStyle:'utility', teamId:null, discovered:false },
+];
+
 // ─── Game State ───────────────────────────────────────────────────────────────
 
 let G = null; // global game state — set by initGame()
@@ -37,7 +114,8 @@ function initGame(humanTeamId) {
         playstyle: td.id === humanTeamId ? 'engage' : randomPlaystyle(),
       },
       weeklyWages: calcWagesBill(td.id),
-      sponsorIncome: Math.round(td.fans / 8),  // rough sponsor income per week
+      sponsorIncome: (td.sponsors || []).reduce((s, sp) => s + sp.weeklyIncome, 0),
+      sponsors: td.sponsors ? td.sponsors.map(s => ({ ...s, bonuses: s.bonuses.map(b => ({ ...b })) })) : [],
       news: [],
     };
   });
@@ -96,6 +174,8 @@ function initGame(humanTeamId) {
     weeklyTraining: 'rest',    // human's training choice for the current week
     trainingLog:    [],        // [{ week, teamId, choice }]
     financeLog:     [],        // [{ week, wages, income, net, balance }]
+    fanMilestones:  { m100k: false, m250k: false, m500k: false, m1m: false, m2m: false },
+    scouting:       { weeklyBudget: 50000, activeScout: null, reports: [], discovered: [] },
   };
 
   addNews(`Welcome to Grove Manager! You are now the manager of ${teams[humanTeamId].name}. Good luck!`, 'info');
@@ -210,8 +290,32 @@ function advanceWeek() {
     }
   });
 
+  // Check sponsor bonuses and fan milestones for human team
+  _checkSponsorBonuses(G.humanTeamId);
+  _checkFanMilestones(G.humanTeamId);
+
   // Process training for human team
   processTraining(G.humanTeamId, G.weeklyTraining || 'rest');
+
+  // Process scouting
+  if (G.scouting && G.scouting.activeScout) {
+    G.scouting.activeScout.weeksLeft--;
+    if (G.scouting.activeScout.weeksLeft <= 0) {
+      const found = SCOUT_POOL.find(p => p.id === G.scouting.activeScout.targetId);
+      if (found) {
+        found.discovered = true;
+        G.scouting.discovered.push(found.id);
+        G.scouting.reports.push({ ...found, discoveredWeek: G.season.week });
+        // Add to free agents
+        if (!G.players[found.id]) {
+          G.players[found.id] = { ...found, morale: 6, form: makeForm(6), career: { gamesPlayed:0,wins:0,losses:0,kills:0,deaths:0,assists:0,cs:0,damageDealt:0,championStats:{} } };
+          G.freeAgents.push(found.id);
+        }
+        addNews(`Scout report: ${found.name} (${posLabel(found.position)}, Age ${found.age}, ${found.potential} potential) is available as a free agent.`, 'info');
+      }
+      G.scouting.activeScout = null;
+    }
+  }
 
   // Player development tick (every week, minor)
   processPlayerDevelopment();
@@ -255,6 +359,17 @@ function _applyFanChange(teamId, won) {
   t.fans = Math.round(t.fans * (1 + pct));
 }
 
+// ─── Personality multiplier ───────────────────────────────────────────────────
+
+function getPersonalityMultiplier(player, trainingType) {
+  const p = player.personality || 'pro';
+  if (p === 'grinder') return 1.5;
+  if (p === 'volatile') return Math.random() < 0.5 ? 1.8 : 0.3;
+  if (p === 'maverick') return ['soloqueue','scrimmage'].includes(trainingType) ? 1.3 : 0.8;
+  if (p === 'leader')   return 1.1;
+  return 1.0; // pro
+}
+
 // ─── Training system ──────────────────────────────────────────────────────────
 // Choices: rest | scrimmage | soloqueue | filmstudy | streaming
 
@@ -264,7 +379,16 @@ const TRAINING_DEFS = {
     icon: '😴',
     desc: 'Players recover. Morale +1 for all. No attribute gains.',
     effect(players) {
-      players.forEach(p => { if (p) p.morale = Math.min(10, p.morale + 1); });
+      let hasLeader = false;
+      players.forEach(p => {
+        if (p && (p.personality || 'pro') === 'leader') hasLeader = true;
+      });
+      players.forEach(p => {
+        if (!p) return;
+        const mult = getPersonalityMultiplier(p, 'rest');
+        const leaderBonus = hasLeader && (p.personality || 'pro') !== 'leader' ? 0.5 : 0;
+        p.morale = Math.min(10, p.morale + 1 + leaderBonus);
+      });
     },
   },
   scrimmage: {
@@ -276,7 +400,8 @@ const TRAINING_DEFS = {
       players.forEach(p => {
         if (!p) return;
         const moraleBonus = p.morale > 7 ? 1.5 : p.morale < 4 ? 0.5 : 1;
-        if (Math.random() < 0.18 * moraleBonus) {
+        const mult = getPersonalityMultiplier(p, 'scrimmage');
+        if (Math.random() < 0.18 * moraleBonus * mult) {
           const stat = combatStats[Math.floor(Math.random()*combatStats.length)];
           p.stats[stat] = Math.min(20, p.stats[stat] + 1);
         }
@@ -293,7 +418,8 @@ const TRAINING_DEFS = {
       const p = eligible[Math.floor(Math.random()*eligible.length)];
       const stat = Math.random() < 0.6 ? 'mechanics' : 'decisionMaking';
       const moraleBonus = p.morale > 7 ? 1.5 : 1;
-      if (Math.random() < 0.35 * moraleBonus)
+      const mult = getPersonalityMultiplier(p, 'soloqueue');
+      if (Math.random() < 0.35 * moraleBonus * mult)
         p.stats[stat] = Math.min(20, p.stats[stat] + 1);
     },
   },
@@ -304,8 +430,13 @@ const TRAINING_DEFS = {
     effect(players) {
       players.forEach(p => {
         if (!p) return;
-        if (Math.random() < 0.15) p.stats.gameSense      = Math.min(20, p.stats.gameSense + 1);
-        if (Math.random() < 0.12) p.stats.adaptability   = Math.min(20, p.stats.adaptability + 1);
+        const mult = getPersonalityMultiplier(p, 'filmstudy');
+        // maverick gets morale penalty from film study
+        if ((p.personality || 'pro') === 'maverick') {
+          p.morale = Math.max(1, p.morale - 0.5);
+        }
+        if (Math.random() < 0.15 * mult) p.stats.gameSense    = Math.min(20, p.stats.gameSense + 1);
+        if (Math.random() < 0.12 * mult) p.stats.adaptability = Math.min(20, p.stats.adaptability + 1);
       });
     },
   },
@@ -336,6 +467,74 @@ function processTraining(teamId, choice) {
   // Record in finance log
   if (!G.trainingLog) G.trainingLog = [];
   G.trainingLog.push({ week: G.season.week, teamId, choice });
+}
+
+// ─── Chemistry ───────────────────────────────────────────────────────────────
+
+function calcChemistry(teamId) {
+  const team = G.teams[teamId];
+  if (!team) return 5;
+  const players = POSITIONS.map(pos => team.roster[pos] ? G.players[team.roster[pos]] : null).filter(Boolean);
+  if (!players.length) return 5;
+  const avgMorale = players.reduce((s, p) => s + (p.morale || 5), 0) / players.length;
+  // Personality compatibility bonus
+  const personalities = players.map(p => p.personality || 'pro');
+  const leaders   = personalities.filter(p => p === 'leader').length;
+  const mavericks = personalities.filter(p => p === 'maverick').length;
+  const compatBonus = leaders * 0.3 - mavericks * 0.2;
+  return Math.min(10, Math.max(1, Math.round((avgMorale + compatBonus) * 10) / 10));
+}
+
+// ─── Sponsor bonuses ─────────────────────────────────────────────────────────
+
+function _checkSponsorBonuses(teamId) {
+  const t = G.teams[teamId];
+  if (!t || !t.sponsors) return;
+  t.sponsors.forEach(sp => {
+    sp.bonuses.forEach(b => {
+      if (b.paid) return;
+      let earned = false;
+      if (b.condition === 'wins_3'   && t.wins >= 3) earned = true;
+      if (b.condition === 'wins_5'   && t.wins >= 5) earned = true;
+      if (b.condition === 'playoffs' && G.season.phase === 'playoffs') earned = true;
+      if (b.condition === 'champion' && G.season.champion === teamId) earned = true;
+      if (b.condition === 'fans_500k' && t.fans >= 500000) earned = true;
+      if (b.condition === 'fans_1m'   && t.fans >= 1000000) earned = true;
+      if (earned) {
+        b.paid = true;
+        t.budget += b.reward;
+        addNews(`Sponsor bonus unlocked: ${sp.name} — "${b.label}" (+${fmtMoneySafe(b.reward)})`, 'info');
+      }
+    });
+  });
+}
+
+// ─── Fan milestones ───────────────────────────────────────────────────────────
+
+function _checkFanMilestones(teamId) {
+  const t = G.teams[teamId];
+  const fm = G.fanMilestones;
+  if (!t || !fm) return;
+  const fans = t.fans;
+  if (!fm.m100k && fans >= 100000)  { fm.m100k = true; addNews('Milestone: 100K fans! Mid-tier sponsors now available.', 'info'); }
+  if (!fm.m250k && fans >= 250000)  { fm.m250k = true; addNews('Milestone: 250K fans! Fan events unlocked.', 'info'); }
+  if (!fm.m500k && fans >= 500000)  { fm.m500k = true; addNews('Milestone: 500K fans! Top sponsors are watching.', 'info'); t.morale = Math.min(10, (t.morale || 7) + 0.5); }
+  if (!fm.m1m   && fans >= 1000000) { fm.m1m   = true; addNews('Milestone: 1 MILLION fans! Regional celebrity status.', 'info'); }
+  if (!fm.m2m   && fans >= 2000000) { fm.m2m   = true; addNews('Milestone: 2 MILLION fans! National celebrity status!', 'info'); }
+}
+
+// ─── Scouting ────────────────────────────────────────────────────────────────
+
+function startScouting() {
+  if (!G || !G.scouting) return 'error';
+  if (G.scouting.activeScout) return 'already_active';
+  const undiscovered = SCOUT_POOL.filter(p => !p.discovered && !G.scouting.discovered.includes(p.id));
+  if (!undiscovered.length) return 'none_left';
+  const cost = 50000;
+  if (G.teams[G.humanTeamId].budget < cost) return 'no_budget';
+  G.teams[G.humanTeamId].budget -= cost;
+  G.scouting.activeScout = { targetId: undiscovered[Math.floor(Math.random() * undiscovered.length)].id, weeksLeft: 1 };
+  return 'started';
 }
 
 // ─── Player development ───────────────────────────────────────────────────────
@@ -520,6 +719,10 @@ function fmtMoneySafe(n) {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function posLabel(pos) {
+  return { vanguard:'Vanguard', ranger:'Ranger', arcanist:'Arcanist', hunter:'Hunter', warden:'Warden' }[pos] || pos;
+}
 
 function randomPlaystyle() {
   const keys = Object.keys(PLAYSTYLES);
