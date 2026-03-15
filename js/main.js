@@ -225,17 +225,46 @@ function _drawGoldChart(snapshots) {
 
 // ─── PBP ──────────────────────────────────────────────────────────────────────
 
-const PBP_DELAY = 850; // ms per event
+const PBP_BASE_DELAY = 850; // ms per event at 1× speed
+let _pbpSpeedMult = 1;
+let _pbpPaused    = false;
+
+function pbpSpeed(mult) {
+  _pbpSpeedMult = mult;
+  _pbpPaused    = false;
+  document.querySelectorAll('.pbp-speed-btn[id^="pbp-btn-"]').forEach(b => b.classList.remove('pbp-speed-active'));
+  const btn = document.getElementById(`pbp-btn-${mult}x`);
+  if (btn) btn.classList.add('pbp-speed-active');
+}
+
+function pbpPause() {
+  _pbpPaused = !_pbpPaused;
+  const btn = document.getElementById('pbp-btn-pause');
+  if (btn) btn.textContent = _pbpPaused ? '▶' : '⏸';
+  if (!_pbpPaused && _pbpContinueFn) _pbpContinueFn();
+}
+
+let _pbpContinueFn = null;
 
 function startPBP(events) {
   if (typeof initMapVisualization === 'function') initMapVisualization();
   if (typeof setMapSkipMode       === 'function') setMapSkipMode(false);
+  _pbpSpeedMult = 1;
+  _pbpPaused    = false;
+  _pbpContinueFn= null;
+  // Reset speed button state
+  document.querySelectorAll('.pbp-speed-btn[id^="pbp-btn-"]').forEach(b => b.classList.remove('pbp-speed-active'));
+  const btn1 = document.getElementById('pbp-btn-1x');
+  if (btn1) btn1.classList.add('pbp-speed-active');
+  const pauseBtn = document.getElementById('pbp-btn-pause');
+  if (pauseBtn) pauseBtn.textContent = '⏸';
 
   const feedEl = document.getElementById('pbp-events');
   _updateMatchScore(0, 0, 0, 0, 0, 0, 50);
 
   let idx = 0;
   function step() {
+    if (_pbpPaused) { _pbpContinueFn = step; return; }
     if (idx >= events.length) return;
     const ev = events[idx++];
 
@@ -253,7 +282,7 @@ function startPBP(events) {
       _showMatchResult(_matchResult);
       return;
     }
-    _pbpTimer = setTimeout(step, PBP_DELAY);
+    _pbpTimer = setTimeout(step, Math.round(PBP_BASE_DELAY / _pbpSpeedMult));
   }
   step();
 }

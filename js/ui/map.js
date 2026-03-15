@@ -1,5 +1,6 @@
-// js/ui/map.js — LoL map visualization v2
+// js/ui/map.js — Grove Manager map visualization
 // Driven by real champion positions from simulation events (ev.positions).
+// Positions are live (x,y) coordinates in 0-300 space from the tick engine.
 // Exposes three globals: initMapVisualization(), updateMap(ev), setMapSkipMode(bool)
 
 (function () {
@@ -13,14 +14,22 @@
   let _wanderInterval = null;
   let _ringRaf        = null;
 
-  // Base anchor per dot — wander jitters around this
-  const _base = {
-    blue: { vanguard:{x:28,y:165}, ranger:{x:82,y:170}, arcanist:{x:92,y:208}, hunter:{x:72,y:268},  warden:{x:90,y:274}  },
-    red:  { vanguard:{x:272,y:45}, ranger:{x:218,y:132},arcanist:{x:208,y:92}, hunter:{x:228,y:268}, warden:{x:210,y:274} },
+  // Spawn positions matching simulation.js SPAWN constants (for init and reset)
+  const _SPAWN_POS = {
+    blue: { vanguard:{x:18,y:270}, ranger:{x:24,y:276}, arcanist:{x:22,y:278},
+            hunter:{x:28,y:274},   warden:{x:22,y:283} },
+    red:  { vanguard:{x:282,y:30}, ranger:{x:276,y:24}, arcanist:{x:278,y:22},
+            hunter:{x:272,y:26},   warden:{x:278,y:17} },
   };
 
-  // Wander radius per role
-  const _wRadius = { vanguard:9, ranger:13, arcanist:9, hunter:7, warden:6 };
+  // Base anchor per dot — wander drifts around the last received real position
+  const _base = {
+    blue: { ...Object.fromEntries(POSITIONS.map(p => [p, {..._SPAWN_POS.blue[p]}])) },
+    red:  { ...Object.fromEntries(POSITIONS.map(p => [p, {..._SPAWN_POS.red[p]}])) },
+  };
+
+  // Wander radius per role (tight — real positions are the truth)
+  const _wRadius = { vanguard:4, ranger:5, arcanist:4, hunter:3, warden:3 };
 
   // Dead status (used to suppress wander for dead dots)
   const _dead = {
@@ -38,11 +47,13 @@
       reviveDot('blue', pos);
       reviveDot('red',  pos);
     });
-    // Reset to laning positions
-    applyPositions({
-      blue: { vanguard:{x:28,y:165,alive:true}, ranger:{x:82,y:170,alive:true}, arcanist:{x:92,y:208,alive:true}, hunter:{x:72,y:268,alive:true},  warden:{x:90,y:274,alive:true}  },
-      red:  { vanguard:{x:272,y:45,alive:true}, ranger:{x:218,y:132,alive:true},arcanist:{x:208,y:92,alive:true}, hunter:{x:228,y:268,alive:true}, warden:{x:210,y:274,alive:true} },
+    // Reset all dots to spawn positions — real positions arrive with first event
+    const initPos = { blue:{}, red:{} };
+    POSITIONS.forEach(pos => {
+      initPos.blue[pos] = { ..._SPAWN_POS.blue[pos], alive: true };
+      initPos.red[pos]  = { ..._SPAWN_POS.red[pos],  alive: true };
     });
+    applyPositions(initPos);
     startWander();
   };
 
@@ -97,9 +108,11 @@
     let cx, cy, color;
 
     if (ev.wardenBlue !== undefined || ev.wardenRed !== undefined) {
-      cx = 150; cy = 150; color = '#9b59b6';  // Grove Warden — center
+      // Warden positions from OBJ_DEFS: warden_b(72,162) warden_r(228,138)
+      cx = ev.wardenBlue ? 72 : 228; cy = ev.wardenBlue ? 162 : 138; color = '#9b59b6';
     } else if (ev.shrineBlue !== undefined || ev.shrineRed !== undefined) {
-      cx = 80; cy = 80; color = '#c89b3c';    // Ley Shrine — north area
+      // Shrine positions: shrine_a(120,130) shrine_b(180,170) — use midpoint
+      cx = 150; cy = 150; color = '#c89b3c';
     } else if (ev.type === 'result') {
       const blueWon = (ev.advAfter || 50) >= 50;
       cx = blueWon ? 278 : 22;

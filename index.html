@@ -258,7 +258,13 @@
         </div>
       </div>
       <div class="pbp-feed-wrap">
-        <div class="pbp-controls"></div>
+        <div class="pbp-controls" id="pbp-controls">
+          <button class="pbp-speed-btn" id="pbp-btn-pause" onclick="pbpPause()"   title="Pause">⏸</button>
+          <button class="pbp-speed-btn pbp-speed-active" id="pbp-btn-1x" onclick="pbpSpeed(1)"  title="1× speed">1×</button>
+          <button class="pbp-speed-btn" id="pbp-btn-2x" onclick="pbpSpeed(2)"  title="2× speed">2×</button>
+          <button class="pbp-speed-btn" id="pbp-btn-4x" onclick="pbpSpeed(4)"  title="4× speed">4×</button>
+          <button class="pbp-speed-btn" id="pbp-btn-8x" onclick="pbpSpeed(8)"  title="8× speed">8×</button>
+        </div>
         <div id="pbp-events" class="pbp-events"></div>
       </div>
     </div>

@@ -335,7 +335,14 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 }
 
 /* ── Play-by-Play ─────────────────────────────────────────────────────── */
-.pbp-controls { display:flex; justify-content:flex-end; padding:6px 0; }
+.pbp-controls { display:flex; align-items:center; gap:5px; padding:6px 0; }
+.pbp-speed-btn {
+  background: var(--panel2); color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.pbp-speed-btn:hover  { background: var(--border); color: var(--text); }
+.pbp-speed-active     { background: var(--gold-dim) !important; color: var(--gold-light) !important; border-color: var(--gold) !important; }
 .speed-controls { display:flex; align-items:center; gap:6px; }
 .speed-label    { font-size:11px; color:var(--text-dim); margin-right:2px; }
 .speed-btn {
