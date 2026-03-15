@@ -816,7 +816,8 @@ function renderInteractiveDraft(availChamps) {
     const cards  = availChamps.map(champName => {
       const cd = CHAMPIONS[champName];
       const b  = cd ? CLASS_BADGE[(cd.class || '').toLowerCase()] : null;
-      return `<div class="draft-champ-card" onclick="applyDraftAction('${champName.replace(/'/g,"\\'")}')">
+      const safe = champName.replace(/'/g,"\\'");
+      return `<div class="draft-champ-card" onclick="applyDraftAction('${safe}')" onmouseenter="showDraftChampInfo('${safe}')">
         <div class="dcc-name">${_escHtml(champName)}</div>
         ${b ? `<span class="class-badge" style="color:${b.color};border-color:${b.color}">${b.label}</span>` : ''}
       </div>`;
@@ -824,11 +825,66 @@ function renderInteractiveDraft(availChamps) {
     pickerEl.style.display = 'block';
     pickerEl.innerHTML = `
       <div class="draft-picker-label">${isBan ? '🚫 Choose a Champion to BAN' : '✓ Pick a Champion'}</div>
-      <div class="draft-champ-grid">${cards}</div>`;
+      <div class="draft-champ-grid">${cards}</div>
+      <div id="draft-champ-info" class="draft-champ-info"></div>`;
   } else {
     pickerEl.style.display = 'none';
     pickerEl.innerHTML = '';
   }
+}
+
+function showDraftChampInfo(champName) {
+  const el = document.getElementById('draft-champ-info');
+  if (!el) return;
+  const cd = CHAMPIONS[champName];
+  if (!cd) { el.innerHTML = ''; return; }
+
+  const b = CLASS_BADGE[(cd.class || '').toLowerCase()];
+  const stat = (label, val) => `<div class="dci-stat"><span class="dci-stat-label">${label}</span><span class="dci-stat-val">${val}</span></div>`;
+
+  const abilityHtml = (key, icon) => {
+    const ab = cd.abilities?.[key];
+    if (!ab || key === 'aa') return '';
+    const dmgStr = ab.dmg ? `${ab.dmg}${ab.apRatio ? ` (+${ab.apRatio} AP)` : ''}` : '';
+    const typeStr = ab.dmgType === 'magic' ? '✦' : '⚔';
+    const ccStr = ab.effects?.find(e => e.type === 'cc')?.ccType || '';
+    return `<div class="dci-ability">
+      <div class="dci-ability-header">
+        <span class="dci-ability-icon">${icon}</span>
+        <span class="dci-ability-name">${_escHtml(ab.name || key.toUpperCase())}</span>
+        <span class="dci-ability-cd">cd: ${ab.cd}s</span>
+        ${dmgStr ? `<span class="dci-ability-dmg">${typeStr} ${dmgStr}</span>` : ''}
+        ${ccStr ? `<span class="dci-ability-cc">${ccStr}</span>` : ''}
+      </div>
+    </div>`;
+  };
+
+  el.innerHTML = `
+    <div class="dci-wrap">
+      <div class="dci-left">
+        <div class="dci-header">
+          <span class="dci-name">${_escHtml(champName)}</span>
+          ${b ? `<span class="class-badge" style="color:${b.color};border-color:${b.color}">${b.label}</span>` : ''}
+          ${cd.compType ? `<span class="dci-comp">${cd.compType}</span>` : ''}
+        </div>
+        ${cd.lore ? `<div class="dci-lore">${_escHtml(cd.lore)}</div>` : ''}
+        <div class="dci-stats">
+          ${stat('HP',        cd.baseHp)}
+          ${stat('ATK',       cd.baseDmg)}
+          ${stat('Range',     cd.attackRange)}
+          ${stat('Move Spd',  cd.moveSpeed)}
+          ${stat('Armor',     cd.physResist)}
+          ${stat('Mag.Res',   cd.magicResist)}
+        </div>
+      </div>
+      <div class="dci-right">
+        <div class="dci-abilities-title">Abilities</div>
+        ${abilityHtml('q',   'Q')}
+        ${abilityHtml('e',   'E')}
+        ${abilityHtml('ult', 'R')}
+        ${cd.passive ? `<div class="dci-passive"><span class="dci-ability-icon">P</span> <span class="dci-passive-text">${_escHtml(cd.passive.desc || '')}</span></div>` : ''}
+      </div>
+    </div>`;
 }
 
 function renderRoleAssignment(picks) {
