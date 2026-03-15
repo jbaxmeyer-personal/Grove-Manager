@@ -1849,3 +1849,12 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
 }
+
+/* ─── Facility Build Queue (Phase 11C) ──────────────────── */
+.fac-card-building { border-color: rgba(200,155,60,0.4); }
+.fac-pip.fac-pip-building { background: rgba(200,155,60,0.35); }
+.fac-build-progress { display: flex; align-items: center; gap: 8px; font-size: 12px; flex-wrap: wrap; width: 100%; }
+.fac-building-label { color: var(--gold); font-weight: 700; }
+.fac-build-bar-bg { flex: 1; min-width: 60px; height: 6px; background: var(--border2); border-radius: 3px; }
+.fac-build-bar-fill { height: 100%; border-radius: 3px; background: var(--gold); }
+.fac-build-eta { color: var(--text-dim); font-size: 11px; }

@@ -192,18 +192,36 @@ const FACILITY_DEFS = {
   },
 };
 
+// Build times by upgrade level (weeks to build): L1→2, L2→3, L3→4, L4→5
+const FACILITY_BUILD_WEEKS = [2, 3, 4, 6];
+
 function defaultFacilities() {
   const f = {};
-  Object.keys(FACILITY_DEFS).forEach(k => { f[k] = 1; });
+  Object.keys(FACILITY_DEFS).forEach(k => {
+    f[k] = { level: 1, upgrading: false, upgradeToLevel: null, weeksRemaining: 0 };
+  });
   return f;
+}
+
+function _facState(team, key) {
+  // Normalize: support both old numeric format and new object format
+  const raw = team.facilities[key];
+  if (typeof raw === 'number') {
+    team.facilities[key] = { level: raw, upgrading: false, upgradeToLevel: null, weeksRemaining: 0 };
+  } else if (!raw) {
+    team.facilities[key] = { level: 1, upgrading: false, upgradeToLevel: null, weeksRemaining: 0 };
+  }
+  return team.facilities[key];
 }
 
 function getFacilityMaintenanceCost(teamId) {
   const team = G.teams[teamId];
   if (!team || !team.facilities) return 0;
-  return Object.entries(team.facilities).reduce((sum, [k, lvl]) => {
+  return Object.entries(team.facilities).reduce((sum, [k, raw]) => {
     const def = FACILITY_DEFS[k];
-    return sum + (def ? (def.weekly[lvl - 1] || 0) : 0);
+    if (!def) return sum;
+    const lvl = typeof raw === 'number' ? raw : (raw?.level || 1);
+    return sum + (def.weekly[lvl - 1] || 0);
   }, 0);
 }
 
@@ -213,14 +231,53 @@ function upgradeFacility(facilityKey) {
   const def  = FACILITY_DEFS[facilityKey];
   if (!team || !def) return 'error';
   if (!team.facilities) team.facilities = defaultFacilities();
-  const curLevel = team.facilities[facilityKey] || 1;
-  if (curLevel >= def.maxLevel) return 'max_level';
-  const cost = def.costs[curLevel]; // costs array: index 0=L1→L2, 1=L2→L3, etc.
+  const fac = _facState(team, facilityKey);
+  if (fac.upgrading) return 'already_upgrading';
+  if (fac.level >= def.maxLevel) return 'max_level';
+  const cost = def.costs[fac.level]; // index = current level (0-based costs: index 0 = L1→2)
   if (team.budget < cost) return 'no_budget';
   team.budget -= cost;
-  team.facilities[facilityKey] = curLevel + 1;
-  addNews(`${def.name} upgraded to Level ${curLevel + 1}. ${def.bonusLabel(curLevel + 1)}.`, 'info');
-  return 'upgraded';
+  const buildWeeks = FACILITY_BUILD_WEEKS[fac.level - 1] || 2;
+  fac.upgrading = true;
+  fac.upgradeToLevel = fac.level + 1;
+  fac.weeksRemaining = buildWeeks;
+  addNews(`${def.name} upgrade started: Level ${fac.level} → ${fac.level + 1}. ETA: ${buildWeeks} week(s).`, 'info');
+  return 'started';
+}
+
+function cancelFacilityUpgrade(facilityKey) {
+  if (!G) return;
+  const team = G.teams[G.humanTeamId];
+  const def  = FACILITY_DEFS[facilityKey];
+  if (!team || !def || !team.facilities) return;
+  const fac = _facState(team, facilityKey);
+  if (!fac.upgrading) return;
+  // 50% refund
+  const cost = def.costs[fac.level - 1] || 0;
+  team.budget += Math.round(cost * 0.5);
+  fac.upgrading = false;
+  fac.upgradeToLevel = null;
+  fac.weeksRemaining = 0;
+  addNews(`${def.name} upgrade cancelled. 50% refund: ${fmtMoneySafe(Math.round(cost * 0.5))}.`, 'info');
+}
+
+function advanceFacilityBuilds(teamId) {
+  const team = G.teams[teamId];
+  if (!team || !team.facilities) return;
+  Object.entries(team.facilities).forEach(([key, raw]) => {
+    if (typeof raw === 'number') return; // old format, skip
+    const fac = raw;
+    if (!fac.upgrading) return;
+    fac.weeksRemaining--;
+    if (fac.weeksRemaining <= 0) {
+      const def = FACILITY_DEFS[key];
+      fac.level = fac.upgradeToLevel;
+      fac.upgrading = false;
+      fac.upgradeToLevel = null;
+      fac.weeksRemaining = 0;
+      addNews(`${def?.name || key} construction complete! Now at Level ${fac.level}. ${def?.bonusLabel(fac.level) || ''}.`, 'info');
+    }
+  });
 }
 
 // ─── Staff Pool ───────────────────────────────────────────────────────────────
@@ -652,6 +709,9 @@ function advanceWeek() {
   // Process fan engagement (FES, streaming, deals, events) for human team
   processFanEngagement(G.humanTeamId);
 
+  // Advance facility build queues
+  advanceFacilityBuilds(G.humanTeamId);
+
   // Process scouting
   if (G.scouting && G.scouting.activeScout) {
     G.scouting.activeScout.weeksLeft--;
@@ -818,7 +878,8 @@ const TRAINING_DEFS = {
 function getFacilityBonus(teamId, facilityKey) {
   const team = G.teams[teamId];
   if (!team || !team.facilities) return 1;
-  const level = team.facilities[facilityKey] || 1;
+  const raw   = team.facilities[facilityKey];
+  const level = typeof raw === 'number' ? raw : (raw?.level || 1);
   const def = FACILITY_DEFS[facilityKey];
   return def ? def.bonus(level) : 1;
 }

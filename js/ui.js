@@ -1623,16 +1623,43 @@ function renderFacilities() {
   const totalMaint = getFacilityMaintenanceCost(G.humanTeamId);
 
   const cards = Object.entries(FACILITY_DEFS).map(([key, def]) => {
-    const level    = team.facilities[key] || 1;
+    const raw       = team.facilities[key];
+    const fac       = typeof raw === 'number'
+      ? { level: raw, upgrading: false, upgradeToLevel: null, weeksRemaining: 0 }
+      : (raw || { level: 1, upgrading: false, upgradeToLevel: null, weeksRemaining: 0 });
+    const level    = fac.level;
     const isMax    = level >= def.maxLevel;
+    const isBuilding = fac.upgrading;
     const upgCost  = isMax ? 0 : def.costs[level];
-    const canAfford = !isMax && team.budget >= upgCost;
+    const canAfford = !isMax && !isBuilding && team.budget >= upgCost;
     const pips     = Array.from({ length: def.maxLevel }, (_, i) =>
-      `<span class="fac-pip ${i < level ? 'fac-pip-on' : ''}"></span>`
+      `<span class="fac-pip ${i < level ? 'fac-pip-on' : i < (fac.upgradeToLevel || 0) ? 'fac-pip-building' : ''}"></span>`
     ).join('');
 
+    let footerHtml;
+    if (isMax) {
+      footerHtml = '<span class="fac-maxed">MAX LEVEL</span>';
+    } else if (isBuilding) {
+      footerHtml = `
+        <div class="fac-build-progress">
+          <span class="fac-building-label">Building L${fac.upgradeToLevel}…</span>
+          <div class="fac-build-bar-bg">
+            <div class="fac-build-bar-fill" style="width:${Math.max(5,(1 - fac.weeksRemaining / (FACILITY_BUILD_WEEKS[level-1]||2))*100)}%"></div>
+          </div>
+          <span class="fac-build-eta">${fac.weeksRemaining}wk remaining</span>
+        </div>
+        <button class="btn-sm btn-danger" style="margin-top:6px" onclick="onCancelFacilityUpgrade('${key}')">Cancel (50% refund)</button>`;
+    } else {
+      footerHtml = `
+        <span class="fac-maint">${fmtMoney(def.weekly[level-1] || 0)}/wk upkeep</span>
+        <button class="btn-primary" style="font-size:12px;padding:5px 12px"
+          onclick="onUpgradeFacility('${key}')" ${canAfford ? '' : 'disabled'}>
+          Upgrade — ${fmtMoney(upgCost)} · ${FACILITY_BUILD_WEEKS[level-1]||2}wk
+        </button>`;
+    }
+
     return `
-      <div class="fac-card">
+      <div class="fac-card${isBuilding ? ' fac-card-building' : ''}">
         <div class="fac-card-top">
           <span class="fac-icon">${def.icon}</span>
           <div class="fac-info">
@@ -1645,14 +1672,8 @@ function renderFacilities() {
           <span class="fac-level-label">Level ${level} / ${def.maxLevel}</span>
         </div>
         <div class="fac-bonus">${def.bonusLabel(level)}</div>
-        <div class="fac-footer">
-          <span class="fac-maint">${fmtMoney(def.weekly[level-1] || 0)}/wk upkeep</span>
-          ${isMax
-            ? '<span class="fac-maxed">MAX LEVEL</span>'
-            : `<button class="btn-primary" style="font-size:12px;padding:5px 12px"
-                onclick="onUpgradeFacility('${key}')" ${canAfford ? '' : 'disabled'}>
-                Upgrade — ${fmtMoney(upgCost)}
-              </button>`}
+        <div class="fac-footer" style="flex-direction:column;align-items:flex-start;gap:6px">
+          ${footerHtml}
         </div>
       </div>`;
   }).join('');
@@ -1668,8 +1689,15 @@ function renderFacilities() {
 
 function onUpgradeFacility(key) {
   const result = upgradeFacility(key);
-  if (result === 'no_budget') { alert('Insufficient budget for this upgrade.'); return; }
-  if (result === 'max_level') { alert('Already at maximum level.'); return; }
+  if (result === 'no_budget')        { alert('Insufficient budget for this upgrade.'); return; }
+  if (result === 'max_level')        { alert('Already at maximum level.'); return; }
+  if (result === 'already_upgrading'){ alert('This facility is already under construction.'); return; }
+  renderFacilities();
+  renderTopBar();
+}
+
+function onCancelFacilityUpgrade(key) {
+  cancelFacilityUpgrade(key);
   renderFacilities();
   renderTopBar();
 }
