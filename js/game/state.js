@@ -13,6 +13,130 @@ const PLAYSTYLES = {
   scaling:   { name: 'Scaling',   desc: 'Survive early, stack Verdant Blessings, dominate late' },
 };
 
+// ─── Manager Traits ───────────────────────────────────────────────────────────
+
+const MANAGER_TRAITS = {
+  // ── Tactician tree ──────────────────────────────────────
+  counter_specialist: {
+    tree: 'tactician', name: 'Counter Specialist', cost: 2,
+    desc: 'Your draft AI has +15% better counter-pick weighting against opponent picks.',
+    icon: '🎯',
+  },
+  adaptive_coach: {
+    tree: 'tactician', name: 'Adaptive Coach', cost: 3,
+    desc: 'AI opponent teams adapt slower between games of a series vs your team.',
+    icon: '🔄',
+  },
+  formation_mastery: {
+    tree: 'tactician', name: 'Formation Mastery', cost: 3,
+    desc: 'Between-game tactic screen shows suggested adjustments based on last game result.',
+    icon: '🗺️',
+  },
+
+  // ── Developer tree ──────────────────────────────────────
+  talent_spotter: {
+    tree: 'developer', name: 'Talent Spotter', cost: 2,
+    desc: 'Scout reports reveal one additional hidden stat. Scouting cost -10%.',
+    icon: '🔍',
+  },
+  youth_mentor: {
+    tree: 'developer', name: 'Youth Mentor', cost: 3,
+    desc: 'Players under 22 have +50% weekly attribute gain chance.',
+    icon: '🌱',
+  },
+  veteran_handler: {
+    tree: 'developer', name: 'Veteran Handler', cost: 3,
+    desc: 'Veteran decline chance halved. Veterans over 28 stay sharper longer.',
+    icon: '🏆',
+  },
+
+  // ── Business Mind tree ───────────────────────────────────
+  sponsor_negotiator: {
+    tree: 'business', name: 'Sponsor Negotiator', cost: 2,
+    desc: '+10% bonus to all weekly sponsor income.',
+    icon: '💼',
+  },
+  media_presence: {
+    tree: 'business', name: 'Media Presence', cost: 2,
+    desc: 'Streaming fan gains +20% for all active streamers.',
+    icon: '📡',
+  },
+  budget_wizard: {
+    tree: 'business', name: 'Budget Wizard', cost: 3,
+    desc: 'All facility upgrade costs reduced by 15%.',
+    icon: '💰',
+  },
+
+  // ── Motivator tree ──────────────────────────────────────
+  locker_room_leader: {
+    tree: 'motivator', name: 'Locker Room Leader', cost: 2,
+    desc: 'Team morale floor raised to 5. Players never fall below morale 5.',
+    icon: '🤝',
+  },
+  winning_culture: {
+    tree: 'motivator', name: 'Winning Culture', cost: 2,
+    desc: 'Post-win morale boost doubled (+4 instead of +2).',
+    icon: '🌟',
+  },
+  clutch_factor: {
+    tree: 'motivator', name: 'Clutch Factor', cost: 4,
+    desc: 'In Game 3 (BO3) or Game 5 (BO5), your team gets a small stat edge from manager aura.',
+    icon: '⚡',
+  },
+};
+
+const MANAGER_TREES = {
+  tactician: { name: 'Tactician', color: '#3498db', desc: 'Draft and in-game decision making' },
+  developer: { name: 'Developer', color: '#27ae60', desc: 'Player growth and scouting' },
+  business:  { name: 'Business Mind', color: '#c89b3c', desc: 'Finances, sponsors, and fans' },
+  motivator: { name: 'Motivator', color: '#e74c3c', desc: 'Morale and clutch performance' },
+};
+
+const MANAGER_XP_TABLE = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3250];
+
+function getManagerLevel(xp) {
+  let lvl = 1;
+  for (let i = 1; i < MANAGER_XP_TABLE.length; i++) {
+    if (xp >= MANAGER_XP_TABLE[i]) lvl = i + 1;
+    else break;
+  }
+  return Math.min(lvl, MANAGER_XP_TABLE.length);
+}
+
+function getManagerPoints(xp) {
+  // Total trait points = manager level - 1 (1 free point per level gained)
+  return getManagerLevel(xp) - 1;
+}
+
+function grantManagerXP(amount, reason) {
+  if (!G || !G.manager) return;
+  G.manager.xp += amount;
+  const newLevel = getManagerLevel(G.manager.xp);
+  if (newLevel > G.manager.lastLevel) {
+    G.manager.lastLevel = newLevel;
+    addNews(`Manager level up! You are now Level ${newLevel}. Trait point earned.`, 'info');
+  }
+  if (reason) addNews(`+${amount} Manager XP: ${reason}`, 'info');
+}
+
+function hasManagerTrait(traitId) {
+  return G?.manager?.traits?.includes(traitId);
+}
+
+function unlockManagerTrait(traitId) {
+  if (!G || !G.manager) return 'error';
+  const trait = MANAGER_TRAITS[traitId];
+  if (!trait) return 'error';
+  if (hasManagerTrait(traitId)) return 'already_unlocked';
+  const spent = (G.manager.traits || []).reduce((s, id) => s + (MANAGER_TRAITS[id]?.cost || 0), 0);
+  const available = getManagerPoints(G.manager.xp);
+  if (spent + trait.cost > available) return 'no_points';
+  G.manager.traits = G.manager.traits || [];
+  G.manager.traits.push(traitId);
+  addNews(`Manager trait unlocked: ${trait.name}. ${trait.desc}`, 'info');
+  return 'unlocked';
+}
+
 // ─── Facilities ───────────────────────────────────────────────────────────────
 
 const FACILITY_DEFS = {
@@ -312,6 +436,7 @@ function initGame(humanTeamId) {
     fanMilestones:  { m100k: false, m250k: false, m500k: false, m1m: false, m2m: false },
     scouting:       { weeklyBudget: 50000, activeScout: null, reports: [], discovered: [] },
     staff:          [],   // array of hired staff objects { ...STAFF_POOL entry, hiredWeek }
+    manager:        { xp: 0, lastLevel: 1, traits: [] },
   };
 
   addNews(`Welcome to Grove Manager! You are now the manager of ${teams[humanTeamId].name}. Good luck!`, 'info');
@@ -434,6 +559,22 @@ function advanceWeek() {
   _checkSponsorBonuses(G.humanTeamId);
   _checkFanMilestones(G.humanTeamId);
   _generateWeeklyNews(week);
+
+  // Apply manager trait: locker_room_leader — morale floor
+  if (hasManagerTrait('locker_room_leader')) {
+    const team = G.teams[G.humanTeamId];
+    POSITIONS.forEach(pos => {
+      const p = team.roster[pos] ? G.players[team.roster[pos]] : null;
+      if (p && p.morale < 5) p.morale = 5;
+    });
+  }
+
+  // Apply manager trait: sponsor_negotiator — +10% sponsor income per week
+  if (hasManagerTrait('sponsor_negotiator')) {
+    const team = G.teams[G.humanTeamId];
+    const bonus = Math.round(team.sponsorIncome * 0.10);
+    team.budget += bonus;
+  }
 
   // Process training for human team
   processTraining(G.humanTeamId, G.weeklyTraining || 'rest');
@@ -780,20 +921,25 @@ function processPlayerDevelopment() {
     if (!p) return;
     const moraleBonus = p.morale > 7 ? 1.5 : p.morale < 4 ? 0.5 : 1;
 
-    // Young players (<22): chance to improve (head coach boosts rate)
+    // Young players (<22): chance to improve (head coach + youth_mentor trait boosts rate)
     if (p.age < 22) {
-      const coachBonus = getStaffBonus('headcoach');
+      const coachBonus  = getStaffBonus('headcoach');
+      const mentorBonus = hasManagerTrait('youth_mentor') ? 0.5 : 0;
       const allStats = Object.keys(p.stats);
-      if (Math.random() < (0.08 + coachBonus * 0.5) * moraleBonus) {
+      if (Math.random() < (0.08 + coachBonus * 0.5 + mentorBonus) * moraleBonus) {
         const stat = allStats[Math.floor(Math.random()*allStats.length)];
+        const old = p.stats[stat];
         p.stats[stat] = Math.min(20, p.stats[stat] + 1);
+        // Grant XP for developing a player
+        if (p.stats[stat] > old && p.teamId === G.humanTeamId) grantManagerXP(5, null);
       }
     }
 
-    // Veterans (>28): slight chance to decline
+    // Veterans (>28): slight chance to decline (veteran_handler halves it)
     if (p.age > 28) {
+      const declineChance = hasManagerTrait('veteran_handler') ? 0.02 : 0.04;
       const allStats = Object.keys(p.stats);
-      if (Math.random() < 0.04) {
+      if (Math.random() < declineChance) {
         const stat = allStats[Math.floor(Math.random()*allStats.length)];
         p.stats[stat] = Math.max(1, p.stats[stat] - 1);
       }
@@ -907,6 +1053,7 @@ function startNewSeason() {
 
   G.season = buildSeason(nextYear, nextSplit);
   addNews(`The ${nextSplit === 'spring' ? 'Spring' : 'Summer'} Split ${nextYear} begins!`, 'info');
+  grantManagerXP(150, 'Season completed');
   G.weeklyTraining = 'rest';
   saveGame();
   renderAll();

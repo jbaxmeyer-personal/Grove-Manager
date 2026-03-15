@@ -276,6 +276,14 @@ function _finalizeHumanSeries() {
     _applyFanChange(ss.redId,  !blueWon);
   }
 
+  // Manager XP: series result
+  if (typeof grantManagerXP === 'function') {
+    if (humanWon) {
+      const xpAmount = match.isPlayoff ? 100 : 50;
+      grantManagerXP(xpAmount, `Series win vs ${loser.name}`);
+    }
+  }
+
   _seriesState = null;
   showScreen('screen-game');
   showMain('dashboard');

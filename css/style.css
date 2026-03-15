@@ -1543,6 +1543,30 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 }
 .stream-toggle input:checked + .stream-slider { background: #9b59b6; }
 .stream-toggle input:checked + .stream-slider::before { transform: translateX(14px); background: #fff; }
+/* ─── Manager Profile ───────────────────────────────────── */
+.mgr-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 16px; }
+.mgr-name { font-size: 20px; font-weight: 800; color: var(--text-hi); }
+.mgr-team { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+.mgr-record-box { text-align: right; }
+.mgr-xp-wrap { margin-bottom: 24px; }
+.mgr-xp-label { font-size: 13px; color: var(--gold); font-weight: 600; margin-bottom: 6px; }
+.mgr-xp-bar-bg { height: 8px; background: var(--border2); border-radius: 4px; overflow: hidden; }
+.mgr-xp-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 4px; transition: width 0.4s; }
+.mgr-xp-sublabel { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.mgr-trees { display: flex; flex-direction: column; gap: 20px; }
+.mgr-tree-header { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.mgr-tree-desc { font-size: 11px; color: var(--text-dim); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.mgr-trait-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.mgr-trait-card { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 5px; }
+.mgr-trait-owned { border-color: var(--gold); background: rgba(200,155,60,0.06); }
+.mgr-trait-locked { opacity: 0.5; }
+.mgr-trait-top { display: flex; align-items: center; gap: 8px; }
+.mgr-trait-icon { font-size: 16px; }
+.mgr-trait-name { font-weight: 600; color: var(--text-hi); flex: 1; font-size: 13px; }
+.mgr-trait-cost { font-size: 11px; color: var(--gold); font-weight: 700; white-space: nowrap; }
+.mgr-trait-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+.mgr-trait-badge { font-size: 11px; color: var(--win); font-weight: 600; margin-top: 4px; }
+
 /* ─── Statistics Panel ───────────────────────────────────── */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .stats-card { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }

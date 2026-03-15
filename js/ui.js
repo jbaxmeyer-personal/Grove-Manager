@@ -107,6 +107,7 @@ function showMain(name) {
     case 'teaminfo':     renderTeamInfo(); break;
     case 'champions':    renderChampionBrowser(); break;
     case 'statistics':   renderStatistics(_statsTab); break;
+    case 'manager':      renderManagerProfile(); break;
     case 'items':        renderItemBrowser(); break;
   }
 }
@@ -1095,6 +1096,88 @@ function renderScouting() {
   }
 
   setHtml('scouting-content', scoutStatus + discoveredHtml);
+}
+
+// ─── Manager Profile ──────────────────────────────────────────────────────────
+
+function renderManagerProfile() {
+  if (!G) return;
+  const mgr   = G.manager || { xp: 0, lastLevel: 1, traits: [] };
+  const level = getManagerLevel(mgr.xp);
+  const maxLevel = MANAGER_XP_TABLE.length;
+  const xpForNext = level < maxLevel ? MANAGER_XP_TABLE[level] : MANAGER_XP_TABLE[maxLevel - 1];
+  const xpPrev    = MANAGER_XP_TABLE[level - 1] || 0;
+  const xpPct     = level < maxLevel
+    ? Math.round((mgr.xp - xpPrev) / (xpForNext - xpPrev) * 100)
+    : 100;
+
+  const totalPoints   = getManagerPoints(mgr.xp);
+  const spentPoints   = (mgr.traits || []).reduce((s, id) => s + (MANAGER_TRAITS[id]?.cost || 0), 0);
+  const freePoints    = totalPoints - spentPoints;
+
+  // XP bar
+  const xpBar = `
+    <div class="mgr-xp-wrap">
+      <div class="mgr-xp-label">Level ${level}${level < maxLevel ? ` — ${mgr.xp} / ${xpForNext} XP` : ' (MAX)'}</div>
+      <div class="mgr-xp-bar-bg">
+        <div class="mgr-xp-bar-fill" style="width:${xpPct}%"></div>
+      </div>
+      <div class="mgr-xp-sublabel">${freePoints} trait point${freePoints !== 1 ? 's' : ''} available</div>
+    </div>`;
+
+  // Trait trees
+  const treeHtml = Object.entries(MANAGER_TREES).map(([treeKey, tree]) => {
+    const traits = Object.entries(MANAGER_TRAITS).filter(([, t]) => t.tree === treeKey);
+    const traitCards = traits.map(([id, t]) => {
+      const owned    = hasManagerTrait(id);
+      const canAfford = !owned && freePoints >= t.cost;
+      return `<div class="mgr-trait-card ${owned ? 'mgr-trait-owned' : ''} ${!owned && !canAfford ? 'mgr-trait-locked' : ''}">
+        <div class="mgr-trait-top">
+          <span class="mgr-trait-icon">${t.icon}</span>
+          <span class="mgr-trait-name">${t.name}</span>
+          <span class="mgr-trait-cost">${t.cost}pt${t.cost > 1 ? 's' : ''}</span>
+        </div>
+        <div class="mgr-trait-desc">${t.desc}</div>
+        ${!owned
+          ? `<button class="btn-primary" style="font-size:11px;padding:4px 10px;margin-top:6px"
+              onclick="onUnlockTrait('${id}')" ${canAfford ? '' : 'disabled'}>
+              ${canAfford ? 'Unlock' : 'Not enough points'}
+            </button>`
+          : '<div class="mgr-trait-badge">✓ Unlocked</div>'}
+      </div>`;
+    }).join('');
+
+    return `<div class="mgr-tree">
+      <div class="mgr-tree-header" style="color:${tree.color}">
+        ${tree.name}
+        <span class="mgr-tree-desc">${tree.desc}</span>
+      </div>
+      <div class="mgr-trait-grid">${traitCards}</div>
+    </div>`;
+  }).join('');
+
+  const team = G.teams[G.humanTeamId];
+  setHtml('manager-content', `
+    <div class="mgr-header-row">
+      <div class="mgr-title">
+        <div class="mgr-name">Head Manager</div>
+        <div class="mgr-team">${_escHtml(team.name)}</div>
+      </div>
+      <div class="mgr-record-box">
+        <div style="font-size:20px;font-weight:700;color:var(--gold)">${team.wins}W ${team.losses}L</div>
+        <div style="font-size:11px;color:var(--text-dim)">Career Series Record</div>
+      </div>
+    </div>
+    ${xpBar}
+    <div class="mgr-trees">${treeHtml}</div>
+  `);
+}
+
+function onUnlockTrait(traitId) {
+  const result = unlockManagerTrait(traitId);
+  if (result === 'no_points') { alert('Not enough trait points. Win more matches to level up.'); return; }
+  if (result === 'already_unlocked') return;
+  renderManagerProfile();
 }
 
 // ─── Statistics Panel ─────────────────────────────────────────────────────────

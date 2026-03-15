@@ -484,7 +484,7 @@ series = {
 
 ## Phase 9 — Management Hub Expansion
 **Goal:** Add the missing FM-style management sections visible in TFM2 screenshots.
-**Status:** [ ] Planned for next session
+**Status:** ✅ COMPLETE (9A–9I all implemented)
 
 ### 9A — News Feed (Enhanced) ✅ DONE
 Current news feed only shows basic events. Expand it to feel like an FM inbox.
@@ -612,7 +612,7 @@ Career and season statistics dashboard. FM-style "Records" screen.
 
 ---
 
-### 9I — Manager Traits
+### 9I — Manager Traits ✅ DONE
 The manager (you) has a progression system. Earn XP from matches and management actions, unlock traits that provide passive bonuses.
 
 **Trait trees:**
