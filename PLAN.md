@@ -18,7 +18,7 @@
 | ~~Phase 12B — AI Manager Behaviour~~ | ✅ DONE |
 | ~~Phase 12C — Contract Negotiations~~ | ✅ DONE |
 | ~~Phase 12D — Transfer Market~~ | ✅ DONE |
-| Phase 12E — Fan Events Cooldown UX | 8-week event calendar timeline in Fans panel |
+| ~~Phase 12E — Fan Events Cooldown UX~~ | ✅ DONE |
 | Phase 12F — Team Housing | New facility tier (Apartment → Gaming House) with morale/chemistry/FES bonuses |
 | Balance & Polish (Phase 8) | Meta system, UI polish, playtesting — not started |
 | Visual Identity (Phase 10) | Pixel-art sprites on map; long-term: isometric PixiJS view |
@@ -1135,7 +1135,7 @@ weeklyMarketRate = marketValue / 52
 
 ---
 
-### 12E — Fan Events Cooldown UX
+### 12E — Fan Events Cooldown UX ✅ DONE
 
 **Problem:** You have to mentally track when fan events are available. No visual timeline.
 

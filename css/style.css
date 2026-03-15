@@ -1382,6 +1382,22 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 }
 .btn-renew:hover { background: rgba(200,155,60,.3); }
 .cmod-hint { font-size: 11px; color: var(--text-dim); margin: 3px 0; }
+/* ── Fan Event Calendar (12E) ─────────────────────────────────────────────── */
+.event-available-badge {
+  font-size: 9px; font-weight: 700; background: rgba(76,175,80,.2);
+  color: #4caf50; border: 1px solid rgba(76,175,80,.4);
+  border-radius: 3px; padding: 1px 5px; vertical-align: middle; margin-left: 4px;
+}
+.event-calendar { margin-top: 14px; }
+.ec-title { font-size: 12px; font-weight: 700; color: var(--gold); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .4px; }
+.ec-grid { display: flex; flex-direction: column; gap: 4px; }
+.ec-header-row, .ec-row { display: flex; align-items: center; }
+.ec-row-label { font-size: 11px; color: var(--text-dim); min-width: 130px; }
+.ec-dots { display: flex; gap: 2px; }
+.ec-week-col { width: 32px; text-align: center; }
+.ec-week-label { font-size: 9px; color: var(--text-dim); }
+.ec-dot { width: 32px; text-align: center; font-size: 12px; cursor: default; }
+
 .transfer-section-header {
   font-size: 12px; font-weight: 700; color: var(--gold);
   text-transform: uppercase; letter-spacing: .5px;

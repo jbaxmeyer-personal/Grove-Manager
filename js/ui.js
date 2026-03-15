@@ -2398,15 +2398,22 @@ function renderFans() {
 
   // Fan events
   const week = G.season.week;
-  const eventCards = Object.entries(FAN_EVENT_DEFS || {}).map(([key, def]) => {
+  const totalWeeks = G.season.totalWeeks || 9;
+  const eventDefs = FAN_EVENT_DEFS || {};
+  const eventKeys = Object.keys(eventDefs);
+
+  const eventCards = eventKeys.map(key => {
+    const def = eventDefs[key];
     const lastWeek = team.fanEvents?.[key] || 0;
     const cdLeft = def.cooldownWeeks - (week - lastWeek);
     const onCooldown = cdLeft > 0;
     const canAfford = team.budget >= def.cost;
     const disabled  = onCooldown || !canAfford;
     const reason    = onCooldown ? `Cooldown: ${cdLeft}wk` : !canAfford ? 'Insufficient budget' : '';
-    return `<div class="event-card">
-      <div class="event-name">${def.label}</div>
+    const availBadge = (!onCooldown && canAfford)
+      ? `<span class="event-available-badge">Available now!</span>` : '';
+    return `<div class="event-card" id="event-card-${key}">
+      <div class="event-name">${def.label} ${availBadge}</div>
       <div class="event-stats">
         <span style="color:#f44336">−${fmtMoney(def.cost)}</span>
         <span style="color:#4caf50">+${def.fesBonus} FES</span>
@@ -2414,6 +2421,34 @@ function renderFans() {
       </div>
       ${reason ? `<div style="font-size:11px;color:var(--text-dim)">${reason}</div>` : ''}
       <button class="btn-sm" onclick="onHostFanEvent('${key}')" ${disabled ? 'disabled' : ''}>Host</button>
+    </div>`;
+  }).join('');
+
+  // Event calendar — next 8 weeks (or remaining season weeks)
+  const calWeeks = Math.min(8, totalWeeks - week + 1);
+  const calHeaders = Array.from({length: calWeeks}, (_, i) => {
+    const w = week + i;
+    return `<div class="ec-week-col"><div class="ec-week-label">Wk ${w}</div></div>`;
+  }).join('');
+
+  const calRows = eventKeys.map(key => {
+    const def = eventDefs[key];
+    const lastWeek = team.fanEvents?.[key] || 0;
+    const dots = Array.from({length: calWeeks}, (_, i) => {
+      const w = week + i;
+      const cdAtW = def.cooldownWeeks - (w - lastWeek);
+      const justDone = (lastWeek === w - 1) || (lastWeek === w);
+      if (justDone && lastWeek > 0) {
+        return `<div class="ec-dot ec-recent" title="${def.label} was recently held">🟡</div>`;
+      } else if (cdAtW > 0) {
+        return `<div class="ec-dot ec-cooldown" title="Cooldown: ${Math.max(0,cdAtW)} week(s)">🔴</div>`;
+      } else {
+        return `<div class="ec-dot ec-available" title="${def.label} available week ${w}">🟢</div>`;
+      }
+    }).join('');
+    return `<div class="ec-row">
+      <div class="ec-row-label">${def.label}</div>
+      <div class="ec-dots">${dots}</div>
     </div>`;
   }).join('');
 
@@ -2482,6 +2517,17 @@ function renderFans() {
         <div class="fans-section-title">Fan Events</div>
         <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">One-time events deliver big FES spikes but cost budget and may block training.</div>
         <div class="events-row">${eventCards}</div>
+        ${calWeeks > 0 ? `
+        <div class="event-calendar">
+          <div class="ec-title">Event Calendar</div>
+          <div class="ec-grid">
+            <div class="ec-header-row">
+              <div class="ec-row-label"></div>
+              <div class="ec-dots">${calHeaders}</div>
+            </div>
+            ${calRows}
+          </div>
+        </div>` : ''}
       </div>
 
     </div>
