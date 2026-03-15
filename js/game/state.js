@@ -170,6 +170,7 @@ function initGame(humanTeamId) {
     season,
     stats,
     news:           [],
+    newsReadUntil:  0,
     selectedPlayerId: null,
     weeklyTraining: 'rest',    // human's training choice for the current week
     trainingLog:    [],        // [{ week, teamId, choice }]
@@ -294,6 +295,7 @@ function advanceWeek() {
   // Check sponsor bonuses and fan milestones for human team
   _checkSponsorBonuses(G.humanTeamId);
   _checkFanMilestones(G.humanTeamId);
+  _generateWeeklyNews(week);
 
   // Process training for human team
   processTraining(G.humanTeamId, G.weeklyTraining || 'rest');
@@ -701,6 +703,55 @@ function getStandings() {
     .map(t => ({ id: t.id, name: t.name, shortName: t.shortName, color: t.color,
                  isHuman: t.isHuman, wins: t.wins, losses: t.losses, points: t.points }))
     .sort((a, b) => b.wins - a.wins || a.losses - b.losses);
+}
+
+// ─── Weekly news generation ──────────────────────────────────────────────────
+
+function _generateWeeklyNews(week) {
+  const team = G.teams[G.humanTeamId];
+  if (!team) return;
+
+  // Contract expiry warnings (once per player)
+  POSITIONS.forEach(pos => {
+    const p = team.roster[pos] ? G.players[team.roster[pos]] : null;
+    if (!p) return;
+    if (p.contract.yearsLeft <= 1 && !p._contractWarned) {
+      p._contractWarned = true;
+      addNews(`${p.name}'s contract expires at the end of this season. Consider renewal or finding a replacement.`, 'alert');
+    }
+  });
+
+  // Morale warnings (fire once per dip below 4, reset when they recover)
+  POSITIONS.forEach(pos => {
+    const p = team.roster[pos] ? G.players[team.roster[pos]] : null;
+    if (!p) return;
+    if (p.morale < 4 && !p._moraleWarned) {
+      p._moraleWarned = true;
+      addNews(`${p.name} is deeply unhappy (morale ${p.morale.toFixed(1)}/10). This will hurt their performance.`, 'alert');
+    } else if (p.morale >= 6) {
+      p._moraleWarned = false;
+    }
+  });
+
+  // High-morale team news
+  const starters = POSITIONS.map(pos => team.roster[pos] ? G.players[team.roster[pos]] : null).filter(Boolean);
+  const avgMorale = starters.length ? starters.reduce((s, p) => s + p.morale, 0) / starters.length : 0;
+  if (avgMorale >= 8.5 && week % 2 === 0) {
+    addNews(`Team spirit is excellent (avg morale ${avgMorale.toFixed(1)}/10). The squad is motivated and focused.`, 'info');
+  }
+
+  // Win streak milestones
+  if (team.wins >= 3 && team.wins % 3 === 0 && team.losses === 0) {
+    addNews(`${team.name} are on a perfect ${team.wins}-win run this split. The Verdant League is taking notice.`, 'info');
+  }
+
+  // Random league headline (rival results)
+  const rivals = Object.values(G.teams).filter(t => t.id !== G.humanTeamId && t.wins > 0);
+  if (rivals.length && week % 3 === 0) {
+    rivals.sort((a, b) => b.wins - a.wins);
+    const top = rivals[0];
+    addNews(`League Watch: ${top.name} continue to impress with a ${top.wins}W–${top.losses}L record.`, 'info');
+  }
 }
 
 // ─── News ─────────────────────────────────────────────────────────────────────

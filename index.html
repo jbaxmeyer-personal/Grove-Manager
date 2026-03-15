@@ -58,6 +58,8 @@
       <a class="nav-item" data-screen="scouting"   onclick="showMain('scouting')">🔭 Scouting</a>
       <a class="nav-item" data-screen="finances"   onclick="showMain('finances')">💰 Finances</a>
       <div class="nav-divider"></div>
+      <a class="nav-item" data-screen="news"       onclick="showMain('news')">📰 News<span class="nav-badge" id="news-badge" style="display:none"></span></a>
+      <div class="nav-divider"></div>
       <a class="nav-item" data-screen="league"     onclick="showMain('league')">🏆 League</a>
       <a class="nav-item" data-screen="schedule"   onclick="showMain('schedule')">📅 Schedule</a>
     </nav>
@@ -165,6 +167,12 @@
       <div id="panel-schedule" class="panel">
         <div class="panel-header">Season Schedule</div>
         <div id="schedule-content"></div>
+      </div>
+
+      <!-- NEWS -->
+      <div id="panel-news" class="panel">
+        <div class="panel-header">News &amp; Inbox</div>
+        <div id="news-content"></div>
       </div>
 
     </main>

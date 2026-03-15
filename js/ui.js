@@ -101,6 +101,7 @@ function showMain(name) {
     case 'league':     renderLeague(); break;
     case 'schedule':   renderSchedule(); break;
     case 'scouting':   renderScouting(); break;
+    case 'news':       renderNews(); break;
   }
 }
 
@@ -1076,9 +1077,63 @@ function renderScouting() {
   setHtml('scouting-content', scoutStatus + discoveredHtml);
 }
 
+// ─── News ─────────────────────────────────────────────────────────────────────
+
+let _newsFilter = 'all';
+
+function _updateNewsBadge() {
+  if (!G) return;
+  const unread = G.news.filter(n => n.timestamp > (G.newsReadUntil || 0)).length;
+  const badge = document.getElementById('news-badge');
+  if (!badge) return;
+  if (unread > 0) {
+    badge.textContent = unread > 9 ? '9+' : unread;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderNews() {
+  if (!G) return;
+  // Mark all items as read when panel opens
+  G.newsReadUntil = Date.now();
+  _updateNewsBadge();
+
+  const TYPE_LABEL = { info: 'Info', match: 'Match', alert: 'Alert' };
+  const TYPE_COLOR = { info: 'var(--text-dim)', match: 'var(--gold)', alert: 'var(--loss)' };
+
+  const filterBtns = ['all', 'info', 'match', 'alert'].map(f =>
+    `<button class="news-filter-btn ${f === _newsFilter ? 'active' : ''}"
+       onclick="_newsFilter='${f}';renderNews()">${f === 'all' ? 'All' : TYPE_LABEL[f]}</button>`
+  ).join('');
+
+  const filtered = _newsFilter === 'all' ? G.news : G.news.filter(n => n.type === _newsFilter);
+
+  const items = filtered.length
+    ? filtered.map(n => `
+        <div class="news-panel-item news-${n.type}">
+          <div class="npi-meta">
+            <span class="npi-week">Wk${n.week}</span>
+            <span class="npi-type" style="color:${TYPE_COLOR[n.type] || 'var(--text-dim)'}">
+              ${TYPE_LABEL[n.type] || n.type}
+            </span>
+          </div>
+          <div class="npi-text">${_escHtml(n.text)}</div>
+        </div>`)
+      .join('')
+    : '<div class="news-empty">No news in this category.</div>';
+
+  setHtml('news-content', `
+    <div class="news-filters">${filterBtns}</div>
+    <div class="news-panel-list">${items}</div>
+  `);
+}
+
 // ─── renderAll ────────────────────────────────────────────────────────────────
 
 function renderAll() {
   renderTopBar();
   renderDashboard();
+  _updateNewsBadge();
 }

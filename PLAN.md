@@ -486,7 +486,7 @@ series = {
 **Goal:** Add the missing FM-style management sections visible in TFM2 screenshots.
 **Status:** [ ] Planned for next session
 
-### 9A — News Feed (Enhanced)
+### 9A — News Feed (Enhanced) ✅ DONE
 Current news feed only shows basic events. Expand it to feel like an FM inbox.
 
 **New event types to generate:**
