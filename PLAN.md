@@ -38,6 +38,8 @@ Phase 6E → Engine Rewrite v2     (REAL agent simulation — positions, HP, ite
 Phase 6 → Management Depth       (training, development, finances, fans)          ✅ DONE
 Phase 7 → Career Structure       (BO3/BO5 series, full playoffs, multi-season, save/load)   ✅ DONE
 Phase 8 → Balance & Polish       (meta system, UI polish, playtesting)
+Phase 9 → Management Hub         (News, Coaching Staff, Streaming, Facilities, Team Info, Champ Info, Item Info, Statistics, Manager Traits)
+Phase 10 → Visual Identity       (pixel-art 2D sprites → long-term: isometric view with PixiJS)
 ```
 
 Each phase is designed to be completable in 1–2 sessions. Earlier phases are prerequisites for later ones.
@@ -480,6 +482,240 @@ series = {
 
 ---
 
+## Phase 9 — Management Hub Expansion
+**Goal:** Add the missing FM-style management sections visible in TFM2 screenshots.
+**Status:** [ ] Planned for next session
+
+### 9A — News Feed (Enhanced)
+Current news feed only shows basic events. Expand it to feel like an FM inbox.
+
+**New event types to generate:**
+- Player morale events: "X is unhappy about being benched", "X is delighted after win streak"
+- Injury/condition events: "X is fatigued after heavy training week"
+- Transfer rumors: "Scouts report Y is available for $XXK"
+- League news: patch notes, rival team signings, standings updates
+- Milestone news: fan threshold crossed, sponsor bonus triggered
+- Manager reputation events: board comments on win/loss streaks
+
+**UI:** Dedicated News panel accessible from sidebar. Items sorted by date, unread count badge on the sidebar icon. Click to expand full text.
+
+---
+
+### 9B — Coaching Staff
+Hire and manage a coaching staff separate from players. Each staff member has a role and stat that passively boosts the team.
+
+**Staff roles:**
+- **Head Coach** — boosts all player Development speed (training gains ×multiplier based on stat)
+- **Analyst** — boosts Film Study training effectiveness; improves AI scouting accuracy in draft
+- **Strength & Conditioning Coach** — reduces fatigue accumulation; speeds up condition recovery
+- **Mental Coach** — improves morale recovery after losses; reduces personality clash penalties
+- **Scout** — reduces scout report cost and time; reveals more detail in scouting reports
+
+**Each staff member has:**
+- `name`, `role`, `stat` (1–20, overall quality), `wage` (weekly cost), `contract` (years remaining)
+
+**Hiring:** Pool of available staff (like free agent players). Can replace staff in offseason or mid-season with termination fee.
+
+**UI:** Staff panel under Management sidebar. Shows each staff member as a card with their role, stat bar, wage, and contract length. "Hire Staff" button opens available pool modal.
+
+---
+
+### 9C — Streaming (Separate Activity)
+Currently streaming is one of 5 training choices. Make it a standalone parallel activity for individual players.
+
+**New model:**
+- Each player can be set to "Active Streamer" status (toggle per player)
+- Active streamers gain +fans/week but have a small fatigue penalty
+- Streaming schedule: Casual (1 day/wk, +0.3% fans, -2 condition/wk) vs Heavy (3 days/wk, +1% fans, -6 condition/wk)
+- Star players streaming = bigger fan gain (scales with their individual fame/morale)
+- Remove "Streaming" from the 5-choice training menu; replace with something more useful
+
+**UI:** In Squad panel, each player row gets a small streaming toggle icon. Dedicated "Media & Streaming" section in the sidebar shows total fan projection from streaming and lets you set schedule per player.
+
+---
+
+### 9D — Facilities
+Team infrastructure that provides passive bonuses. Upgrade with budget.
+
+**Facility types:**
+- **Training Facility** (levels 1–5) — multiplies training stat gains (L1: ×1.0 → L5: ×1.5)
+- **Analysis Suite** (levels 1–3) — improves draft AI accuracy and film study effectiveness
+- **Medical Bay** (levels 1–3) — faster condition recovery; reduces injury risk
+- **Streaming Studio** (levels 1–3) — multiplies fan gain from streaming activity
+- **Recruitment Office** (levels 1–3) — more scouts available, lower scouting costs
+
+**Upgrade cost:** Scales geometrically (e.g., Training Facility: L2=$200K, L3=$500K, L4=$1M, L5=$2M).
+**Maintenance:** Higher-level facilities have higher weekly maintenance costs (add to weekly wages deduction).
+
+**UI:** Facilities panel with each facility shown as a card with current level, bonus description, upgrade cost, and an "Upgrade" button (grayed out if budget insufficient).
+
+---
+
+### 9E — Team Info
+FM-style "Club Overview" screen — the first thing you see when you enter management of your team.
+
+**Content:**
+- Team name, logo placeholder, region, home arena
+- Prestige rating (1–10 stars visual)
+- Current season record (W-L series, W-L games)
+- Squad overview: 5 starters listed with position + overall rating
+- Financial snapshot: budget, weekly burn rate, projected end-of-split balance
+- Fan count with recent trend arrow
+- Active sponsors (names only, click to go to Finances)
+- Facilities summary (each facility at a glance)
+- Recent results (last 3 matches with score)
+- Upcoming fixture (next scheduled match)
+
+**UI:** A dashboard-style overview card grid, not a table. This replaces or augments the current Dashboard panel.
+
+---
+
+### 9F — Champion Info Browser
+A standalone "encyclopedia" panel for browsing all TAG champions, separate from the draft info panel.
+
+**Features:**
+- Full champion roster in a searchable/filterable grid (filter by class, role, comp type)
+- Click champion → full profile: portrait placeholder, lore, stats grid, all 3 abilities with full descriptions, role tags, comp type badge (colored)
+- **Role Priority Settings:** For each champion, set which roles they are prioritized for in your AI draft logic. Toggle per role. This gives the manager a way to influence how the AI values champions in auto-draft.
+- Win rate display (running stat from all simulated matches in your career)
+- "Owned" vs "Banned" status (if champion pool restrictions added later)
+
+**UI:** Sidebar icon "Champions" → full-page browser panel. Same champion card style as draft info panel but expanded.
+
+---
+
+### 9G — Item Info Browser
+Encyclopedia for all 23 TAG items. Helps managers understand item priorities and set preferences.
+
+**Features:**
+- Item grid with name, cost, stats, passive description
+- Filter by stat type (AD, AP, HP, etc.), cost range
+- **Role Priority Settings:** For each item, set which roles should prioritize it. This feeds into the sim engine's item purchasing logic — high-priority items for a role get purchased earlier.
+- Synergy tags: items that combo well with each other
+- Usage stats: how often this item appears in winning vs losing builds in your career
+
+**UI:** Sidebar icon "Items" → full-page grid browser. Clicking an item opens a detail modal.
+
+---
+
+### 9H — Statistics Panel
+Career and season statistics dashboard. FM-style "Records" screen.
+
+**Sections:**
+- **Team Stats:** all-time record (W-L), series W-L, game W-L, kill/death totals, average game duration
+- **Season Stats:** current split stats, standings position, points
+- **Player Stats:** sortable leaderboard — KDA, avg kills, avg deaths, avg assists, gold per game, CS per game, per player across career
+- **Champion Stats:** which champions you've drafted most, win rate per champion, ban rate
+- **Historical Seasons:** table of each completed season — split, final standing, champion player, notable events
+
+**UI:** A tabbed panel (Team / Players / Champions / History). Tables with sortable columns.
+
+---
+
+### 9I — Manager Traits
+The manager (you) has a progression system. Earn XP from matches and management actions, unlock traits that provide passive bonuses.
+
+**Trait trees:**
+- **Tactician** — bonuses to draft AI, tactical adjustments between games
+  - "Counter Specialist" — +15% counter-pick effectiveness in draft
+  - "Adaptive Coach" — AI opponent adaptation between games is weaker vs your team
+  - "Formation Mastery" — tactical adjustment screen shows better suggestions
+- **Developer** — bonuses to player training and growth
+  - "Talent Spotter" — scouting reports reveal more attributes for free
+  - "Youth Mentor" — young players (U22) gain +1 extra attribute per week when training
+  - "Veteran Handler" — veteran decline chance halved
+- **Business Mind** — bonuses to finances and fans
+  - "Sponsor Negotiator" — 10% bonus to all sponsor weekly income
+  - "Media Presence" — streaming fan gains +20% across all players
+  - "Budget Wizard" — transfer fees 10% cheaper
+- **Motivator** — bonuses to morale and chemistry
+  - "Locker Room Leader" — team chemistry minimum raised to 5
+  - "Winning Culture" — morale boost from wins is doubled
+  - "Clutch Factor" — in BO5 game 5, your team gets a small stat boost
+
+**XP Sources:** Win a series (+50 XP), win playoffs (+200 XP), develop a young player to 75+ overall (+100 XP), complete a season (+150 XP), reach a fan milestone (+75 XP)
+
+**UI:** Manager Profile panel (accessible from top bar user icon or sidebar). Shows: manager name, age, XP bar toward next level, total career record, trait grid with locked/unlocked states and unlock cost.
+
+---
+
+### 9J — Gaming House (Deferred)
+Not implementing yet. Future concept: team housing that affects chemistry, condition recovery, and streaming capacity. Placeholder in PLAN.md only.
+
+---
+
+## Phase 10 — Visual Identity: Sprites & Map Animation
+**Goal:** Replace colored dots on the map with pixel-art champion sprites. Long-term target: isometric view with animated champions battling.
+**Status:** [ ] Planned — phased approach
+
+### 10A — Phase 1: 2D Sprite Overlay (Nearer-term)
+Replace the current SVG circle dots with small pixel-art sprite images on the existing LoL-style 2D top-down map.
+
+**Approach:**
+- Each champion gets a `32×32` (or `48×48`) pixel art sprite PNG (top-down view)
+- SVG `<image>` elements replace `<circle>` dots within the existing `<g>` groups
+- HP ring stays as SVG circle overlay on top of sprite
+- Role letter removed once sprites are recognizable enough
+- Sprite set priority: one sprite per class first (Fighter/Tank/Assassin/Mage/Marksman/Sentinel) as placeholders, then individual champion sprites later
+
+**Tooling:**
+- Use a pixel art tool (Aseprite or Libresprite) to create sprites
+- Export as transparent PNG, place in `assets/sprites/champions/`
+- Map CSS: `image-rendering: pixelated` to preserve crisp pixels at any scale
+
+**Animation frames (Phase 1):**
+- Idle: 2-frame breathing animation (can loop via CSS or requestAnimationFrame)
+- Walk: 4-frame walk cycle (triggered when champion is moving between positions)
+- Attack: 2-frame attack flash (triggered on kill events)
+- Death: fade-out (existing CSS opacity transition)
+
+**SVG approach for animation:**
+```js
+// In map.js: swap sprite src based on champion state
+// use <image href="assets/sprites/champions/fighter_walk_1.png">
+// swap href on tick for walk frames
+```
+
+---
+
+### 10B — Phase 2: Isometric View (Long-term vision)
+Full isometric battlefield replacing the 2D SVG map. Champions run around, clash, and interact in real-time.
+
+**Renderer options (evaluate when ready):**
+- **PixiJS** — fast 2D WebGL renderer, excellent sprite sheet support, easy to integrate into existing HTML page
+- **Phaser 3** — full game framework, heavier but has built-in tilemap, physics, animation systems
+- **Canvas 2D** — manual implementation, most control, no dependencies
+- Recommendation: **PixiJS** — lightest lift, best performance, good isometric support via manual tile math
+
+**Isometric map design:**
+- Diamond-grid isometric tilemap (standard 2:1 ratio tiles, e.g. 64×32 px per tile)
+- Map tiles: grass (base), forest (jungle zones), stone path (lanes), shrine platform, base structure
+- Tiles stored as sprite sheets: `assets/tiles/tilemap.png`
+- Render order: back-to-front (painter's algorithm) by Y coordinate for correct depth sorting
+
+**Champion sprites (isometric):**
+- Each champion: 8-direction walk (N/NE/E/SE/S/SW/W/NW) × 4 walk frames = 32 frames per champion
+- Attack animation: 4 frames per direction = 32 more frames per champion
+- Isometric sprites: ~64×96 px per frame (taller than wide for depth illusion)
+- Start with 1 representative sprite per class, apply color tint per team side (blue tint / red tint)
+
+**Sim integration:**
+- The sim engine already outputs `x,y` positions per tick — these map directly to isometric screen coordinates
+- `isoX = (x - y) * TILE_W / 2 + ORIGIN_X`
+- `isoY = (x + y) * TILE_H / 2 + ORIGIN_Y`
+- Combat events (kill, fight) trigger attack animations
+- Death events trigger death animation + fade
+
+**Milestones for Phase 10B:**
+1. Integrate PixiJS, render static isometric tilemap
+2. Place champion sprites (color-coded by class)
+3. Animate movement from sim positions
+4. Add attack animations on kill events
+5. Add ability VFX (simple flash/particle on ability use)
+6. Replace SVG map entirely with PixiJS canvas
+
+---
+
 ## Phase 8 — Balance & Polish
 **Goal:** Make it feel like a complete, fun game.
 **Status:** [ ] Not started
@@ -564,3 +800,4 @@ GAME_DESIGN.md        — Management game design (update to remove LoL refs)
 | 2026-03-14 | #6 | **Phase 7 complete** — BO3/BO5 series format, between-game tactic adjustment, playoffs (top 4 BO5 semis+final), multi-season (offseason → new season), save/load via localStorage |
 | 2026-03-14 | #7 | **Phase 3 complete** — TAG hex map SVG: diamond hexagon boundary, 3 lanes (top/mid/bot), forest jungle zones, Ley Shrine markers, Grove Warden spawn, Ancient Root markers, themed Blue/Red bases. map.js JS unchanged (same coordinate system). |
 | 2026-03-14 | #8 | **Phase 6 remaining complete** — 6C Personality system (5 types: leader/maverick/grinder/volatile/pro, training multipliers, personality badges in squad + player profile), 6D team chemistry (morale average + personality compatibility bar in squad view), 6F Scouting panel (12 prospects in SCOUT_POOL, send scout for $50K, report after 1 week, free agent pipeline), 6G Sponsors (per-team sponsors with milestone bonuses and weekly income replacing flat fan/8 formula), 6H Fan milestones (5 thresholds 100K/250K/500K/1M/2M with news events). |
+| 2026-03-15 | #9 | **Visual polish sprint** — Removed all wander/jitter from map (CSS transitions on SVG groups), fixed LANE_POS for LoL-style geometry, objectives with real HP bars, PBP redesigned to TFM2 3-column layout (blue panel | map | red panel + bottom feed), results screen overlay fix, champion info panel on draft hover with stats/abilities/lore, role names renamed (vanguard→Top etc.) across all files, comp type + role badge colors in champion info panel. Planned Phase 9 (Management Hub) and Phase 10 (Sprites + ISO view) in PLAN.md. |
