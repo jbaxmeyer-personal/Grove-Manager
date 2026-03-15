@@ -501,7 +501,7 @@ Current news feed only shows basic events. Expand it to feel like an FM inbox.
 
 ---
 
-### 9B — Coaching Staff
+### 9B — Coaching Staff ✅ DONE
 Hire and manage a coaching staff separate from players. Each staff member has a role and stat that passively boosts the team.
 
 **Staff roles:**

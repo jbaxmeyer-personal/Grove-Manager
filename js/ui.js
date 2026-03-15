@@ -102,6 +102,7 @@ function showMain(name) {
     case 'schedule':   renderSchedule(); break;
     case 'scouting':   renderScouting(); break;
     case 'news':       renderNews(); break;
+    case 'staff':      renderStaff(); break;
   }
 }
 
@@ -1075,6 +1076,90 @@ function renderScouting() {
   }
 
   setHtml('scouting-content', scoutStatus + discoveredHtml);
+}
+
+// ─── Coaching Staff ───────────────────────────────────────────────────────────
+
+function renderStaff() {
+  if (!G) return;
+  const team     = G.teams[G.humanTeamId];
+  const hired    = G.staff || [];
+  const hiredIds = new Set(hired.map(s => s.id));
+  const hiredRoles = new Set(hired.map(s => s.role));
+
+  // Current staff section
+  const hiredHtml = hired.length
+    ? hired.map(s => `
+        <div class="staff-card staff-hired">
+          <div class="staff-card-top">
+            <div>
+              <span class="staff-role-badge">${STAFF_ROLE_LABEL[s.role] || s.role}</span>
+              <span class="staff-name">${_escHtml(s.name)}</span>
+            </div>
+            <div class="staff-stat-box">${s.stat}<span class="staff-stat-label"> / 20</span></div>
+          </div>
+          <div class="staff-desc">${_escHtml(s.desc)}</div>
+          <div class="staff-card-footer">
+            <span class="staff-wage">${fmtMoney(s.wage)}/wk</span>
+            <button class="btn-secondary" onclick="onFireStaff('${s.id}')">Release</button>
+          </div>
+        </div>`)
+      .join('')
+    : '<div class="staff-empty">No coaching staff hired. Browse available staff below.</div>';
+
+  // Available pool section
+  const available = STAFF_POOL.filter(s => !hiredIds.has(s.id));
+  const availHtml = available.map(s => {
+    const roleBlocked = hiredRoles.has(s.role);
+    const canAfford   = team.budget >= s.wage * 4;
+    const disabled    = roleBlocked || !canAfford;
+    const reason      = roleBlocked ? 'Role filled' : (!canAfford ? 'Insufficient budget' : '');
+    return `
+      <div class="staff-card ${disabled ? 'staff-card-dim' : ''}">
+        <div class="staff-card-top">
+          <div>
+            <span class="staff-role-badge">${STAFF_ROLE_LABEL[s.role] || s.role}</span>
+            <span class="staff-name">${_escHtml(s.name)}</span>
+            <span class="staff-nat" style="color:var(--text-dim)">${s.nationality}</span>
+          </div>
+          <div class="staff-stat-box">${s.stat}<span class="staff-stat-label"> / 20</span></div>
+        </div>
+        <div class="staff-desc">${_escHtml(s.desc)}</div>
+        <div class="staff-card-footer">
+          <span class="staff-wage">${fmtMoney(s.wage)}/wk</span>
+          ${reason ? `<span class="staff-reason">${reason}</span>` : ''}
+          <button class="btn-primary" onclick="onHireStaff('${s.id}')"
+            ${disabled ? 'disabled' : ''} style="font-size:12px;padding:5px 14px">Hire</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const totalStaffWage = hired.reduce((s, m) => s + m.wage, 0);
+  setHtml('staff-content', `
+    <div class="staff-budget-bar">
+      Staff wages: <strong style="color:var(--gold)">${fmtMoney(totalStaffWage)}/wk</strong>
+      &nbsp;·&nbsp; Budget: <strong style="color:var(--gold)">${fmtMoney(team.budget)}</strong>
+      <span style="color:var(--text-dim);font-size:11px;margin-left:8px">(one staff per role)</span>
+    </div>
+    <h3 class="staff-section-title">Your Coaching Team</h3>
+    <div class="staff-grid">${hiredHtml}</div>
+    <h3 class="staff-section-title" style="margin-top:20px">Available Staff</h3>
+    <div class="staff-grid">${availHtml}</div>
+  `);
+}
+
+function onHireStaff(staffId) {
+  const result = hireStaff(staffId);
+  if (result === 'role_filled') { alert('You already have a staff member in that role.'); return; }
+  if (result === 'no_budget')   { alert('Insufficient budget (need 4 weeks of wages as buffer).'); return; }
+  renderStaff();
+  renderTopBar();
+}
+
+function onFireStaff(staffId) {
+  fireStaff(staffId);
+  renderStaff();
+  renderTopBar();
 }
 
 // ─── News ─────────────────────────────────────────────────────────────────────

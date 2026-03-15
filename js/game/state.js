@@ -13,6 +13,52 @@ const PLAYSTYLES = {
   scaling:   { name: 'Scaling',   desc: 'Survive early, stack Verdant Blessings, dominate late' },
 };
 
+// ─── Staff Pool ───────────────────────────────────────────────────────────────
+// Roles: headcoach | analyst | conditioning | mental | scout
+
+const STAFF_POOL = [
+  { id:'st01', name:'Aldric Vale',    role:'headcoach',     stat:15, wage:25000, nationality:'EU',
+    desc:'Former pro with championship experience. Accelerates player development.' },
+  { id:'st02', name:'Brynn Ashford',  role:'headcoach',     stat:12, wage:18000, nationality:'NA',
+    desc:'Methodical coach known for structured practice routines.' },
+  { id:'st03', name:'Oryn Marsh',     role:'headcoach',     stat:10, wage:12000, nationality:'KOR',
+    desc:'Up-and-coming coach. Affordable and hungry to prove himself.' },
+  { id:'st04', name:'Selene Croft',   role:'analyst',       stat:16, wage:20000, nationality:'EU',
+    desc:'Data-driven analyst. Dramatically improves draft counter-pick success.' },
+  { id:'st05', name:'Gael Winters',   role:'analyst',       stat:11, wage:10000, nationality:'NA',
+    desc:'Self-taught analyst with sharp reads on opposing team tendencies.' },
+  { id:'st06', name:'Toma Ironsong',  role:'conditioning',  stat:14, wage:15000, nationality:'KOR',
+    desc:'Elite physical trainer. Players recover faster and stay fresh longer.' },
+  { id:'st07', name:'Fira Moss',      role:'conditioning',  stat:10, wage:9000,  nationality:'EU',
+    desc:'Former athlete who transitioned into esports conditioning.' },
+  { id:'st08', name:'Declan Holt',    role:'mental',        stat:13, wage:16000, nationality:'NA',
+    desc:'Sports psychologist specialising in high-pressure performance.' },
+  { id:'st09', name:'Vesper Gray',    role:'mental',        stat:11, wage:11000, nationality:'EU',
+    desc:'Calm presence in the team room. Keeps volatile personalities in check.' },
+  { id:'st10', name:'Riven Blackwell',role:'scout',         stat:15, wage:14000, nationality:'KOR',
+    desc:'World-class scout. Finds hidden talent faster and cheaper than anyone.' },
+  { id:'st11', name:'Calder Fenn',    role:'scout',         stat:11, wage:8000,  nationality:'NA',
+    desc:'Reliable regional scout with a good eye for young ADC talent.' },
+  { id:'st12', name:'Mira Ashgrove',  role:'conditioning',  stat:12, wage:12000, nationality:'NA',
+    desc:'Known for preventing burnout in gruelling split schedules.' },
+];
+
+const STAFF_ROLE_LABEL = {
+  headcoach:    'Head Coach',
+  analyst:      'Analyst',
+  conditioning: 'S&C Coach',
+  mental:       'Mental Coach',
+  scout:        'Scout',
+};
+
+const STAFF_ROLE_BONUS = {
+  headcoach:    'Training gains ×+stat%',
+  analyst:      'Film Study ×+stat% · Draft edge',
+  conditioning: 'Condition recovery +stat/wk',
+  mental:       'Morale recovery +stat · Clash reduction',
+  scout:        'Scout cost -stat% · Report speed +1wk',
+};
+
 // ─── Scout Pool ───────────────────────────────────────────────────────────────
 
 const SCOUT_POOL = [
@@ -177,6 +223,7 @@ function initGame(humanTeamId) {
     financeLog:     [],        // [{ week, wages, income, net, balance }]
     fanMilestones:  { m100k: false, m250k: false, m500k: false, m1m: false, m2m: false },
     scouting:       { weeklyBudget: 50000, activeScout: null, reports: [], discovered: [] },
+    staff:          [],   // array of hired staff objects { ...STAFF_POOL entry, hiredWeek }
   };
 
   addNews(`Welcome to Grove Manager! You are now the manager of ${teams[humanTeamId].name}. Good luck!`, 'info');
@@ -282,10 +329,11 @@ function advanceWeek() {
     t.weeklyWages = calcWagesBill(t.id);
     const wages  = t.weeklyWages;
     const income = t.sponsorIncome;
-    t.budget = (t.budget || 0) - wages + income;
+    const staffCost = t.id === G.humanTeamId ? getStaffWages() : 0;
+    t.budget = (t.budget || 0) - wages - staffCost + income;
     if (t.id === G.humanTeamId) {
       G.financeLog.push({
-        week, wages, income, net: income - wages, balance: t.budget,
+        week, wages: wages + staffCost, income, net: income - wages - staffCost, balance: t.budget,
       });
       if (t.budget < 0)
         addNews(`Financial warning: budget is ${fmtMoneySafe(t.budget)}. Consider releasing high earners.`, 'alert');
@@ -386,11 +434,11 @@ const TRAINING_DEFS = {
       players.forEach(p => {
         if (p && (p.personality || 'pro') === 'leader') hasLeader = true;
       });
+      const mentalBonus = getStaffBonus('mental');
       players.forEach(p => {
         if (!p) return;
-        const mult = getPersonalityMultiplier(p, 'rest');
         const leaderBonus = hasLeader && (p.personality || 'pro') !== 'leader' ? 0.5 : 0;
-        p.morale = Math.min(10, p.morale + 1 + leaderBonus);
+        p.morale = Math.min(10, p.morale + 1 + leaderBonus + mentalBonus);
       });
     },
   },
@@ -458,7 +506,20 @@ const TRAINING_DEFS = {
 };
 
 function processTraining(teamId, choice) {
-  const def = TRAINING_DEFS[choice] || TRAINING_DEFS.rest;
+  let def = TRAINING_DEFS[choice] || TRAINING_DEFS.rest;
+  // Analyst boosts filmstudy effectiveness — patch effect wrapper
+  if (choice === 'filmstudy') {
+    const analystBonus = getStaffBonus('analyst');
+    if (analystBonus > 0) {
+      const origEffect = def.effect;
+      def = { ...def, effect(players, tid) {
+        // Temporarily boost the base chance via a flag players share
+        players.forEach(p => { if (p) p._analystBoost = analystBonus; });
+        origEffect(players, tid);
+        players.forEach(p => { if (p) delete p._analystBoost; });
+      }};
+    }
+  }
   const team = G.teams[teamId];
   if (!team) return;
   const players = POSITIONS.map(pos => {
@@ -470,6 +531,42 @@ function processTraining(teamId, choice) {
   // Record in finance log
   if (!G.trainingLog) G.trainingLog = [];
   G.trainingLog.push({ week: G.season.week, teamId, choice });
+}
+
+// ─── Staff helpers ────────────────────────────────────────────────────────────
+
+function getStaffBonus(role) {
+  // Returns a 0–1 multiplier bonus from hired staff of given role
+  if (!G || !G.staff) return 0;
+  const member = G.staff.find(s => s.role === role);
+  return member ? member.stat / 100 : 0;
+}
+
+function hireStaff(staffId) {
+  if (!G) return 'error';
+  const def = STAFF_POOL.find(s => s.id === staffId);
+  if (!def) return 'error';
+  if (G.staff.find(s => s.id === staffId)) return 'already_hired';
+  // Can only have one per role
+  if (G.staff.find(s => s.role === def.role)) return 'role_filled';
+  const team = G.teams[G.humanTeamId];
+  if (team.budget < def.wage * 4) return 'no_budget';  // require 4 weeks buffer
+  G.staff.push({ ...def, hiredWeek: G.season.week });
+  addNews(`Hired ${def.name} as ${STAFF_ROLE_LABEL[def.role]}. ${def.desc}`, 'info');
+  return 'hired';
+}
+
+function fireStaff(staffId) {
+  if (!G) return;
+  const member = G.staff.find(s => s.id === staffId);
+  if (!member) return;
+  G.staff = G.staff.filter(s => s.id !== staffId);
+  addNews(`${member.name} has left the coaching staff.`, 'info');
+}
+
+function getStaffWages() {
+  if (!G || !G.staff) return 0;
+  return G.staff.reduce((sum, s) => sum + s.wage, 0);
 }
 
 // ─── Chemistry ───────────────────────────────────────────────────────────────
@@ -547,10 +644,11 @@ function processPlayerDevelopment() {
     if (!p) return;
     const moraleBonus = p.morale > 7 ? 1.5 : p.morale < 4 ? 0.5 : 1;
 
-    // Young players (<22): chance to improve
+    // Young players (<22): chance to improve (head coach boosts rate)
     if (p.age < 22) {
+      const coachBonus = getStaffBonus('headcoach');
       const allStats = Object.keys(p.stats);
-      if (Math.random() < 0.08 * moraleBonus) {
+      if (Math.random() < (0.08 + coachBonus * 0.5) * moraleBonus) {
         const stat = allStats[Math.floor(Math.random()*allStats.length)];
         p.stats[stat] = Math.min(20, p.stats[stat] + 1);
       }

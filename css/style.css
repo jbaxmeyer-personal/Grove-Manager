@@ -1449,3 +1449,75 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 .npi-type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 .npi-text { font-size: 13px; color: var(--text); line-height: 1.45; }
 .news-empty { color: var(--text-dim); padding: 30px; text-align: center; font-size: 13px; }
+
+/* ─── Coaching Staff Panel ───────────────────────────────── */
+.staff-budget-bar {
+  font-size: 13px;
+  color: var(--text);
+  padding: 10px 0 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.staff-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.staff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.staff-card {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.staff-hired { border-left: 3px solid var(--gold); }
+.staff-card-dim { opacity: 0.55; }
+.staff-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.staff-role-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(200,155,60,0.1);
+  border: 1px solid var(--gold-dim);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-right: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.staff-name { font-weight: 600; color: var(--text-hi); font-size: 14px; }
+.staff-nat  { font-size: 11px; margin-left: 4px; }
+.staff-stat-box {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.staff-stat-label { font-size: 11px; color: var(--text-dim); }
+.staff-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+.staff-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.staff-wage { font-size: 12px; color: var(--loss); font-weight: 600; flex: 1; }
+.staff-reason { font-size: 11px; color: var(--text-dim); }
+.staff-empty { color: var(--text-dim); padding: 16px 0; font-size: 13px; }
