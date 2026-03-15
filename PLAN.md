@@ -520,7 +520,7 @@ Hire and manage a coaching staff separate from players. Each staff member has a 
 
 ---
 
-### 9C — Streaming (Separate Activity)
+### 9C — Streaming (Separate Activity) ✅ DONE
 Currently streaming is one of 5 training choices. Make it a standalone parallel activity for individual players.
 
 **New model:**

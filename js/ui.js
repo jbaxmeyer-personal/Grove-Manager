@@ -259,6 +259,20 @@ function renderSquad(tab = 'starters') {
         </td>
         <td style="color:var(--text-dim);font-size:11px">${p.contract.yearsLeft}yr</td>
         <td>${personalityBadge(p.personality || 'pro')}</td>
+        <td onclick="event.stopPropagation()">
+          <div class="stream-toggle-wrap">
+            <label class="stream-toggle" title="${p.streaming?.active ? 'Streaming ON' : 'Streaming OFF'}">
+              <input type="checkbox" ${p.streaming?.active ? 'checked' : ''}
+                onchange="setPlayerStreaming('${p.id}', this.checked)">
+              <span class="stream-slider"></span>
+            </label>
+            ${p.streaming?.active ? `<select class="stream-sched-select"
+              onchange="setPlayerStreamSchedule('${p.id}', this.value)">
+              <option value="casual" ${(p.streaming?.schedule||'casual')==='casual'?'selected':''}>Casual</option>
+              <option value="heavy"  ${(p.streaming?.schedule||'casual')==='heavy' ?'selected':''}>Heavy</option>
+            </select>` : ''}
+          </div>
+        </td>
       </tr>`;
   }).join('');
 
@@ -273,7 +287,7 @@ function renderSquad(tab = 'starters') {
     <table class="squad-table">
       <thead><tr>
         <th>Pos</th><th>Name</th><th>OVR</th><th>Age</th>
-        <th>Nat</th><th>Salary</th><th>Morale</th><th>Contract</th><th>Personality</th>
+        <th>Nat</th><th>Salary</th><th>Morale</th><th>Contract</th><th>Personality</th><th>Stream</th>
       </tr></thead>
       <tbody>${rows || '<tr><td colspan="9" style="text-align:center;color:var(--text-dim);padding:20px">No players</td></tr>'}</tbody>
     </table>
@@ -1076,6 +1090,25 @@ function renderScouting() {
   }
 
   setHtml('scouting-content', scoutStatus + discoveredHtml);
+}
+
+// ─── Streaming ────────────────────────────────────────────────────────────────
+
+function setPlayerStreaming(playerId, active) {
+  if (!G) return;
+  const p = G.players[playerId];
+  if (!p) return;
+  if (!p.streaming) p.streaming = { active: false, schedule: 'casual' };
+  p.streaming.active = active;
+  renderSquad('starters');
+}
+
+function setPlayerStreamSchedule(playerId, schedule) {
+  if (!G) return;
+  const p = G.players[playerId];
+  if (!p) return;
+  if (!p.streaming) p.streaming = { active: true, schedule: 'casual' };
+  p.streaming.schedule = schedule;
 }
 
 // ─── Coaching Staff ───────────────────────────────────────────────────────────

@@ -178,6 +178,7 @@ function initGame(humanTeamId) {
       form:   [6, 6, 6],
       injured: false,
       onTransferList: false,
+      streaming: { active: false, schedule: 'casual' },
       // Career stats — accumulated across all matches this player appears in
       career: {
         gamesPlayed: 0,
@@ -348,6 +349,9 @@ function advanceWeek() {
   // Process training for human team
   processTraining(G.humanTeamId, G.weeklyTraining || 'rest');
 
+  // Process standalone streaming for human team
+  processStreaming(G.humanTeamId);
+
   // Process scouting
   if (G.scouting && G.scouting.activeScout) {
     G.scouting.activeScout.weeksLeft--;
@@ -491,15 +495,16 @@ const TRAINING_DEFS = {
       });
     },
   },
-  streaming: {
-    label: 'Streaming',
-    icon: '📡',
-    desc: 'Players stream online. Fans +1.5%, morale +0.5 each.',
-    effect(players, teamId) {
-      const t = G.teams[teamId];
-      if (t) t.fans = Math.round(t.fans * 1.015);
+  tactical_review: {
+    label: 'Tactical Review',
+    icon: '🗺️',
+    desc: 'Analyse team coordination. Small boost to Communication and Composure for all.',
+    effect(players) {
       players.forEach(p => {
-        if (p) p.morale = Math.min(10, p.morale + 0.5);
+        if (!p) return;
+        const mult = getPersonalityMultiplier(p, 'tactical_review');
+        if (Math.random() < 0.15 * mult) p.stats.communication = Math.min(20, p.stats.communication + 1);
+        if (Math.random() < 0.12 * mult) p.stats.composure     = Math.min(20, p.stats.composure + 1);
       });
     },
   },
@@ -567,6 +572,28 @@ function fireStaff(staffId) {
 function getStaffWages() {
   if (!G || !G.staff) return 0;
   return G.staff.reduce((sum, s) => sum + s.wage, 0);
+}
+
+// ─── Streaming ────────────────────────────────────────────────────────────────
+
+function processStreaming(teamId) {
+  const team = G.teams[teamId];
+  if (!team) return;
+  let totalFanGainPct = 0;
+  POSITIONS.forEach(pos => {
+    const p = team.roster[pos] ? G.players[team.roster[pos]] : null;
+    if (!p || !p.streaming?.active) return;
+    const schedule = p.streaming.schedule || 'casual';
+    // Fan gain per active streamer
+    const basePct   = schedule === 'heavy' ? 0.010 : 0.003;
+    // Morale penalty from heavy schedule
+    const condition = schedule === 'heavy' ? -0.6 : -0.1;
+    p.morale = Math.max(1, p.morale + condition + 0.5); // +0.5 enjoyment offset
+    totalFanGainPct += basePct;
+  });
+  if (totalFanGainPct > 0) {
+    team.fans = Math.round(team.fans * (1 + totalFanGainPct));
+  }
 }
 
 // ─── Chemistry ───────────────────────────────────────────────────────────────
