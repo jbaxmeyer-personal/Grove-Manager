@@ -884,7 +884,7 @@ function quickSimulateMatch(homePlayers, awayPlayers) {
 
 // ─── Draft system ─────────────────────────────────────────────────────────────
 
-const COMP_SYNERGIES = {
+const SYNERGY_CLASSES = {
   ENGAGE:  ['tank','fighter'],
   POKE:    ['mage','marksman'],
   PICK:    ['assassin','sentinel'],
@@ -980,8 +980,8 @@ function draftChampions(blueTeamArr, redTeamArr) {
   return {
     blue: bluePicks, red: redPicks,
     bans: { blue: blueBans, red: redBans },
-    blueSynergies: COMP_SYNERGIES[getDominantCompType(bluePicks)] || [],
-    redSynergies:  COMP_SYNERGIES[getDominantCompType(redPicks)]  || [],
+    blueSynergies: SYNERGY_CLASSES[getDominantCompType(bluePicks)] || [],
+    redSynergies:  SYNERGY_CLASSES[getDominantCompType(redPicks)]  || [],
     counterScore:  getCounterScore(bluePicks, redPicks),
   };
 }

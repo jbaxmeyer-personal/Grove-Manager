@@ -225,7 +225,7 @@ const ITEMS = [
     cost: 1200,
     forRoles: [],
     stats: { maxHp: 150, physDmg: 15, abilityPower: 15, cooldownReduction: 0.05 },
-    description: 'A crested sigil worn by the Grove's most decorated combatants.',
+    description: "A crested sigil worn by the Grove's most decorated combatants.",
   },
 ];
 

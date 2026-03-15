@@ -1,0 +1,24 @@
+{
+  "name": "moba-auto-battler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "playtest.js",
+  "scripts": {
+    "test": "node tests/grove-manager.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jbaxmeyer-personal/MOBA-Auto-Battler.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jbaxmeyer-personal/MOBA-Auto-Battler/issues"
+  },
+  "homepage": "https://github.com/jbaxmeyer-personal/MOBA-Auto-Battler#readme",
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}

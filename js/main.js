@@ -681,8 +681,8 @@ function _finalizeDraft() {
     blue: ds.bluePicks,
     red:  ds.redPicks,
     bans: ds.bans,
-    blueSynergies: COMP_SYNERGIES[getDominantCompType(blueNames)] || [],
-    redSynergies:  COMP_SYNERGIES[getDominantCompType(redNames)]  || [],
+    blueSynergies: (() => { const s = COMP_SYNERGIES[getDominantCompType(blueNames)]; return s ? [s] : []; })(),
+    redSynergies:  (() => { const s = COMP_SYNERGIES[getDominantCompType(redNames)];  return s ? [s] : []; })(),
     counterScore:  getCounterScore(blueNames, redNames),
   };
   _matchContext.draft = draft;
