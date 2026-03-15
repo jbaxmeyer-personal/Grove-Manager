@@ -40,69 +40,80 @@ const SPAWN = {
 };
 
 // Where each role walks during the laning phase
-// Base laning positions — where each role starts in phase 0
+// Laning positions per phase.
+// Blue base = bottom-left (22,278), Red base = top-right (278,22)
+// Top lane = left edge (x≈35) → top edge (y≈35)
+// Bot lane = bottom edge (y≈265) → right edge (x≈265)
+// Mid lane = diagonal
 const LANE_POS = {
   blue: {
-    top:     { x: 35,  y: 200 },   // top lane — walks up left edge
-    jungle:  { x: 88,  y: 108 },   // blue jungle
-    mid:     { x: 115, y: 185 },   // mid lane blue side
-    adc:     { x: 165, y: 265 },   // bot lane — bottom edge
-    support: { x: 142, y: 265 },   // bot lane support
+    top:     { x: 35,  y: 195 },   // top lane — left edge, walk up
+    jungle:  { x: 88,  y: 115 },   // blue jungle
+    mid:     { x: 115, y: 200 },   // mid lane blue side
+    adc:     { x: 175, y: 265 },   // bot lane — bottom edge
+    support: { x: 148, y: 265 },   // bot lane support
   },
   red: {
-    top:     { x: 100, y: 35  },   // top lane — walks right along top edge
-    jungle:  { x: 212, y: 192 },   // red jungle
-    mid:     { x: 185, y: 115 },   // mid lane red side
-    adc:     { x: 265, y: 200 },   // bot lane — right edge
-    support: { x: 265, y: 165 },   // bot lane support
+    top:     { x: 105, y: 35  },   // top lane — top edge, walk right
+    jungle:  { x: 212, y: 185 },   // red jungle
+    mid:     { x: 185, y: 100 },   // mid lane red side
+    adc:     { x: 265, y: 195 },   // bot lane — right edge, walk down
+    support: { x: 265, y: 152 },   // bot lane support
   },
 };
 
-// Lane advance targets for phase 1 (mid-game push)
+// Phase 1 advance positions (push toward enemy side)
 const LANE_POS_P1 = {
   blue: {
-    top:     { x: 35,  y: 140 },   // past blue top tower
+    top:     { x: 35,  y: 130 },   // further up left edge toward enemy top
     jungle:  { x: 150, y: 150 },   // contest center
-    mid:     { x: 140, y: 160 },   // toward center
-    adc:     { x: 210, y: 265 },   // push toward enemy outer
-    support: { x: 185, y: 265 },
+    mid:     { x: 135, y: 165 },   // toward center
+    adc:     { x: 220, y: 265 },   // push right toward enemy bot
+    support: { x: 195, y: 265 },
   },
   red: {
-    top:     { x: 160, y: 35  },   // push along top
+    top:     { x: 170, y: 35  },   // further right along top edge
     jungle:  { x: 150, y: 150 },   // contest center
-    mid:     { x: 160, y: 140 },   // toward center
-    adc:     { x: 265, y: 140 },   // push toward enemy outer
-    support: { x: 265, y: 120 },
+    mid:     { x: 165, y: 135 },   // toward center
+    adc:     { x: 265, y: 130 },   // push down right edge toward enemy bot
+    support: { x: 265, y: 105 },
   },
 };
 
-// Objectives
+// Objectives — 2 towers per lane per side, perfectly point-symmetric (each pair sums to 300,300)
+//
+// Blue defends: bot lane (bottom edge), mid lane (diagonal), top lane (left edge)
+// Red defends:  top lane (top edge),    mid lane (diagonal), bot lane (right edge)
+//
+// T1 = outer (enemies hit first), T2 = inner (closer to base)
 const OBJ_DEFS = [
-  // Blue defensive structures
-  // Bot lane: 2 roots (outer → inner)
-  { id:'b_outer',   side:'blue',    type:'root',    x:190, y:265, maxHp: 4000, atkDmg: 8, atkRange:32 },
-  { id:'b_inner',   side:'blue',    type:'root',    x:105, y:265, maxHp: 5500, atkDmg:12, atkRange:32 },
-  // Mid lane: 1 root
-  { id:'b_mid',     side:'blue',    type:'root',    x: 90, y:210, maxHp: 4500, atkDmg:10, atkRange:32 },
-  // Top lane: 1 root
-  { id:'b_top',     side:'blue',    type:'root',    x: 35, y:120, maxHp: 4500, atkDmg:10, atkRange:32 },
-  // Base
-  { id:'b_heart',   side:'blue',    type:'root',    x: 40, y: 68, maxHp: 7000, atkDmg:18, atkRange:32 },
-  { id:'b_ancient', side:'blue',    type:'ancient', x: 22, y:278, maxHp:12000, atkDmg:25, atkRange:36 },
-  // Red defensive structures
-  // Top lane: 2 roots
-  { id:'r_outer',   side:'red',     type:'root',    x:110, y: 35, maxHp: 4000, atkDmg: 8, atkRange:32 },
-  { id:'r_inner',   side:'red',     type:'root',    x:265, y:110, maxHp: 5500, atkDmg:12, atkRange:32 },
-  // Mid lane: 1 root
-  { id:'r_mid',     side:'red',     type:'root',    x:210, y: 90, maxHp: 4500, atkDmg:10, atkRange:32 },
-  // Bot lane: 1 root
-  { id:'r_bot',     side:'red',     type:'root',    x:265, y:180, maxHp: 4500, atkDmg:10, atkRange:32 },
-  // Base
-  { id:'r_heart',   side:'red',     type:'root',    x:260, y:232, maxHp: 7000, atkDmg:18, atkRange:32 },
-  { id:'r_ancient', side:'red',     type:'ancient', x:278, y: 22, maxHp:12000, atkDmg:25, atkRange:36 },
-  // Neutral objectives (1 shrine, 1 warden)
-  { id:'shrine',    side:'neutral', type:'shrine',  x:150, y:150, maxHp: 2000, atkDmg: 0, atkRange: 0 },
-  { id:'warden',    side:'neutral', type:'warden',  x:150, y:125, maxHp: 5000, atkDmg: 6, atkRange:28 },
+  // ── Blue bot lane (bottom edge, enemies come from right) ────────────────────
+  { id:'b_bot1',   side:'blue',    type:'root',    x:185, y:265, maxHp: 4000, atkDmg: 8, atkRange:32 },
+  { id:'b_bot2',   side:'blue',    type:'root',    x:115, y:265, maxHp: 5500, atkDmg:12, atkRange:32 },
+  // ── Blue mid lane (diagonal, enemies from top-right) ────────────────────────
+  { id:'b_mid1',   side:'blue',    type:'root',    x:110, y:210, maxHp: 4000, atkDmg: 8, atkRange:32 },
+  { id:'b_mid2',   side:'blue',    type:'root',    x: 80, y:175, maxHp: 5500, atkDmg:12, atkRange:32 },
+  // ── Blue top lane (left edge, enemies come from above) ──────────────────────
+  { id:'b_top1',   side:'blue',    type:'root',    x: 35, y:185, maxHp: 4000, atkDmg: 8, atkRange:32 },
+  { id:'b_top2',   side:'blue',    type:'root',    x: 35, y:115, maxHp: 5500, atkDmg:12, atkRange:32 },
+  // ── Blue base ───────────────────────────────────────────────────────────────
+  { id:'b_heart',  side:'blue',    type:'root',    x: 40, y: 65, maxHp: 7000, atkDmg:18, atkRange:32 },
+  { id:'b_ancient',side:'blue',    type:'ancient', x: 22, y:278, maxHp:12000, atkDmg:25, atkRange:36 },
+  // ── Red top lane (top edge, enemies come from left) — mirror of blue bot ────
+  { id:'r_top1',   side:'red',     type:'root',    x:115, y: 35, maxHp: 4000, atkDmg: 8, atkRange:32 },
+  { id:'r_top2',   side:'red',     type:'root',    x:185, y: 35, maxHp: 5500, atkDmg:12, atkRange:32 },
+  // ── Red mid lane (diagonal, enemies from bottom-left) — mirror of blue mid ─
+  { id:'r_mid1',   side:'red',     type:'root',    x:190, y: 90, maxHp: 4000, atkDmg: 8, atkRange:32 },
+  { id:'r_mid2',   side:'red',     type:'root',    x:220, y:125, maxHp: 5500, atkDmg:12, atkRange:32 },
+  // ── Red bot lane (right edge, enemies come from below) — mirror of blue top ─
+  { id:'r_bot1',   side:'red',     type:'root',    x:265, y:115, maxHp: 4000, atkDmg: 8, atkRange:32 },
+  { id:'r_bot2',   side:'red',     type:'root',    x:265, y:185, maxHp: 5500, atkDmg:12, atkRange:32 },
+  // ── Red base ────────────────────────────────────────────────────────────────
+  { id:'r_heart',  side:'red',     type:'root',    x:260, y:235, maxHp: 7000, atkDmg:18, atkRange:32 },
+  { id:'r_ancient',side:'red',     type:'ancient', x:278, y: 22, maxHp:12000, atkDmg:25, atkRange:36 },
+  // ── Neutral objectives ──────────────────────────────────────────────────────
+  { id:'shrine',   side:'neutral', type:'shrine',  x:150, y:150, maxHp: 2000, atkDmg: 0, atkRange: 0 },
+  { id:'warden',   side:'neutral', type:'warden',  x:150, y:125, maxHp: 5000, atkDmg: 6, atkRange:28 },
 ];
 
 // Jungle camps
@@ -329,8 +340,8 @@ function decideAction(agent, allies, enemies, objs, jungles, tick, phase) {
   // 6. Late-game push toward enemy objectives
   if (phase >= 2 && gameSense > 7) {
     const seq = enemySide === 'red'
-      ? ['r_outer','r_inner','r_mid','r_bot','r_heart','r_ancient']
-      : ['b_outer','b_inner','b_mid','b_top','b_heart','b_ancient'];
+      ? ['r_top1','r_top2','r_mid1','r_mid2','r_bot1','r_bot2','r_heart','r_ancient']
+      : ['b_bot1','b_bot2','b_mid1','b_mid2','b_top1','b_top2','b_heart','b_ancient'];
     const nextObj = objs.find(o => seq.includes(o.id) && !o.destroyed);
     if (nextObj && dist(agent, nextObj) < 180) {
       agent.state  = 'contesting';
@@ -368,8 +379,8 @@ function decideAction(agent, allies, enemies, objs, jungles, tick, phase) {
 function laneTarget(side, pos, phase, enemySide, objs) {
   if (phase >= 2) {
     const seq = enemySide === 'red'
-      ? ['r_outer','r_inner','r_mid','r_bot','r_heart','r_ancient']
-      : ['b_outer','b_inner','b_mid','b_top','b_heart','b_ancient'];
+      ? ['r_top1','r_top2','r_mid1','r_mid2','r_bot1','r_bot2','r_heart','r_ancient']
+      : ['b_bot1','b_bot2','b_mid1','b_mid2','b_top1','b_top2','b_heart','b_ancient'];
     const next = objs.find(o => seq.includes(o.id) && !o.destroyed);
     if (next) return { x: next.x, y: next.y };
   }

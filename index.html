@@ -373,78 +373,106 @@
           <circle cx="265" cy="35" r="7"  fill="#ff7b7b" opacity="0.35"/>
           <text x="265" y="39" text-anchor="middle" font-size="5" fill="#ff7b7b" font-weight="bold" letter-spacing="0.5">NEXUS</text>
 
-          <!-- ── Blue towers ──────────────────────────────────────────────────── -->
-          <!-- Blue bot outer (190,265) -->
-          <g id="obj-b_outer">
-            <rect x="183" y="258" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
-            <line x1="190" y1="252" x2="190" y2="258" stroke="#4fc3f7" stroke-width="1.5"/>
-            <rect x="187" y="248" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
-            <rect x="183" y="270" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_outer" data-maxw="14"/>
+          <!-- ══ BLUE TOWERS (2 per lane) ══════════════════════════════════════ -->
+          <!-- Blue bot T1 (185,265) — outer, bottom edge -->
+          <g id="obj-b_bot1">
+            <rect x="178" y="258" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
+            <line x1="185" y1="252" x2="185" y2="258" stroke="#4fc3f7" stroke-width="1.5"/>
+            <rect x="182" y="248" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
+            <rect x="178" y="270" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_bot1" data-maxw="14"/>
           </g>
-          <!-- Blue bot inner (105,265) -->
-          <g id="obj-b_inner">
-            <rect x="98" y="258" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
-            <line x1="105" y1="252" x2="105" y2="258" stroke="#4fc3f7" stroke-width="1.5"/>
-            <rect x="102" y="248" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
-            <rect x="98" y="270" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_inner" data-maxw="14"/>
+          <!-- Blue bot T2 (115,265) — inner, bottom edge -->
+          <g id="obj-b_bot2">
+            <rect x="108" y="258" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
+            <line x1="115" y1="252" x2="115" y2="258" stroke="#4fc3f7" stroke-width="1.5"/>
+            <rect x="112" y="248" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
+            <rect x="108" y="270" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_bot2" data-maxw="14"/>
           </g>
-          <!-- Blue mid tower (90,210) -->
-          <g id="obj-b_mid">
-            <rect x="83" y="203" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
-            <line x1="90" y1="197" x2="90" y2="203" stroke="#4fc3f7" stroke-width="1.5"/>
-            <rect x="87" y="193" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
-            <rect x="83" y="215" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_mid" data-maxw="14"/>
+          <!-- Blue mid T1 (110,210) — outer, diagonal -->
+          <g id="obj-b_mid1">
+            <rect x="103" y="203" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
+            <line x1="110" y1="197" x2="110" y2="203" stroke="#4fc3f7" stroke-width="1.5"/>
+            <rect x="107" y="193" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
+            <rect x="103" y="215" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_mid1" data-maxw="14"/>
           </g>
-          <!-- Blue top tower (35,120) -->
-          <g id="obj-b_top">
-            <rect x="28" y="113" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
-            <line x1="35" y1="107" x2="35" y2="113" stroke="#4fc3f7" stroke-width="1.5"/>
-            <rect x="32" y="103" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
-            <rect x="28" y="125" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_top" data-maxw="14"/>
+          <!-- Blue mid T2 (80,175) — inner, diagonal -->
+          <g id="obj-b_mid2">
+            <rect x="73" y="168" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
+            <line x1="80" y1="162" x2="80" y2="168" stroke="#4fc3f7" stroke-width="1.5"/>
+            <rect x="77" y="158" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
+            <rect x="73" y="180" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_mid2" data-maxw="14"/>
           </g>
-          <!-- Blue base tower (40,68) -->
+          <!-- Blue top T1 (35,185) — outer, left edge -->
+          <g id="obj-b_top1">
+            <rect x="28" y="178" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
+            <line x1="35" y1="172" x2="35" y2="178" stroke="#4fc3f7" stroke-width="1.5"/>
+            <rect x="32" y="168" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
+            <rect x="28" y="190" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_top1" data-maxw="14"/>
+          </g>
+          <!-- Blue top T2 (35,115) — inner, left edge -->
+          <g id="obj-b_top2">
+            <rect x="28" y="108" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="1.5"/>
+            <line x1="35" y1="102" x2="35" y2="108" stroke="#4fc3f7" stroke-width="1.5"/>
+            <rect x="32" y="98" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.7"/>
+            <rect x="28" y="120" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_top2" data-maxw="14"/>
+          </g>
+          <!-- Blue base (40,65) -->
           <g id="obj-b_heart">
-            <rect x="33" y="61" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="2"/>
-            <line x1="40" y1="55" x2="40" y2="61" stroke="#4fc3f7" stroke-width="1.5"/>
-            <rect x="37" y="51" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.9"/>
-            <rect x="33" y="73" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_heart" data-maxw="14"/>
+            <rect x="33" y="58" width="14" height="14" rx="2" fill="#0a2040" stroke="#4fc3f7" stroke-width="2"/>
+            <line x1="40" y1="52" x2="40" y2="58" stroke="#4fc3f7" stroke-width="1.5"/>
+            <rect x="37" y="48" width="6" height="5" rx="1" fill="#4fc3f7" opacity="0.9"/>
+            <rect x="33" y="70" width="14" height="3" rx="1" fill="#152a10" id="obj-hp-b_heart" data-maxw="14"/>
           </g>
 
-          <!-- ── Red towers ──────────────────────────────────────────────────── -->
-          <!-- Red top outer (110,35) -->
-          <g id="obj-r_outer">
-            <rect x="103" y="28" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
-            <line x1="110" y1="22" x2="110" y2="28" stroke="#ff7b7b" stroke-width="1.5"/>
-            <rect x="107" y="18" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
-            <rect x="103" y="40" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_outer" data-maxw="14"/>
+          <!-- ══ RED TOWERS (2 per lane, perfect mirror of blue) ════════════════ -->
+          <!-- Red top T1 (115,35) — outer, top edge -->
+          <g id="obj-r_top1">
+            <rect x="108" y="28" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
+            <line x1="115" y1="22" x2="115" y2="28" stroke="#ff7b7b" stroke-width="1.5"/>
+            <rect x="112" y="18" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
+            <rect x="108" y="40" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_top1" data-maxw="14"/>
           </g>
-          <!-- Red top inner (265,110) -->
-          <g id="obj-r_inner">
-            <rect x="258" y="103" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
-            <line x1="265" y1="97" x2="265" y2="103" stroke="#ff7b7b" stroke-width="1.5"/>
-            <rect x="262" y="93" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
-            <rect x="258" y="115" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_inner" data-maxw="14"/>
+          <!-- Red top T2 (185,35) — inner, top edge -->
+          <g id="obj-r_top2">
+            <rect x="178" y="28" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
+            <line x1="185" y1="22" x2="185" y2="28" stroke="#ff7b7b" stroke-width="1.5"/>
+            <rect x="182" y="18" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
+            <rect x="178" y="40" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_top2" data-maxw="14"/>
           </g>
-          <!-- Red mid tower (210,90) -->
-          <g id="obj-r_mid">
-            <rect x="203" y="83" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
-            <line x1="210" y1="77" x2="210" y2="83" stroke="#ff7b7b" stroke-width="1.5"/>
-            <rect x="207" y="73" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
-            <rect x="203" y="95" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_mid" data-maxw="14"/>
+          <!-- Red mid T1 (190,90) — outer, diagonal -->
+          <g id="obj-r_mid1">
+            <rect x="183" y="83" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
+            <line x1="190" y1="77" x2="190" y2="83" stroke="#ff7b7b" stroke-width="1.5"/>
+            <rect x="187" y="73" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
+            <rect x="183" y="95" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_mid1" data-maxw="14"/>
           </g>
-          <!-- Red bot tower (265,180) -->
-          <g id="obj-r_bot">
-            <rect x="258" y="173" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
-            <line x1="265" y1="167" x2="265" y2="173" stroke="#ff7b7b" stroke-width="1.5"/>
-            <rect x="262" y="163" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
-            <rect x="258" y="185" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_bot" data-maxw="14"/>
+          <!-- Red mid T2 (220,125) — inner, diagonal -->
+          <g id="obj-r_mid2">
+            <rect x="213" y="118" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
+            <line x1="220" y1="112" x2="220" y2="118" stroke="#ff7b7b" stroke-width="1.5"/>
+            <rect x="217" y="108" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
+            <rect x="213" y="130" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_mid2" data-maxw="14"/>
           </g>
-          <!-- Red base tower (260,232) -->
+          <!-- Red bot T1 (265,115) — outer, right edge -->
+          <g id="obj-r_bot1">
+            <rect x="258" y="108" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
+            <line x1="265" y1="102" x2="265" y2="108" stroke="#ff7b7b" stroke-width="1.5"/>
+            <rect x="262" y="98" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
+            <rect x="258" y="120" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_bot1" data-maxw="14"/>
+          </g>
+          <!-- Red bot T2 (265,185) — inner, right edge -->
+          <g id="obj-r_bot2">
+            <rect x="258" y="178" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="1.5"/>
+            <line x1="265" y1="172" x2="265" y2="178" stroke="#ff7b7b" stroke-width="1.5"/>
+            <rect x="262" y="168" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.7"/>
+            <rect x="258" y="190" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_bot2" data-maxw="14"/>
+          </g>
+          <!-- Red base (260,235) -->
           <g id="obj-r_heart">
-            <rect x="253" y="225" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="2"/>
-            <line x1="260" y1="219" x2="260" y2="225" stroke="#ff7b7b" stroke-width="1.5"/>
-            <rect x="257" y="215" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.9"/>
-            <rect x="253" y="237" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_heart" data-maxw="14"/>
+            <rect x="253" y="228" width="14" height="14" rx="2" fill="#200a0a" stroke="#ff7b7b" stroke-width="2"/>
+            <line x1="260" y1="222" x2="260" y2="228" stroke="#ff7b7b" stroke-width="1.5"/>
+            <rect x="257" y="218" width="6" height="5" rx="1" fill="#ff7b7b" opacity="0.9"/>
+            <rect x="253" y="240" width="14" height="3" rx="1" fill="#2a1010" id="obj-hp-r_heart" data-maxw="14"/>
           </g>
 
           <!-- ── Ley Shrine (map center 150,150) ─────────────────────────────── -->
