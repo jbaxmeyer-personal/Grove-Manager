@@ -1437,6 +1437,82 @@ function _checkFanMilestones(teamId) {
   if (!fm.m2m   && fans >= 2000000) { fm.m2m   = true; addNews('Milestone: 2 MILLION fans! National celebrity status!', 'info'); }
 }
 
+// ─── Contract Negotiations ───────────────────────────────────────────────────
+
+function calcMarketValue(playerId) {
+  const p = G.players[playerId];
+  if (!p) return 50000;
+  const ovr = calcOverall(p);
+  const potentialBonus = p.age < 22 && p.potential === 'high' ? ovr * 500 : 0;
+  const declinePenalty = p.age > 28 ? (p.age - 28) * 2000 : 0;
+  return Math.max(20000, ovr * 2000 + potentialBonus - declinePenalty);
+}
+
+// Returns { type:'accept'|'counter'|'reject', counterSalary, counterYears, biddingWar, reason }
+function evalContractOffer(playerId, offeredSalary, offeredYears) {
+  const p = G.players[playerId];
+  if (!p) return { type: 'error' };
+  const marketVal   = calcMarketValue(playerId);
+  const salaryRatio = offeredSalary / marketVal;
+  const ovr = calcOverall(p);
+
+  // Reject: salary is far below market
+  if (salaryRatio < 0.60) {
+    return { type: 'reject', reason: 'The offer is far below my market value. I\'m not interested.' };
+  }
+
+  // Counter: salary is 60–84% of market
+  if (salaryRatio < 0.85) {
+    const boost = 1.15 + Math.random() * 0.15;
+    const counterSalary = Math.round(Math.min(offeredSalary * boost, marketVal * 1.05));
+    const counterYears  = p.morale < 4 ? Math.max(1, offeredYears - 1) : offeredYears;
+    return { type: 'counter', counterSalary, counterYears };
+  }
+
+  // Accept: salary >= 85% of market
+  // Bidding war: chance for a high-OVR free agent
+  let biddingWar = null;
+  if (!p.teamId && ovr >= 65 && Math.random() < 0.30) {
+    const cpuTeams = Object.values(G.teams).filter(t => t.id !== G.humanTeamId);
+    const rival = cpuTeams[Math.floor(Math.random() * cpuTeams.length)];
+    const rivalSalary = Math.round(offeredSalary * (1.05 + Math.random() * 0.15));
+    biddingWar = { teamId: rival.id, teamName: rival.name, salary: rivalSalary };
+  }
+  return { type: 'accept', biddingWar };
+}
+
+function completeContractSigning(playerId, salary, years, isRenewal) {
+  const p = G.players[playerId];
+  if (!p) return 'error';
+  const team = G.teams[G.humanTeamId];
+  if (team.budget < salary) return 'no_budget';
+
+  p.contract = { salary, yearsLeft: years, expiryYear: G.season.year + years };
+  p._contractWarned = false;
+
+  if (isRenewal) {
+    addNews(`${p.name} has signed a new ${years}-year contract extension.`, 'info');
+  } else {
+    // Signing a free agent
+    p.teamId = G.humanTeamId;
+    if (!team.roster[p.position]) team.roster[p.position] = p.id;
+    G.freeAgents = G.freeAgents.filter(id => id !== playerId);
+    team.weeklyWages = calcWagesBill(G.humanTeamId);
+    addNews(`Signed ${p.name} (${posLabel(p.position)}, OVR ${calcOverall(p)}).`, 'info');
+  }
+  return 'ok';
+}
+
+function rejectContractNegotiation(playerId, isRenewal) {
+  const p = G.players[playerId];
+  if (!p) return;
+  if (isRenewal) {
+    p.morale = Math.max(1, p.morale - 1);
+    p.onTransferList = true;
+    addNews(`${p.name} has rejected a contract renewal — he wants to explore his options.`, 'alert');
+  }
+}
+
 // ─── Scouting ────────────────────────────────────────────────────────────────
 
 function _scoutSlotCount() {

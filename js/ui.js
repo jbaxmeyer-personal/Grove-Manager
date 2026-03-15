@@ -264,7 +264,10 @@ function renderSquad(tab = 'starters') {
             <span style="font-size:11px;color:var(--text-dim)">${p.morale}/10</span>
           </div>
         </td>
-        <td style="color:var(--text-dim);font-size:11px">${p.contract.yearsLeft}yr</td>
+        <td style="color:${p.contract.yearsLeft<=1?'var(--loss)':'var(--text-dim)'};font-size:11px">
+          ${p.contract.yearsLeft}yr
+          ${p.contract.yearsLeft<=1 ? `<button class="btn-sm btn-renew" onclick="event.stopPropagation();onOfferRenewal('${p.id}')">Renew</button>` : ''}
+        </td>
         <td>${personalityBadge(p.personality || 'pro')}</td>
       </tr>`;
   }).join('');
@@ -430,24 +433,198 @@ function renderTransfers(tab = 'free-agents') {
 }
 
 function signFreeAgent(playerId) {
+  showContractModal(playerId, false);
+}
+
+// ─── Contract Negotiation Modal ──────────────────────────────────────────────
+
+let _contractNeg = null; // { playerId, isRenewal, lastOffer }
+
+function showContractModal(playerId, isRenewal) {
   if (!G) return;
-  const p    = G.players[playerId];
-  const team = G.teams[G.humanTeamId];
-  if (!p || p.teamId) return;
+  const p = G.players[playerId];
+  if (!p) return;
+  const ovr = calcOverall(p);
+  const marketVal = calcMarketValue(playerId);
+  const suggested = Math.round(marketVal * 0.9 / 1000) * 1000;
 
-  // Check roster slot
-  const posSlotFree = !team.roster[p.position];
-  p.teamId = G.humanTeamId;
-  p.contract = { salary: p.contract.salary || 50000, yearsLeft: 1, expiryYear: G.season.year + 1 };
-  if (posSlotFree) team.roster[p.position] = p.id;
+  _contractNeg = { playerId, isRenewal, lastOffer: null };
 
-  // Remove from free agents list
-  G.freeAgents = G.freeAgents.filter(id => id !== playerId);
-  team.weeklyWages = calcWagesBill(G.humanTeamId);
+  setHtml('contract-modal-box', `
+    <div class="cmod-header">
+      <div class="cmod-player">
+        <span class="cmod-pos pos-badge pos-${p.position}">${posLabel(p.position)}</span>
+        <span class="cmod-name">${_escHtml(p.name)}</span>
+        <span class="ovr-badge ${overallColor(ovr)}">${ovr}</span>
+        ${personalityBadge(p.personality || 'pro')}
+      </div>
+      <button class="cmod-close" onclick="onCloseContractModal()">✕</button>
+    </div>
+    <div class="cmod-market">
+      Market value: <strong>${fmtMoney(marketVal)}/yr</strong>
+      &nbsp;·&nbsp; Age ${p.age} &nbsp;·&nbsp; ${p.nationality}
+      &nbsp;·&nbsp; <span class="sp-pot pot-${p.potential}">${p.potential} potential</span>
+    </div>
+    <div id="cmod-body">
+      <div class="cmod-form">
+        <label class="cmod-label">Salary offer (per year)</label>
+        <input id="cmod-salary" class="cmod-input" type="number" min="10000" step="5000" value="${suggested}" />
+        <label class="cmod-label" style="margin-top:10px">Contract length</label>
+        <div class="cmod-years">
+          ${[1,2,3].map(y => `<button class="cmod-yr-btn${y===1?' active':''}" onclick="onSelectContractYears(${y},this)">${y} yr</button>`).join('')}
+        </div>
+        <input id="cmod-years" type="hidden" value="1" />
+        <button class="btn-primary cmod-offer-btn" onclick="onMakeContractOffer()">Make Offer</button>
+      </div>
+    </div>
+  `);
 
-  addNews(`Signed ${p.name} (${posLabel(p.position)}, OVR ${calcOverall(p)}).`, 'info');
+  document.getElementById('contract-modal-overlay').style.display = 'flex';
+}
+
+function onSelectContractYears(years, btn) {
+  document.querySelectorAll('.cmod-yr-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('cmod-years').value = years;
+}
+
+function onMakeContractOffer() {
+  if (!_contractNeg || !G) return;
+  const salary = parseInt(document.getElementById('cmod-salary').value) || 50000;
+  const years  = parseInt(document.getElementById('cmod-years').value) || 1;
+  _contractNeg.lastOffer = { salary, years };
+
+  const result = evalContractOffer(_contractNeg.playerId, salary, years);
+  const p = G.players[_contractNeg.playerId];
+  let bodyHtml = '';
+
+  if (result.type === 'accept') {
+    const bwHtml = result.biddingWar
+      ? `<div class="cmod-bidwar">⚠️ <strong>${_escHtml(result.biddingWar.teamName)}</strong> has also made an offer — ${fmtMoney(result.biddingWar.salary)}/yr.
+          <button class="btn-sm btn-primary" style="margin-left:8px" onclick="onBeatBid(${result.biddingWar.salary})">Beat Bid</button>
+          <button class="btn-sm btn-secondary" onclick="onAcceptBidRisk()">Proceed Anyway</button>
+         </div>`
+      : '';
+    bodyHtml = `
+      ${bwHtml}
+      <div class="cmod-response cmod-accept">
+        <span class="cmod-resp-icon">✅</span>
+        <span>${_escHtml(p.name)} is happy with the offer and ready to sign.</span>
+      </div>
+      <div class="cmod-resp-terms">
+        ${fmtMoney(salary)}/yr &nbsp;·&nbsp; ${years} year${years>1?'s':''}
+      </div>
+      <div class="cmod-actions">
+        <button class="btn-primary" onclick="onConfirmSigning()">Confirm Signing</button>
+        <button class="btn-secondary" onclick="onCloseContractModal()">Cancel</button>
+      </div>`;
+  } else if (result.type === 'counter') {
+    const mid = Math.round((salary + result.counterSalary) / 2 / 1000) * 1000;
+    bodyHtml = `
+      <div class="cmod-response cmod-counter">
+        <span class="cmod-resp-icon">💬</span>
+        <span>${_escHtml(p.name)} wants <strong>${fmtMoney(result.counterSalary)}/yr</strong>
+        for ${result.counterYears} year${result.counterYears>1?'s':''}.</span>
+      </div>
+      <div class="cmod-actions">
+        <button class="btn-primary" onclick="onAcceptCounter(${result.counterSalary},${result.counterYears})">Accept Counter</button>
+        <button class="btn-secondary" onclick="onSplitDifference(${mid},${result.counterYears})">Split (${fmtMoney(mid)}/yr)</button>
+        <button class="btn-secondary" onclick="onWalkAway()">Walk Away</button>
+      </div>`;
+  } else if (result.type === 'reject') {
+    bodyHtml = `
+      <div class="cmod-response cmod-reject">
+        <span class="cmod-resp-icon">❌</span>
+        <span>"${result.reason}"</span>
+      </div>
+      <div class="cmod-actions">
+        <button class="btn-secondary" onclick="onWalkAway()">Close</button>
+      </div>`;
+  }
+
+  setHtml('cmod-body', bodyHtml);
+}
+
+function onBeatBid(rivalSalary) {
+  const beatSalary = rivalSalary + 5000;
+  if (document.getElementById('cmod-salary')) {
+    document.getElementById('cmod-salary').value = beatSalary;
+  }
+  _contractNeg.lastOffer.salary = beatSalary;
+  onMakeContractOffer();
+}
+
+function onAcceptBidRisk() {
+  // Proceed with original offer; small chance player picks rival
+  const p = G.players[_contractNeg.playerId];
+  if (Math.random() < 0.35) {
+    setHtml('cmod-body', `<div class="cmod-response cmod-reject">
+      <span class="cmod-resp-icon">😔</span>
+      <span>${_escHtml(p.name)} decided to join the other team. Better luck next time.</span>
+    </div>
+    <div class="cmod-actions"><button class="btn-secondary" onclick="onCloseContractModal()">Close</button></div>`);
+  } else {
+    onConfirmSigning();
+  }
+}
+
+function onConfirmSigning() {
+  if (!_contractNeg) return;
+  const { playerId, isRenewal, lastOffer } = _contractNeg;
+  if (!lastOffer) return;
+  const res = completeContractSigning(playerId, lastOffer.salary, lastOffer.years, isRenewal);
+  if (res === 'no_budget') {
+    alert('Insufficient budget.');
+    return;
+  }
+  onCloseContractModal();
   renderTransfers('free-agents');
+  renderSquad('starters');
   renderTopBar();
+}
+
+function onAcceptCounter(salary, years) {
+  if (_contractNeg) _contractNeg.lastOffer = { salary, years };
+  const res = completeContractSigning(_contractNeg.playerId, salary, years, _contractNeg.isRenewal);
+  if (res === 'no_budget') { alert('Insufficient budget.'); return; }
+  onCloseContractModal();
+  renderTransfers('free-agents');
+  renderSquad('starters');
+  renderTopBar();
+}
+
+function onSplitDifference(salary, years) {
+  if (_contractNeg) _contractNeg.lastOffer = { salary, years };
+  // Re-evaluate with the split offer — player should almost always accept
+  const result = evalContractOffer(_contractNeg.playerId, salary, years);
+  if (result.type === 'accept' || result.type === 'counter') {
+    // Accept the split
+    onAcceptCounter(salary, years);
+  } else {
+    onMakeContractOffer(); // re-render with rejection
+  }
+}
+
+function onWalkAway() {
+  if (_contractNeg) {
+    rejectContractNegotiation(_contractNeg.playerId, _contractNeg.isRenewal);
+  }
+  onCloseContractModal();
+}
+
+function onCloseContractModal() {
+  _contractNeg = null;
+  document.getElementById('contract-modal-overlay').style.display = 'none';
+}
+
+function onContractModalBgClick(e) {
+  if (e.target === document.getElementById('contract-modal-overlay')) {
+    onCloseContractModal();
+  }
+}
+
+function onOfferRenewal(playerId) {
+  showContractModal(playerId, true);
 }
 
 // ─── Training ────────────────────────────────────────────────────────────────

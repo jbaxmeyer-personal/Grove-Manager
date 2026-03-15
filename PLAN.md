@@ -16,7 +16,7 @@
 | Visual Identity (Phase 10) | Pixel-art sprites on map; long-term: isometric PixiJS view |
 | ~~Phase 12A — Scouting Depth~~ | ✅ DONE |
 | ~~Phase 12B — AI Manager Behaviour~~ | ✅ DONE |
-| Phase 12C — Contract Negotiations | Counter-offers, player rejection, bidding wars |
+| ~~Phase 12C — Contract Negotiations~~ | ✅ DONE |
 | Phase 12D — Transfer Market | Transfer fees, CPU team transactions, transfer listing, loans |
 | Phase 12E — Fan Events Cooldown UX | 8-week event calendar timeline in Fans panel |
 | Phase 12F — Team Housing | New facility tier (Apartment → Gaming House) with morale/chemistry/FES bonuses |
@@ -1066,7 +1066,7 @@ const AI_PERSONALITIES = {
 
 ---
 
-### 12C — Contract Negotiations
+### 12C — Contract Negotiations ✅ DONE
 
 **Problem:** Offering a contract is a one-click "accept or leave." Players have no voice.
 
