@@ -104,6 +104,7 @@ function showMain(name) {
     case 'news':       renderNews(); break;
     case 'staff':        renderStaff(); break;
     case 'facilities':   renderFacilities(); break;
+    case 'teaminfo':     renderTeamInfo(); break;
   }
 }
 
@@ -1091,6 +1092,126 @@ function renderScouting() {
   }
 
   setHtml('scouting-content', scoutStatus + discoveredHtml);
+}
+
+// ─── Team Info / Club Overview ────────────────────────────────────────────────
+
+function renderTeamInfo() {
+  if (!G) return;
+  const team     = G.teams[G.humanTeamId];
+  const standings = getStandings();
+  const rank     = standings.findIndex(t => t.id === G.humanTeamId) + 1;
+  const net      = team.sponsorIncome - team.weeklyWages;
+  const weeksLeft = Math.max(0, G.season.totalWeeks - G.season.week + 1);
+
+  // Recent results (last 5 matches involving human team)
+  const played = G.season.schedule.filter(m =>
+    m.played && (m.homeId === G.humanTeamId || m.awayId === G.humanTeamId)
+  ).slice(-5).reverse();
+  const recentHtml = played.length
+    ? played.map(m => {
+        const won = m.result?.winnerId === G.humanTeamId;
+        const opp = G.teams[won ? (m.homeId === G.humanTeamId ? m.awayId : m.homeId)
+                                : (m.homeId === G.humanTeamId ? m.awayId : m.homeId)];
+        return `<div class="ti-result-row">
+          <span class="ti-result-badge ${won ? 'ti-win' : 'ti-loss'}">${won ? 'W' : 'L'}</span>
+          <span class="ti-result-opp">${opp?.name || '—'}</span>
+          <span class="ti-result-score" style="color:var(--text-dim)">${m.result?.score || ''}</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--text-dim);font-size:12px">No matches played yet.</div>';
+
+  // Next fixture
+  let nextMatch = G.season.schedule.find(m =>
+    !m.played && (m.homeId === G.humanTeamId || m.awayId === G.humanTeamId)
+  );
+  const nextOppId = nextMatch
+    ? (nextMatch.homeId === G.humanTeamId ? nextMatch.awayId : nextMatch.homeId)
+    : null;
+  const nextOpp = nextOppId ? G.teams[nextOppId] : null;
+
+  // Starters summary
+  const startersHtml = POSITIONS.map(pos => {
+    const p = team.roster[pos] ? G.players[team.roster[pos]] : null;
+    if (!p) return `<div class="ti-starter-row"><span class="pos-badge pos-${pos}">${posLabel(pos)}</span><span style="color:var(--text-dim)">Empty</span></div>`;
+    const ovr = calcOverall(p);
+    return `<div class="ti-starter-row">
+      <span class="pos-badge pos-${p.position}">${posLabel(p.position)}</span>
+      <span class="ti-starter-name">${_escHtml(p.name)}</span>
+      <span class="overall-badge ${overallColor(ovr)}" style="margin-left:auto">${ovr}</span>
+    </div>`;
+  }).join('');
+
+  // Prestige stars
+  const prestige = team.prestige || 5;
+  const stars = '★'.repeat(Math.min(prestige, 10)) + '☆'.repeat(Math.max(0, 10 - prestige));
+
+  // Facilities summary
+  const facilHtml = team.facilities ? Object.entries(FACILITY_DEFS).map(([k, def]) => {
+    const lvl = (team.facilities[k] || 1);
+    const pips = Array.from({ length: def.maxLevel }, (_, i) =>
+      `<span class="fac-pip ${i < lvl ? 'fac-pip-on' : ''}"></span>`).join('');
+    return `<div class="ti-facil-row">
+      <span class="ti-facil-icon">${def.icon}</span>
+      <span class="ti-facil-name">${def.name}</span>
+      <div class="fac-pips">${pips}</div>
+    </div>`;
+  }).join('') : '';
+
+  setHtml('teaminfo-content', `
+    <div class="ti-grid">
+
+      <div class="ti-card ti-identity">
+        <div class="ti-team-color-bar" style="background:${team.color}"></div>
+        <div class="ti-team-name" style="color:${team.color}">${_escHtml(team.name)}</div>
+        <div class="ti-meta">
+          <span>${team.shortName}</span> · <span>${team.homeArena || 'The Grove'}</span>
+        </div>
+        <div class="ti-prestige" title="Prestige ${prestige}/10">${stars}</div>
+        <div class="ti-playstyle">
+          Style: <strong style="text-transform:capitalize;color:var(--gold)">${team.tactics?.playstyle || '—'}</strong>
+        </div>
+      </div>
+
+      <div class="ti-card">
+        <div class="ti-card-title">Season Record</div>
+        <div class="ti-stat-row"><span class="ti-label">Standing</span><span class="ti-val">#${rank} of ${standings.length}</span></div>
+        <div class="ti-stat-row"><span class="ti-label">Record</span><span class="ti-val">${team.wins}W – ${team.losses}L</span></div>
+        <div class="ti-stat-row"><span class="ti-label">Points</span><span class="ti-val" style="color:var(--gold)">${team.points}</span></div>
+        <div class="ti-stat-row"><span class="ti-label">Playoffs?</span><span class="ti-val" style="color:${rank<=4?'var(--win)':'var(--loss)'}">${rank<=4?'On track ✓':'Not qualified'}</span></div>
+      </div>
+
+      <div class="ti-card">
+        <div class="ti-card-title">Finances</div>
+        <div class="ti-stat-row"><span class="ti-label">Budget</span><span class="ti-val" style="color:var(--gold)">${fmtMoney(team.budget)}</span></div>
+        <div class="ti-stat-row"><span class="ti-label">Weekly net</span><span class="ti-val" style="color:${net>=0?'var(--win)':'var(--loss)'}">${net>=0?'+':''}${fmtMoney(net)}</span></div>
+        <div class="ti-stat-row"><span class="ti-label">Projected EOSplit</span><span class="ti-val">${fmtMoney(team.budget + net * weeksLeft)}</span></div>
+        <div class="ti-stat-row"><span class="ti-label">Fans</span><span class="ti-val">${(team.fans/1000).toFixed(0)}K</span></div>
+      </div>
+
+      <div class="ti-card">
+        <div class="ti-card-title">Starting Roster</div>
+        ${startersHtml}
+      </div>
+
+      <div class="ti-card">
+        <div class="ti-card-title">Recent Results</div>
+        ${recentHtml}
+        ${nextOpp ? `<div class="ti-next-match">
+          Next: <strong style="color:${nextOpp.color}">${_escHtml(nextOpp.name)}</strong>
+          <span style="color:var(--text-dim);font-size:11px"> Wk${nextMatch.week}</span>
+        </div>` : ''}
+      </div>
+
+      <div class="ti-card">
+        <div class="ti-card-title">Facilities</div>
+        <div class="ti-facil-list">${facilHtml}</div>
+        <button class="btn-secondary" style="margin-top:10px;font-size:12px"
+          onclick="showMain('facilities')">Manage Facilities →</button>
+      </div>
+
+    </div>
+  `);
 }
 
 // ─── Facilities ───────────────────────────────────────────────────────────────

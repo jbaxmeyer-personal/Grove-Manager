@@ -51,6 +51,7 @@
   <div class="game-body">
     <nav class="sidebar">
       <a class="nav-item active" data-screen="dashboard" onclick="showMain('dashboard')">🏠 Dashboard</a>
+      <a class="nav-item" data-screen="teaminfo"    onclick="showMain('teaminfo')">🏢 Club</a>
       <a class="nav-item" data-screen="squad"      onclick="showMain('squad')">👥 Squad</a>
       <a class="nav-item" data-screen="tactics"    onclick="showMain('tactics')">⚔️ Tactics</a>
       <a class="nav-item" data-screen="training"   onclick="showMain('training')">🎯 Training</a>
@@ -169,6 +170,12 @@
       <div id="panel-schedule" class="panel">
         <div class="panel-header">Season Schedule</div>
         <div id="schedule-content"></div>
+      </div>
+
+      <!-- TEAM INFO / CLUB OVERVIEW -->
+      <div id="panel-teaminfo" class="panel">
+        <div class="panel-header">Club Overview</div>
+        <div id="teaminfo-content"></div>
       </div>
 
       <!-- FACILITIES -->

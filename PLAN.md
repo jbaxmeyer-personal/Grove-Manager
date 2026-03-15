@@ -551,7 +551,7 @@ Team infrastructure that provides passive bonuses. Upgrade with budget.
 
 ---
 
-### 9E — Team Info
+### 9E — Team Info ✅ DONE
 FM-style "Club Overview" screen — the first thing you see when you enter management of your team.
 
 **Content:**
