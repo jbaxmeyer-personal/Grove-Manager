@@ -26,6 +26,7 @@
 | ~~Phase 13D — Kill Attribution + Gold Lead + Timer~~ | ✅ DONE |
 | ~~Phase 13E — Tower + Objective HP Display~~ | ✅ DONE |
 | ~~Phase 13F — Lane Movement~~ | ✅ DONE |
+| ~~Phase 14A — Fullscreen Layout + PBP HUD Overhaul~~ | ✅ DONE |
 | Balance & Polish (Phase 8) | Meta system, UI polish, playtesting — not started |
 | Visual Identity (Phase 10) | Pixel-art sprites on map; long-term: isometric PixiJS view |
 

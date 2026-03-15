@@ -123,6 +123,16 @@ function _startSeriesGame() {
   document.getElementById('pbp-container').style.display      = 'none';
   document.getElementById('pbp-results').style.display        = 'none';
   document.getElementById('pbp-events').innerHTML             = '';
+  const chatFeed = document.getElementById('pbp-chat-feed');
+  if (chatFeed) chatFeed.innerHTML = '';
+  _chatSeed = 0;
+  setText('match-game-timer', '0:00');
+  setText('mh-blue-gold', '0K');
+  setText('mh-red-gold',  '0K');
+  const sbBlue = document.getElementById('pbp-sb-blue');
+  const sbRed  = document.getElementById('pbp-sb-red');
+  if (sbBlue) sbBlue.innerHTML = '';
+  if (sbRed)  sbRed.innerHTML  = '';
   document.getElementById('draft-actions').style.display      = 'none';
   document.getElementById('between-games-panel').style.display = 'none';
   document.getElementById('comp-synergies').innerHTML         = '';
@@ -492,6 +502,18 @@ function startPBP(events) {
       ev.blueRoots,   ev.redRoots,
       ev.advAfter
     );
+    // Timer
+    if (ev.time) setText('match-game-timer', ev.time);
+    // Live gold totals
+    if (ev.agentStats) {
+      const bg = Object.values(ev.agentStats.blue).reduce((s,p)=>s+(p.gold||0),0);
+      const rg = Object.values(ev.agentStats.red ).reduce((s,p)=>s+(p.gold||0),0);
+      const fmtG = g => g>=1000?(g/1000).toFixed(1)+'K':g+'';
+      setText('mh-blue-gold', fmtG(bg));
+      setText('mh-red-gold',  fmtG(rg));
+    }
+    // Chat
+    _generatePBPChat(ev);
 
     if (ev.type === 'result') {
       _drawGoldChart(_matchResult && _matchResult.goldSnapshots);
@@ -527,14 +549,103 @@ function _escHtml(s) {
 }
 
 function _updateMatchScore(bK, rK, bShr, rShr, bRt, rRt, adv) {
-  setText('score-blue-kills',   `${bK}K`);
-  setText('score-red-kills',    `${rK}K`);
-  setText('score-blue-shrines', `🌿${bShr}`);
-  setText('score-red-shrines',  `🌿${rShr}`);
-  setText('score-blue-roots',   `🌳${bRt}`);
-  setText('score-red-roots',    `🌳${rRt}`);
+  setText('score-blue-kills',   `${bK||0}`);
+  setText('score-red-kills',    `${rK||0}`);
+  setText('score-blue-shrines', `${bShr||0}`);
+  setText('score-red-shrines',  `${rShr||0}`);
+  setText('score-blue-roots',   `${bRt||0}`);
+  setText('score-red-roots',    `${rRt||0}`);
   const fill = document.getElementById('advantage-fill');
   if (fill) fill.style.width = `${adv ?? 50}%`;
+}
+
+// ─── Live Scoreboard ──────────────────────────────────────────────────────────
+
+function updateLiveStats(agentStats) {
+  if (!_matchContext) return;
+  const { blueRoster, redRoster } = _matchContext;
+  const ROLES = ['top','jungle','mid','adc','support'];
+
+  function render(stats, roster, color) {
+    // Build pos→name map from roster (roster is array ordered by POSITIONS)
+    const names = {};
+    if (roster) ROLES.forEach((pos, i) => {
+      const p = roster[i];
+      if (p) names[pos] = (p.name || '').split(' ')[0] || pos;
+    });
+    return ROLES.map(pos => {
+      const s = stats?.[pos] || {};
+      const name = names[pos] || pos;
+      const k = s.kills||0, d = s.deaths||0, a = s.assists||0;
+      const gold = s.gold||0;
+      const dead = s.isDead ? ' pbp-sb-dead' : '';
+      const gStr = gold>=1000 ? (gold/1000).toFixed(1)+'K' : gold+'';
+      return `<div class="pbp-sb-row${dead}">
+        <span class="pbp-sb-name" style="color:${color}">${_escHtml(name)}</span>
+        <span class="pbp-sb-kda">${k}/${d}/${a}</span>
+        <span class="pbp-sb-gold">${gStr}</span>
+      </div>`;
+    }).join('');
+  }
+
+  const bEl = document.getElementById('pbp-sb-blue');
+  const rEl = document.getElementById('pbp-sb-red');
+  if (bEl) bEl.innerHTML = render(agentStats.blue, blueRoster, '#4fc3f7');
+  if (rEl) rEl.innerHTML = render(agentStats.red,  redRoster,  '#ff7b7b');
+}
+
+// ─── PBP Chat ─────────────────────────────────────────────────────────────────
+
+let _chatSeed = 0;
+const _CHAT = {
+  kill_win:  ['Got one!','Nice kill','Down!','Eliminated','Clean pick'],
+  kill_loss: ['Fall back','Be careful','Regroup','Stay safe'],
+  obj_win:   ['Good push','Objective down','Let\'s push','Keep going'],
+  obj_loss:  ['Rotate now','Respond!','We need to answer'],
+  tf_any:    ['Group up','Fight here','All in?','Let\'s go','Contest it'],
+  comm_ahead:['We\'re ahead','Keep the pressure','Don\'t give them farm'],
+  comm_behind:['Play it safe','Need vision','Farm up','Be patient'],
+  comm_even: ['Stay focused','Maintain pressure','Ward up','Group mid'],
+};
+
+function _generatePBPChat(ev) {
+  if (!_matchContext) return;
+  const { blueId, blueRoster, redRoster } = _matchContext;
+  const humanSide   = blueId === G.humanTeamId ? 'blue' : 'red';
+  const humanRoster = humanSide === 'blue' ? blueRoster : redRoster;
+  if (!humanRoster) return;
+
+  _chatSeed++;
+  const player = humanRoster.filter(Boolean)[_chatSeed % humanRoster.filter(Boolean).length];
+  if (!player) return;
+  const name = (player.name || '').split(' ')[0] || '?';
+
+  let msgs = null;
+  if (ev.type === 'kill') {
+    msgs = ev.side === humanSide ? _CHAT.kill_win : _CHAT.kill_loss;
+  } else if (ev.type === 'objective') {
+    msgs = ev.side === humanSide ? _CHAT.obj_win : _CHAT.obj_loss;
+  } else if (ev.type === 'teamfight') {
+    msgs = _CHAT.tf_any;
+  } else if (ev.type === 'commentary') {
+    const adv = ev.advAfter ?? 50;
+    msgs = adv > 55 ? _CHAT.comm_ahead : adv < 45 ? _CHAT.comm_behind : _CHAT.comm_even;
+  }
+  if (!msgs) return;
+
+  const msg = msgs[_chatSeed % msgs.length];
+  _addPBPChat(name, msg);
+}
+
+function _addPBPChat(playerName, message) {
+  const feed = document.getElementById('pbp-chat-feed');
+  if (!feed) return;
+  const div = document.createElement('div');
+  div.className = 'pbp-chat-line';
+  div.innerHTML = `<span class="pbp-chat-pname">${_escHtml(playerName)}:</span> ${_escHtml(message)}`;
+  feed.appendChild(div);
+  while (feed.children.length > 10) feed.removeChild(feed.firstChild);
+  feed.scrollTop = feed.scrollHeight;
 }
 
 function _buildKDATable(players, color) {

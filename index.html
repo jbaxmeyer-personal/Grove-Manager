@@ -248,23 +248,31 @@
 <div id="screen-match" class="screen match-screen">
 
   <div class="match-header">
-    <button class="btn-back match-back" onclick="returnFromMatch()">← Back</button>
-    <div class="match-teams">
-      <span class="match-team-blue" id="match-team-blue">Blue</span>
-      <span class="match-vs">vs</span>
-      <span class="match-team-red" id="match-team-red">Red</span>
+    <!-- Left: back + blue team stats -->
+    <div class="mh-left">
+      <button class="match-back" onclick="returnFromMatch()">← Back</button>
+      <span class="mh-team-name mh-blue-name" id="match-team-blue">Blue</span>
+      <div class="mh-chip-row">
+        <span class="mh-chip"><span class="mh-chip-val" id="mh-blue-gold">0K</span><span class="mh-chip-label">gold</span></span>
+        <span class="mh-chip"><span class="mh-chip-val" id="score-blue-kills">0</span><span class="mh-chip-label">kills</span></span>
+        <span class="mh-chip"><span class="mh-chip-val" id="score-blue-roots">0</span><span class="mh-chip-label">🌳</span></span>
+        <span class="mh-chip"><span class="mh-chip-val" id="score-blue-shrines">0</span><span class="mh-chip-label">🌿</span></span>
+      </div>
     </div>
-    <div class="match-live-score">
-      <span id="score-blue-kills">0K</span>
-      <span id="score-blue-shrines">🌿0</span>
-      <span id="score-blue-roots">🌳0</span>
-      <span class="score-divider">·</span>
-      <span id="score-red-kills">0K</span>
-      <span id="score-red-shrines">🌿0</span>
-      <span id="score-red-roots">🌳0</span>
+    <!-- Center: timer + advantage bar -->
+    <div class="mh-center-col">
+      <div class="mh-timer" id="match-game-timer">0:00</div>
+      <div class="mh-adv-wrap"><div id="advantage-fill" class="mh-adv-fill" style="width:50%"></div></div>
     </div>
-    <div id="score-bar-wrap" class="score-bar-wrap">
-      <div id="advantage-fill" class="advantage-fill" style="width:50%"></div>
+    <!-- Right: red team stats -->
+    <div class="mh-right">
+      <div class="mh-chip-row">
+        <span class="mh-chip"><span class="mh-chip-label">🌿</span><span class="mh-chip-val" id="score-red-shrines">0</span></span>
+        <span class="mh-chip"><span class="mh-chip-label">🌳</span><span class="mh-chip-val" id="score-red-roots">0</span></span>
+        <span class="mh-chip"><span class="mh-chip-label">kills</span><span class="mh-chip-val" id="score-red-kills">0</span></span>
+        <span class="mh-chip"><span class="mh-chip-label">gold</span><span class="mh-chip-val" id="mh-red-gold">0K</span></span>
+      </div>
+      <span class="mh-team-name mh-red-name" id="match-team-red">Red</span>
     </div>
   </div>
 
@@ -320,6 +328,10 @@
       <div class="pbp-side-panel pbp-side-blue">
         <div class="lsp-panel-header" id="lsp-blue-label" style="color:#4fc3f7">Blue</div>
         <div id="lsp-blue-rows"></div>
+        <div id="pbp-chat" class="pbp-chat">
+          <div class="pbp-chat-header">Comms</div>
+          <div id="pbp-chat-feed" class="pbp-chat-feed"></div>
+        </div>
       </div>
       <!-- Map center -->
       <div class="pbp-center">
@@ -577,6 +589,12 @@
         <div id="lsp-red-rows"></div>
       </div>
     </div><!-- end pbp-main -->
+    <!-- Real-time scoreboard -->
+    <div id="pbp-scoreboard" class="pbp-scoreboard">
+      <div id="pbp-sb-blue" class="pbp-sb-side"></div>
+      <div class="pbp-sb-sep"></div>
+      <div id="pbp-sb-red" class="pbp-sb-side"></div>
+    </div>
     <!-- Bottom: controls + event feed -->
     <div class="pbp-bottom">
       <div class="pbp-controls" id="pbp-controls">
