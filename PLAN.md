@@ -644,6 +644,356 @@ Not implementing yet. Future concept: team housing that affects chemistry, condi
 
 ---
 
+## Phase 11 — Management Depth v2 (Next Major Session)
+**Goal:** Deep overhaul of Fans, Staff, Facilities, Champions, and Tactics based on user feedback.
+**Status:** [ ] Planned
+
+---
+
+### 11A — Fans Screen & Fan Engagement System
+
+**Core concept:** Fans are not just a number that goes up when you win. They are an *audience* that must be actively maintained. If you stop producing content and hosting events, fans disengage and leave — even if you're winning. This is the media/celebrity layer of esports management.
+
+#### Fan Engagement Score (FES) — new weekly metric
+
+Calculated each week (0–10 scale):
+
+```
+FES = base(-0.5)
+    + streaming_contribution   (per active player streamer: casual=+0.3, heavy=+0.8)
+    + marketing_staff_contrib  (0 if no marketing staff, up to +2.0 at stat=20)
+    + active_deals_contrib     (each ongoing co-streaming deal: +0.3–0.8/wk)
+    + events_this_week         (Fan Meet & Greet: +1.5, Road Show: +3.0, one-time spike)
+    + match_result             (win: +0.5, loss: -0.3)
+```
+
+**FES effects on weekly fan change:**
+- FES 8–10: +3–6% fans/wk (viral growth, audience loves you)
+- FES 5–7:  +0.5–2% fans/wk (healthy, steady growth)
+- FES 3–4:  -0.2–0.5% fans/wk (stagnating, slow decline)
+- FES 0–2:  -1–3% fans/wk (fan exodus — your audience is abandoning you)
+- FES < 2 for 3 consecutive weeks → Alert news: "Grove fans are leaving — engagement crisis"
+
+**Why this matters:** You can win every game but have disengaged fans if you do nothing outside matches. Conversely, a heavy-streaming roster with active events can grow fans even through a loss streak.
+
+#### Fans Panel UI (dedicated sidebar section replacing Streaming column in squad)
+
+**Layout — 3 sections:**
+
+1. **Fan Overview card (top)**
+   - Total fans with trend (±K this week, ±K this split)
+   - Fan Engagement Score gauge (0–10, color-coded red/amber/green)
+   - Sparkline chart of last 8 weeks fan count
+   - Weekly FES breakdown showing each contributor and its +/− value
+
+2. **Content & Streaming section**
+   - Per-player streaming toggle + schedule (same as current squad toggle, moved here)
+   - Marketing staff contribution bar (if hired: shows weekly FES contribution)
+   - Total projected weekly FES from streaming
+
+3. **Fan Activities section**
+   - **Co-streaming Deals** — negotiable ongoing partnerships
+     - Available deals offered periodically (random pool, expires if not accepted)
+     - Each deal: partner name, FES/wk contribution, weekly cost (sometimes free), duration in weeks
+     - Active deals list with remaining weeks and cancel button
+     - Example: "ArenaCast Network — +0.6 FES/wk, free, 4 weeks remaining"
+   - **Fan Events** — one-time spikes (cost budget, time)
+     - Fan Meet & Greet: $20–50K, +1.5 FES that week, no training impact
+     - Arena Fan Event: $75–150K, +2.5 FES, no training that week
+     - Road Show: $200–400K, +3.0 FES, no training for 2 weeks, region-wide reach
+     - Button disabled if recently did same event (cooldown 3 weeks for M&G, 6 for Arena, 8 for Road Show)
+
+#### Remove streaming from squad panel
+- Move all streaming controls to the Fans panel
+- Squad panel reverts to 9 columns (remove the Stream column added in 9C)
+
+#### Fan milestone (updated with engagement context)
+- Add news context for milestones: "Your active fanbase is engaged" vs "You hit 500K but engagement is low — this may not last"
+
+---
+
+### 11B — Staff Overhaul: Roster Format + Multi-Attribute Ratings
+
+**Core concept:** Staff should feel like FM players — a roster of filled/empty slots, each staff member has a full attribute card (not just one stat), and the Marketing role replaces S&C Coach.
+
+#### Staff Roster Positions (slots)
+
+Display as a vertical roster of 5 fixed slots, just like the player squad:
+
+| Slot | Role | Effect |
+|---|---|---|
+| Head Coach | headcoach | Training gains, player development |
+| Analyst | analyst | Film Study, draft quality |
+| Marketing Manager | marketing | Fan Engagement Score contribution, co-streaming |
+| Mental Coach | mental | Morale recovery, personality clash reduction |
+| Scout | scout | Scouting cost/speed, report quality |
+
+- S&C Coach slot **removed**, replaced by **Marketing Manager**
+- Each slot: shows "— Vacant —" if not filled, or the hired staff member's card
+- "Hire" button on each vacant slot opens a filtered pool of that role
+
+#### Staff attribute cards (FM-style multi-stat)
+
+Each staff member has **5 attributes** instead of 1 overall stat:
+
+**Head Coach attributes:**
+- `tactics` (1–20) — draft advice quality, tactical preset suggestions
+- `development` (1–20) — player attribute growth rate multiplier
+- `motivation` (1–20) — morale management effectiveness
+- `communication` (1–20) — clarity of instructions, reduces misplay variance in sim
+- `experience` (1–20) — bonus in high-pressure matches (playoffs)
+
+**Analyst attributes:**
+- `filmStudy` (1–20) — Film Study training effectiveness multiplier
+- `draftReading` (1–20) — counter-pick quality in AI draft
+- `dataAnalysis` (1–20) — improves between-game adaptation
+- `opponentScouting` (1–20) — shows opponent weaknesses on tactics screen
+- `adaptability` (1–20) — how fast they update analysis during a split
+
+**Marketing Manager attributes (new role replacing S&C Coach):**
+- `contentProduction` (1–20) — FES contribution per week (primary stat)
+- `socialMedia` (1–20) — multiplies streaming fan gains
+- `eventManagement` (1–20) — reduces fan event costs, improves their FES gain
+- `brandDeals` (1–20) — improves co-streaming deal quality/frequency
+- `fanEngagement` (1–20) — improves speed of fan recovery after bad results
+
+**Mental Coach attributes:**
+- `motivation` (1–20) — morale recovery from rest/wins
+- `pressureHandling` (1–20) — composure stat bonus in high-stakes matches
+- `conflictResolution` (1–20) — reduces personality clash effects
+- `playerTrust` (1–20) — players more likely to follow tactical changes
+- `teamBuilding` (1–20) — overall chemistry bonus
+
+**Scout attributes:**
+- `networkReach` (1–20) — broader prospect pool, more discoveries
+- `judgement` (1–20) — report accuracy (higher = more accurate overall range reveal)
+- `speed` (1–20) — weeks to produce a report
+- `costEfficiency` (1–20) — reduces scouting cost
+- `specialisation` (1–20) — bonus on finding specific role type prospects
+
+**Staff overall = average of all 5 attributes**
+
+**UI: Staff panel redesign**
+- Top: 5 roster slot cards (one per role), each showing name, role badge, overall, wage
+- Vacant slots show "— Hire [Role] —" button
+- Click a filled slot → staff detail panel (all 5 attributes with bars, just like player profile)
+- "Available Pool" section below: filtered to un-hired staff for all roles
+- Each available staff card shows all 5 attribute bars before hiring
+
+**State.js:** Update STAFF_POOL to give each staff member 5 stats. Derive `stat` (used in bonuses) from the relevant primary attribute per role.
+
+---
+
+### 11C — Facilities Build Queue
+
+**Core concept:** Upgrading a facility is not instant. It takes weeks to build, just like a real esports org renovating their practice room. You cannot start another upgrade on the same facility while one is in progress.
+
+#### Build queue model
+
+```js
+// Each facility in team.facilities:
+{
+  level: 1,         // current active level (bonus applies at this level)
+  upgrading: false, // is an upgrade in progress?
+  upgradeToLevel: null,  // what level is being built
+  weeksRemaining: 0,     // weeks until complete
+}
+```
+
+**Build times per facility and level:**
+
+| Facility | L1→2 | L2→3 | L3→4 | L4→5 |
+|---|---|---|---|---|
+| Training Facility | 2 wks | 3 wks | 4 wks | 5 wks |
+| Analysis Suite | 1 wk | 2 wks | 3 wks | — |
+| Medical Bay | 1 wk | 2 wks | 3 wks | — |
+| Streaming Studio | 1 wk | 2 wks | 3 wks | — |
+| Recruitment Office | 1 wk | 1 wk | 2 wks | — |
+
+- While upgrading: level stays at current (no bonus from new level yet)
+- Cost is paid immediately on clicking Upgrade (locks in the budget spend)
+- Progress bar shown on facility card: "Building L2… 2 weeks remaining"
+- `advanceWeek()` decrements `weeksRemaining` for all active upgrades; when it hits 0 → `level++`, clear upgrade state, fire news event
+
+**UI:** Upgrade button becomes "Cancel" during construction (refunds 50% of cost). Progress bar with weeks remaining. Cannot upgrade a different level while one is in progress (but different facilities can build simultaneously).
+
+---
+
+### 11D — Champion Multi-Role Support
+
+**Core concept:** Most champions are designed for 1–2 roles. We add a `roles` array to each champion in champions.js replacing the single `role` field. The browser and draft AI use this for filtering and recommendations.
+
+#### Logical role assignments (LoL-analogue reasoning)
+
+| Champion | Class | Primary | Secondary | Reasoning |
+|---|---|---|---|---|
+| Wraithfern | Mage/SCALING | Mid | Support | Scaling mage with utility, like Orianna — can act as a utility support |
+| Bombspore | Mage/POKE | Mid | Support | Poke mages flex to support in LoL constantly (Zyra, Lux, Xerath) |
+| Vaulthorn | Mage/SCALING | Mid | — | Pure scaling mage, dedicated mid role |
+| Emberpyre | Mage/POKE | Mid | — | High-range pure poke, needs farm — mid only |
+| Spiritfox | Mage/ASSASSIN | Mid | Jungle | Assassin-mage flips to jungle well (Taliyah, Ahri sometimes jg) |
+| Iceveil | Mage/ENGAGE | Support | Mid | Engage mage with lockdown = utility support (Lissandra, Annie support) |
+| Wildshot | Marksman/SCALING | ADC | — | Pure hyper-carry, needs farm, ADC only |
+| Swiftarrow | Marksman/POKE | ADC | Mid | Poke marksman can go mid (Corki, Caitlyn mid) |
+| Starshot | Marksman/SCALING | ADC | — | Scaling carry, ADC only |
+| Duskwarden | Marksman/SCALING | ADC | — | Scaling carry, ADC only |
+| Embervane | Marksman/ENGAGE | ADC | Support | Engage marksman flexes to utility support (Ashe support) |
+| Bogveil | Tank/ENGAGE | Top | Support | Engage tanks flex to support constantly (Malphite, Nautilus) |
+| Ironsong | Tank/SCALING | Top | Jungle | Scaling tanks can jungle (Nunu-like, Zac) |
+| Thornwall | Tank/ENGAGE | Top | Jungle | Engage tank jungle (Maokai, Zac jungle) |
+| Deeproot | Tank/ENGAGE | Top | Support | Engage frontline support (Leona, Alistar) |
+| Ironbark | Tank/ENGAGE | Top | — | Pure frontline bruiser tank, top only |
+| Stoneguard | Fighter/ENGAGE | Top | — | Standard brawler fighter, dedicated top |
+| Stormhide | Fighter/ENGAGE | Top | Jungle | Mobile fighter with engage can jungle (Vi, Hecarim) |
+| Thornback | Fighter/ENGAGE | Top | Jungle | Versatile fighter with gap-close can jungle (Jarvan, Camille) |
+| Sylvara | Fighter/SPLITPUSH | Top | Mid | Splitpush fighter can mid (Camille mid, Fiora mid occasionally) |
+| Briarvex | Fighter/ENGAGE | Top | — | Heavy frontline fighter, top only |
+| Shade | Assassin/ASSASSIN | Mid | Jungle | Mid assassin flexes to jungle (Katarina, Akali jg) |
+| Hexwing | Assassin/ASSASSIN | Jungle | Mid | Jungle assassin can mid (Kha'Zix mid, Rengar mid) |
+| Fangwhisper | Assassin/ASSASSIN | Jungle | — | Dedicated jungle assassin (Kha'Zix — nearly jungle-exclusive) |
+| Driftblade | Assassin/SPLITPUSH | Top | Mid | Splitpush assassin plays both (Talon top/mid, Fiora) |
+| Darkblossom | Sentinel/PROTECT | Support | — | Pure enchanter, support only (Soraka, Janna) |
+| Irongrasp | Sentinel/ENGAGE | Support | Jungle | Hook/engage support tries jungle (Thresh, Blitzcrank jg) |
+| Stonewall | Sentinel/PROTECT | Support | Mid | Peel/utility sentinel can mid (Karma, Lulu mid) |
+| Tidecaller | Sentinel/PROTECT | Support | — | Pure protect/heal support (Soraka-like, support only) |
+| Gravewarden | Sentinel/ENGAGE | Support | Jungle | Hard CC engage support can jungle (Zyra jg, Morgana jg) |
+
+#### Implementation
+
+1. **champions.js:** Change `role: 'mid'` → `roles: ['mid']` or `roles: ['mid', 'support']` per table above
+2. **Champion browser (11D-2):** Filter by role now matches if role is in the `roles` array. Display all roles as badges (primary role highlighted).
+3. **Draft AI:** When evaluating a champion for a role, check `roles.includes(targetRole)`. Primary role (index 0) is preferred; secondary is a lower-priority option.
+4. **Role assignment phase:** When a player drags a champion to a role slot, if it's not in their `roles` array, show a warning badge ("Off-role — slight performance penalty") but still allow it.
+5. **Draft info panel:** Show all roles (e.g. "Top / Jungle") as role badges.
+6. **`players.js` compatibility:** Player `position` stays a single role (their mains). Champion `roles` is about champion flexibility, not player position.
+
+---
+
+### 11E — Tactics Screen Overhaul: Post-Draft In-Game Only
+
+**Core concept:** Tactics are set after the draft (you know what champions both teams picked) and before starting the match. They are shown in a full-screen TFM2-style layout with the matchup visible on the right. The main menu Tactics nav item is removed — this is purely a pre-game decision informed by your comp.
+
+#### Remove from main menu
+- Delete "⚔️ Tactics" from sidebar nav
+- Delete `panel-tactics` from the game shell (no longer needed as a standing panel)
+- The current "between games" tactic panel survives — it's a simplified version of the same screen shown mid-series
+
+#### New flow
+```
+Draft Phase → Role Assignment → [NEW] Tactics Phase → Watch Match / Skip to Result
+```
+
+#### Tactics Phase — full-screen layout (3-column TFM2-inspired)
+
+**Left column — Lane & Jungle Directives:**
+
+1. **Core Lane Focus** (3 options)
+   - Focus Top/Mid (jungler supports top and mid, early objectives through top side)
+   - Focus Mid/Bot (jungler supports mid and bot, early objectives through bot side)
+   - All Lanes (flexible, reactive to opportunities)
+
+2. **Jungle Style** (3 options)
+   - Farm & Cover (jungler prioritizes camps and defensive vision, stay safe early)
+   - Shrine Ganking (jungler focuses on contesting Ley Shrines and tower dives)
+   - Counter-Jungling (jungler invades enemy camps, denies their resources)
+
+3. **Early Warden Call** (3 options)
+   - Always Attempt (as soon as Warden spawns at 12:00, contest regardless of state)
+   - Flexible (only attempt if winning and in position)
+   - Concede (prioritize Root structures over Warden in early game)
+
+4. **Top Laner Warden Join** (3 options)
+   - Always Join (top laner rotates from their lane to Warden fight)
+   - Flexible (join only if lane is stable)
+   - Do Not Join (keep split pressure on top Root)
+
+**Middle column — Objective & Fight Directives:**
+
+5. **Objective Setup** (3 options)
+   - Split Push (1-3-1 or 2-1-2 structure, apply multi-lane Root pressure)
+   - Flexible (read the situation, adapt between lanes)
+   - Group Up (5-man on every objective, no splitting)
+
+6. **Objective Combat Strategy** (3 options)
+   - Poke / Maintain Distance (chip enemies before committing, use range advantage)
+   - Hard Engage (initiate immediately, all-in teamfight)
+   - Bait & Disengage (fake engages, punish overextensions)
+
+7. **Warden Buff Usage** (3 options)
+   - Group as 5 (all players group after Warden for a coordinated push)
+   - 1-4 Split (one player continues split pressure while 4 group)
+   - 1-3-1 Split (two sidelanes keep pressure while 3 group mid)
+
+**Right column — Matchup & Defensive:**
+
+8. **Ancient Siege** (2 options — equivalent of Tower Siege)
+   - Poke / Siege (use range to whittle Ancient's HP from distance)
+   - Dive / All-In (commit all resources for hard engage on objective)
+
+9. **Defensive Tactics** (2 options)
+   - Defend Pressured Lane (reinforce the lane being pressured, play for defense)
+   - Force Fight (proactively engage to reset defensive pressure)
+
+10. **Matchup panel** (display only, right side)
+    - Shows both teams' drafted champion assignments side by side
+    - Champion name + role badge per slot
+    - Highlights direct lane matchups (e.g. your Top vs their Top)
+    - Opponent advantage indicators (if analyst staff is hired → shows "⚠ Opponent has counter-pick advantage in Mid")
+
+**Bottom bar:**
+- Description of currently hovered/selected option (same as TFM2)
+- Two buttons: "Delegate to Analyst" (auto-fills tactics based on your comp and analyst stat) | "Start Match ▶"
+- "Skip Tactics" small link (keeps previous tactics settings)
+
+#### Sim engine impact — how each choice affects simulation
+
+Each tactic dimension maps to a sim modifier applied during the match:
+
+| Tactic | Sim Effect |
+|---|---|
+| Core Lane Focus: Top/Mid | Jungler early event weighting shifts to top side; top shrine captured earlier |
+| Core Lane Focus: Mid/Bot | Jungler supports bot lane; ADC gets more early gold advantage |
+| Jungle: Farm & Cover | Jungler higher CS, lower kill participation early |
+| Jungle: Shrine Ganking | Jungler more likely to appear at shrine events; higher early shrine rate |
+| Jungle: Counter-Jungling | Enemy jungler loses camps; jungler gets more early gold but skips own camps |
+| Early Warden: Always | Warden fight happens earlier and more reliably; higher risk of 4v5 |
+| Warden Join Top: Always | Top laner appears in Warden event; higher 5v5 rate |
+| Objective Setup: Group Up | All 5 on every fight; higher teamfight kill events, slower root progress |
+| Objective Setup: Split Push | More root events early; fewer full teamfights |
+| Combat: Hard Engage | Higher kill rate, higher death rate, faster game resolution |
+| Combat: Poke | Lower kill rate, higher siege events, longer games |
+| Warden Buff: Group as 5 | Post-Warden push is stronger; higher root-fall chance after Warden |
+| Ancient Siege: Dive | Higher risk burst at boss; more likely to win fast or wipe |
+| Defensive: Defend Lane | Opponent's root damage reduced when you're ahead defensively |
+
+#### State model
+```js
+G.teams[humanTeamId].tactics = {
+  playstyle: 'engage',          // kept for backward compat / simple AI teams
+  // New per-game tactical settings (set on tactics screen):
+  laneFocus:        'all',        // 'top_mid' | 'mid_bot' | 'all'
+  jungleStyle:      'farm',       // 'farm' | 'shrines' | 'counter'
+  wardenCall:       'flexible',   // 'always' | 'flexible' | 'concede'
+  topJoinWarden:    'flexible',   // 'always' | 'flexible' | 'never'
+  objectiveSetup:   'flexible',   // 'split' | 'flexible' | 'group'
+  combatStrategy:   'engage',     // 'poke' | 'engage' | 'bait'
+  wardenBuff:       'group5',     // 'group5' | '1-4' | '1-3-1'
+  ancientSiege:     'poke',       // 'poke' | 'dive'
+  defensiveTactics: 'defend',     // 'defend' | 'fight'
+}
+```
+
+#### "Delegate to Analyst" auto-fill logic
+- If no analyst: fills in defaults matching the comp type (ENGAGE comp → hard engage, POKE → poke/maintain, etc.)
+- With analyst hired: uses analyst's `draftReading` stat to suggest better-matched options vs opponent's comp
+- Quality of suggestion scales with analyst stat (low stat = random; high stat = close to optimal)
+
+#### Between-games simplified tactics
+- The existing `_showBetweenGames()` panel already lets you change playstyle — expand it to show a condensed version of the tactics screen (same 9 dimensions, but in a single column, no matchup panel since we're mid-series)
+- Remove the playstyle grid from between-games, replace with the full tactic dimensions as small toggle rows
+
+---
+
 ## Phase 10 — Visual Identity: Sprites & Map Animation
 **Goal:** Replace colored dots on the map with pixel-art champion sprites. Long-term target: isometric view with animated champions battling.
 **Status:** [ ] Planned — phased approach
