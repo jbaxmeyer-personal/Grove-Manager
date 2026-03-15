@@ -115,10 +115,9 @@
   function flashForEvent(ev) {
     let cx, cy, color;
     if (ev.wardenBlue !== undefined || ev.wardenRed !== undefined) {
-      cx = 148; cy = 148; color = '#9b59b6';
+      cx = 150; cy = 125; color = '#9b59b6';
     } else if (ev.shrineBlue !== undefined || ev.shrineRed !== undefined) {
-      const isBlueSide = ev.shrineBlue;
-      cx = isBlueSide ? 88 : 212; cy = isBlueSide ? 108 : 192; color = '#c89b3c';
+      cx = 150; cy = 150; color = '#c89b3c';
     } else if (ev.type === 'result') {
       const blueWon = (ev.advAfter || 50) >= 50;
       cx = blueWon ? 35  : 265;

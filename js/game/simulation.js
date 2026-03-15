@@ -40,40 +40,69 @@ const SPAWN = {
 };
 
 // Where each role walks during the laning phase
+// Base laning positions — where each role starts in phase 0
 const LANE_POS = {
   blue: {
-    top:     { x: 35,  y: 150 },   // top lane — left edge midpoint
+    top:     { x: 35,  y: 200 },   // top lane — walks up left edge
     jungle:  { x: 88,  y: 108 },   // blue jungle
     mid:     { x: 115, y: 185 },   // mid lane blue side
     adc:     { x: 165, y: 265 },   // bot lane — bottom edge
     support: { x: 142, y: 265 },   // bot lane support
   },
   red: {
-    top:     { x: 150, y: 35  },   // top lane — top edge midpoint
+    top:     { x: 100, y: 35  },   // top lane — walks right along top edge
     jungle:  { x: 212, y: 192 },   // red jungle
     mid:     { x: 185, y: 115 },   // mid lane red side
-    adc:     { x: 265, y: 165 },   // bot lane — right edge
-    support: { x: 265, y: 142 },   // bot lane support
+    adc:     { x: 265, y: 200 },   // bot lane — right edge
+    support: { x: 265, y: 165 },   // bot lane support
+  },
+};
+
+// Lane advance targets for phase 1 (mid-game push)
+const LANE_POS_P1 = {
+  blue: {
+    top:     { x: 35,  y: 140 },   // past blue top tower
+    jungle:  { x: 150, y: 150 },   // contest center
+    mid:     { x: 140, y: 160 },   // toward center
+    adc:     { x: 210, y: 265 },   // push toward enemy outer
+    support: { x: 185, y: 265 },
+  },
+  red: {
+    top:     { x: 160, y: 35  },   // push along top
+    jungle:  { x: 150, y: 150 },   // contest center
+    mid:     { x: 160, y: 140 },   // toward center
+    adc:     { x: 265, y: 140 },   // push toward enemy outer
+    support: { x: 265, y: 120 },
   },
 };
 
 // Objectives
 const OBJ_DEFS = [
-  // Blue defensive structures (along bot lane and near base)
+  // Blue defensive structures
+  // Bot lane: 2 roots (outer → inner)
   { id:'b_outer',   side:'blue',    type:'root',    x:190, y:265, maxHp: 4000, atkDmg: 8, atkRange:32 },
   { id:'b_inner',   side:'blue',    type:'root',    x:105, y:265, maxHp: 5500, atkDmg:12, atkRange:32 },
-  { id:'b_heart',   side:'blue',    type:'root',    x: 35, y:100, maxHp: 7000, atkDmg:18, atkRange:32 },
+  // Mid lane: 1 root
+  { id:'b_mid',     side:'blue',    type:'root',    x: 90, y:210, maxHp: 4500, atkDmg:10, atkRange:32 },
+  // Top lane: 1 root
+  { id:'b_top',     side:'blue',    type:'root',    x: 35, y:120, maxHp: 4500, atkDmg:10, atkRange:32 },
+  // Base
+  { id:'b_heart',   side:'blue',    type:'root',    x: 40, y: 68, maxHp: 7000, atkDmg:18, atkRange:32 },
   { id:'b_ancient', side:'blue',    type:'ancient', x: 22, y:278, maxHp:12000, atkDmg:25, atkRange:36 },
-  // Red defensive structures (along top lane and near base)
-  { id:'r_outer',   side:'red',     type:'root',    x:265, y:110, maxHp: 4000, atkDmg: 8, atkRange:32 },
-  { id:'r_inner',   side:'red',     type:'root',    x:110, y: 35, maxHp: 5500, atkDmg:12, atkRange:32 },
-  { id:'r_heart',   side:'red',     type:'root',    x:265, y:190, maxHp: 7000, atkDmg:18, atkRange:32 },
+  // Red defensive structures
+  // Top lane: 2 roots
+  { id:'r_outer',   side:'red',     type:'root',    x:110, y: 35, maxHp: 4000, atkDmg: 8, atkRange:32 },
+  { id:'r_inner',   side:'red',     type:'root',    x:265, y:110, maxHp: 5500, atkDmg:12, atkRange:32 },
+  // Mid lane: 1 root
+  { id:'r_mid',     side:'red',     type:'root',    x:210, y: 90, maxHp: 4500, atkDmg:10, atkRange:32 },
+  // Bot lane: 1 root
+  { id:'r_bot',     side:'red',     type:'root',    x:265, y:180, maxHp: 4500, atkDmg:10, atkRange:32 },
+  // Base
+  { id:'r_heart',   side:'red',     type:'root',    x:260, y:232, maxHp: 7000, atkDmg:18, atkRange:32 },
   { id:'r_ancient', side:'red',     type:'ancient', x:278, y: 22, maxHp:12000, atkDmg:25, atkRange:36 },
-  // Neutral objectives
-  { id:'shrine_a',  side:'neutral', type:'shrine',  x: 88, y:108, maxHp: 2000, atkDmg: 0, atkRange: 0 },
-  { id:'shrine_b',  side:'neutral', type:'shrine',  x:212, y:192, maxHp: 2000, atkDmg: 0, atkRange: 0 },
-  { id:'warden_b',  side:'neutral', type:'warden',  x:138, y:148, maxHp: 5000, atkDmg: 6, atkRange:28 },
-  { id:'warden_r',  side:'neutral', type:'warden',  x:162, y:152, maxHp: 5000, atkDmg: 6, atkRange:28 },
+  // Neutral objectives (1 shrine, 1 warden)
+  { id:'shrine',    side:'neutral', type:'shrine',  x:150, y:150, maxHp: 2000, atkDmg: 0, atkRange: 0 },
+  { id:'warden',    side:'neutral', type:'warden',  x:150, y:125, maxHp: 5000, atkDmg: 6, atkRange:28 },
 ];
 
 // Jungle camps
@@ -300,8 +329,8 @@ function decideAction(agent, allies, enemies, objs, jungles, tick, phase) {
   // 6. Late-game push toward enemy objectives
   if (phase >= 2 && gameSense > 7) {
     const seq = enemySide === 'red'
-      ? ['r_outer','r_inner','r_heart','r_ancient']
-      : ['b_outer','b_inner','b_heart','b_ancient'];
+      ? ['r_outer','r_inner','r_mid','r_bot','r_heart','r_ancient']
+      : ['b_outer','b_inner','b_mid','b_top','b_heart','b_ancient'];
     const nextObj = objs.find(o => seq.includes(o.id) && !o.destroyed);
     if (nextObj && dist(agent, nextObj) < 180) {
       agent.state  = 'contesting';
@@ -339,11 +368,12 @@ function decideAction(agent, allies, enemies, objs, jungles, tick, phase) {
 function laneTarget(side, pos, phase, enemySide, objs) {
   if (phase >= 2) {
     const seq = enemySide === 'red'
-      ? ['r_outer','r_inner','r_heart','r_ancient']
-      : ['b_outer','b_inner','b_heart','b_ancient'];
+      ? ['r_outer','r_inner','r_mid','r_bot','r_heart','r_ancient']
+      : ['b_outer','b_inner','b_mid','b_top','b_heart','b_ancient'];
     const next = objs.find(o => seq.includes(o.id) && !o.destroyed);
     if (next) return { x: next.x, y: next.y };
   }
+  if (phase >= 1 && LANE_POS_P1[side]?.[pos]) return LANE_POS_P1[side][pos];
   return LANE_POS[side][pos];
 }
 
@@ -518,7 +548,14 @@ function resolveDeaths(agents, events, score, tick) {
     ag.target    = null;
 
     const killerPool = agents.filter(a => a.side !== ag.side && !a.isDead);
-    const killer     = killerPool[0] || null;
+    // Find killer: last enemy to deal damage (most recent recentDmgFrom entry)
+    let killer = null;
+    if (ag.recentDmgFrom.length > 0) {
+      const lastHit = ag.recentDmgFrom[ag.recentDmgFrom.length - 1];
+      killer = agents.find(a => a.id === lastHit.id && !a.isDead) || killerPool[0] || null;
+    } else {
+      killer = killerPool[0] || null;
+    }
 
     if (killer) {
       killer.kills++;
