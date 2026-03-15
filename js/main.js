@@ -140,6 +140,7 @@ function _startSeriesGame() {
   document.getElementById('tactics-phase').style.display     = 'none';
   setText('match-team-blue', ss.blueName);
   setText('match-team-red',  ss.redName);
+  _updateSeriesDots();
 
   _draftState = {
     humanSide,
@@ -236,6 +237,7 @@ function returnFromMatch() {
   // Record this game in the series
   ss.games.push({ winner: blueWon ? ss.blueId : ss.redId, result: _matchResult });
   if (blueWon) ss.blueWins++; else ss.redWins++;
+  _updateSeriesDots();
 
   // Update morale/form
   _applyPostMatchMorale(ss.blueId, 'blue', blueWon);
@@ -548,6 +550,20 @@ function _escHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
+function _updateSeriesDots() {
+  if (!_seriesState) return;
+  const { neededToWin, blueWins, redWins } = _seriesState;
+  function dots(wins, total, color) {
+    return Array.from({length: total}, (_,i) =>
+      `<span class="mh-dot${i < wins ? ' mh-dot-filled' : ''}" style="--dot-color:${color}"></span>`
+    ).join('');
+  }
+  const bEl = document.getElementById('mh-blue-dots');
+  const rEl = document.getElementById('mh-red-dots');
+  if (bEl) bEl.innerHTML = dots(blueWins, neededToWin, '#4fc3f7');
+  if (rEl) rEl.innerHTML = dots(redWins,  neededToWin, '#ff7b7b');
+}
+
 function _updateMatchScore(bK, rK, bShr, rShr, bRt, rRt, adv) {
   setText('score-blue-kills',   `${bK||0}`);
   setText('score-red-kills',    `${rK||0}`);
@@ -648,71 +664,95 @@ function _addPBPChat(playerName, message) {
   feed.scrollTop = feed.scrollHeight;
 }
 
-function _buildKDATable(players, color) {
+function _buildResultsKDARows(players, color) {
   const POS_ICON = { top:'⚔️', jungle:'🌿', mid:'✦', adc:'🏹', support:'🛡️' };
-  const rows = players.map(p => `
-    <tr>
-      <td style="color:${color};font-size:11px;padding:2px 6px 2px 0">${POS_ICON[p.pos]||''} ${_escHtml(p.name)}</td>
-      <td style="font-size:11px;color:#aaa;padding:2px 6px 2px 0">${_escHtml(p.champion)}</td>
-      <td style="font-size:12px;font-weight:600;padding:2px 4px;white-space:nowrap">
-        <span style="color:#e8e8e8">${p.kills}</span>/<span style="color:#ff7b7b">${p.deaths}</span>/<span style="color:#4fc3f7">${p.assists}</span>
+  return players.map(p => {
+    const gold = p.gold >= 1000 ? (p.gold/1000).toFixed(1)+'K' : (p.gold||0)+'';
+    return `<tr class="res-kda-row">
+      <td class="res-kda-pos">${POS_ICON[p.pos]||''}</td>
+      <td class="res-kda-name" style="color:${color}">${_escHtml(p.name)}</td>
+      <td class="res-kda-champ">${_escHtml(p.champion)}</td>
+      <td class="res-kda-kda">
+        <span style="color:#e8e8e8;font-weight:700">${p.kills}</span>/<span style="color:#e74c3c">${p.deaths}</span>/<span style="color:#4fc3f7">${p.assists}</span>
       </td>
-    </tr>`).join('');
-  return `<table style="border-collapse:collapse">${rows}</table>`;
+      <td class="res-kda-gold">${gold}</td>
+    </tr>`;
+  }).join('');
 }
 
 function _showMatchResult(result) {
   if (!result || !_matchContext) return;
   const { blueName, redName, blueId } = _matchContext;
-  const blueWon   = result.winner === 'blue';
-  const winner    = blueWon ? blueName : redName;
-  const humanWon  = (result.winner === 'blue') === (blueId === G.humanTeamId);
+  const blueWon  = result.winner === 'blue';
+  const winner   = blueWon ? blueName : redName;
+  const loser    = blueWon ? redName  : blueName;
+  const humanWon = (result.winner === 'blue') === (blueId === G.humanTeamId);
 
   const el = document.getElementById('pbp-results');
   if (!el) return;
 
-  const hasPlayerStats = result.playerStats &&
-    result.playerStats.blue && result.playerStats.blue.length;
+  const hasPS = result.playerStats?.blue?.length;
 
-  const kdaSection = hasPlayerStats ? `
-    <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">
-      <div>
-        <div style="font-size:11px;color:#4fc3f7;font-weight:600;margin-bottom:4px">${_escHtml(blueName)}</div>
-        ${_buildKDATable(result.playerStats.blue, '#4fc3f7')}
-      </div>
-      <div>
-        <div style="font-size:11px;color:#ff7b7b;font-weight:600;margin-bottom:4px">${_escHtml(redName)}</div>
-        ${_buildKDATable(result.playerStats.red, '#ff7b7b')}
-      </div>
-    </div>` : '';
+  const kdaBlue = hasPS ? _buildResultsKDARows(result.playerStats.blue, '#4fc3f7') : '';
+  const kdaRed  = hasPS ? _buildResultsKDARows(result.playerStats.red,  '#ff7b7b') : '';
+
+  const tableStyle = 'width:100%;border-collapse:collapse;font-size:13px;';
+  const thStyle = 'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;padding:4px 8px;border-bottom:1px solid #1a2a1a;';
 
   el.style.display = '';
   el.innerHTML = `
-    <div class="pbp-result-banner ${humanWon ? 'win' : 'loss'}">
-      ${_escHtml(winner)} VICTORY
+    <div class="res-banner ${humanWon ? 'res-win' : 'res-loss'}">
+      <span class="res-winner-name">${_escHtml(winner)}</span>
+      <span class="res-victory-word">VICTORY</span>
+      <span class="res-loser-name">${_escHtml(loser)} defeated</span>
     </div>
-    <div class="pbp-result-body">
-      <div class="pbp-stats-table">
-        <div style="display:flex;gap:8px;margin-bottom:6px">
-          <span style="color:#4fc3f7;font-weight:600">${_escHtml(blueName)}</span>
-          <span style="color:var(--text-dim)">vs</span>
-          <span style="color:#ff7b7b;font-weight:600">${_escHtml(redName)}</span>
-        </div>
-        <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">
-          <span style="color:#4fc3f7">${result.blueKills}K</span>
-          · 🌿${result.blueShrines}
-          · 🌳${result.blueRoots}
-          &nbsp;|&nbsp;
-          <span style="color:#ff7b7b">${result.redKills}K</span>
-          · 🌿${result.redShrines}
-          · 🌳${result.redRoots}
-        </div>
-        <div style="font-size:12px;color:var(--text-dim)">⏱ ${result.duration} min</div>
-        ${kdaSection}
+
+    <div class="res-summary-bar">
+      <div class="res-summary-side res-summary-blue">
+        <span class="res-sum-team" style="color:#4fc3f7">${_escHtml(blueName)}</span>
+        <span class="res-sum-stat"><span class="res-sum-val">${result.blueKills}</span><span class="res-sum-label">Kills</span></span>
+        <span class="res-sum-stat"><span class="res-sum-val">${result.blueRoots}</span><span class="res-sum-label">🌳 Towers</span></span>
+        <span class="res-sum-stat"><span class="res-sum-val">${result.blueShrines}</span><span class="res-sum-label">🌿 Shrines</span></span>
+      </div>
+      <div class="res-summary-center">
+        <div class="res-duration">⏱ ${result.duration} min</div>
+      </div>
+      <div class="res-summary-side res-summary-red">
+        <span class="res-sum-stat"><span class="res-sum-val">${result.redShrines}</span><span class="res-sum-label">🌿 Shrines</span></span>
+        <span class="res-sum-stat"><span class="res-sum-val">${result.redRoots}</span><span class="res-sum-label">🌳 Towers</span></span>
+        <span class="res-sum-stat"><span class="res-sum-val">${result.redKills}</span><span class="res-sum-label">Kills</span></span>
+        <span class="res-sum-team" style="color:#ff7b7b">${_escHtml(redName)}</span>
       </div>
     </div>
-    <div style="margin-top:14px">
-      <button class="btn-primary" onclick="returnFromMatch()">← Return to Manager</button>
+
+    ${hasPS ? `<div class="res-kda-section">
+      <div class="res-kda-col">
+        <div class="res-kda-header" style="color:#4fc3f7">${_escHtml(blueName)}</div>
+        <table style="${tableStyle}">
+          <thead><tr>
+            <th style="${thStyle}"></th><th style="${thStyle}">Player</th>
+            <th style="${thStyle}">Champion</th><th style="${thStyle}">K/D/A</th>
+            <th style="${thStyle}">Gold</th>
+          </tr></thead>
+          <tbody>${kdaBlue}</tbody>
+        </table>
+      </div>
+      <div class="res-kda-divider"></div>
+      <div class="res-kda-col">
+        <div class="res-kda-header" style="color:#ff7b7b">${_escHtml(redName)}</div>
+        <table style="${tableStyle}">
+          <thead><tr>
+            <th style="${thStyle}"></th><th style="${thStyle}">Player</th>
+            <th style="${thStyle}">Champion</th><th style="${thStyle}">K/D/A</th>
+            <th style="${thStyle}">Gold</th>
+          </tr></thead>
+          <tbody>${kdaRed}</tbody>
+        </table>
+      </div>
+    </div>` : ''}
+
+    <div class="res-actions">
+      <button class="btn-primary btn-large" onclick="returnFromMatch()">← Return to Manager</button>
     </div>
   `;
 }

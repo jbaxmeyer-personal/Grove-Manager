@@ -213,8 +213,8 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
   border-bottom:2px solid #1a2e50;
   padding:0 10px;gap:8px;
 }
-.mh-left{display:flex;align-items:center;gap:8px;min-width:0;}
-.mh-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;}
+.mh-left{display:flex;align-items:center;gap:8px;min-width:0;justify-content:flex-end;}
+.mh-right{display:flex;align-items:center;justify-content:flex-start;gap:8px;min-width:0;}
 .mh-center-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;}
 .mh-team-name{font-weight:800;font-size:15px;white-space:nowrap;flex-shrink:0;}
 .mh-blue-name{color:#4fc3f7;}
@@ -226,8 +226,13 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 .mh-timer{font-family:monospace;font-size:26px;font-weight:900;color:#fff;letter-spacing:3px;line-height:1;text-shadow:0 0 12px rgba(255,255,255,.2);}
 .mh-adv-wrap{width:130px;height:4px;background:var(--red);border-radius:2px;overflow:hidden;}
 .mh-adv-fill{height:100%;background:#4fc3f7;transition:width .4s ease;width:50%;}
-.match-back{background:var(--panel2);border:1px solid var(--border2);color:var(--text-dim);padding:4px 10px;border-radius:4px;font-size:12px;flex-shrink:0;}
+.match-back{background:var(--panel2);border:1px solid var(--border2);color:var(--text-dim);padding:4px 10px;border-radius:4px;font-size:12px;flex-shrink:0;margin-right:auto;}
 .match-back:hover{border-color:var(--gold-dim);color:var(--text);}
+/* Series win dots */
+.mh-series-dots{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.mh-dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--dot-color,#4fc3f7);background:transparent;display:inline-block;transition:background .2s;}
+.mh-dot.mh-dot-filled{background:var(--dot-color,#4fc3f7);}
+
 .team-banner{flex:1;text-align:center;padding:11px;border-radius:var(--radius);font-size:17px;font-weight:700;}
 .blue-banner{background:#0d2a5a;border:1px solid var(--blue);color:var(--blue-l);}
 .red-banner {background:#5a0d0d;border:1px solid var(--red);color:var(--red-l);}
@@ -432,42 +437,56 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 .pbp-result      { border-right-color: #4fc3f7; background: rgba(79,195,247,0.10); font-weight:700; }
 .pbp-commentary  { border-right-color: #555; }
 
-/* ── Inline Results ────────────────────────────────────────────────────── */
+/* ── Inline Results (full-screen overlay) ──────────────────────────── */
 .pbp-results {
   position: absolute;
   inset: 0;
   z-index: 20;
   overflow-y: auto;
-  background: #070d07;
-  padding: 20px 24px;
-}
-.pbp-result-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 8px;
-  margin-bottom: 14px;
-  font-size: 28px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-}
-.pbp-result-banner.win  { background: linear-gradient(135deg,#0a3a0a,#1a5c1a); color:#2ecc71; border:1px solid #2ecc71; }
-.pbp-result-banner.loss { background: linear-gradient(135deg,#3a0a0a,#5c1a1a); color:#e74c3c; border:1px solid #e74c3c; }
-.pbp-result-body { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
-.pbp-stats-table { flex:1; min-width:220px; }
-.pbp-gold-earned {
+  background: #060d12;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--text-dim);
-  padding: 10px;
-  background: rgba(212,175,55,0.08);
-  border-radius: 8px;
-  border: 1px solid rgba(212,175,55,0.2);
+  padding: 0;
 }
+.res-banner {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 22px 40px; flex-shrink: 0;
+  font-size: 32px; font-weight: 900; letter-spacing: .12em;
+}
+.res-banner.res-win  { background: linear-gradient(135deg,#0a3a0a,#1a5c1a); color:#2ecc71; border-bottom:2px solid #2ecc71; }
+.res-banner.res-loss { background: linear-gradient(135deg,#3a0a0a,#5c1a1a); color:#e74c3c; border-bottom:2px solid #e74c3c; }
+.res-winner-name { font-size:20px; opacity:.7; }
+.res-victory-word { font-size:36px; letter-spacing:.2em; }
+.res-loser-name  { font-size:14px; opacity:.5; font-weight:400; }
+.res-summary-bar {
+  display: flex; align-items: stretch; flex-shrink: 0;
+  background: #070e18; border-bottom: 1px solid #1a2a3a;
+  padding: 12px 40px; gap: 0;
+}
+.res-summary-side { display:flex; align-items:center; gap:20px; flex:1; }
+.res-summary-blue { justify-content: flex-end; }
+.res-summary-red  { justify-content: flex-start; }
+.res-summary-center { padding: 0 30px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
+.res-duration { font-size:22px; font-weight:700; color:var(--text-hi); font-family:monospace; }
+.res-sum-team  { font-weight:800; font-size:16px; }
+.res-sum-stat  { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.res-sum-val   { font-size:22px; font-weight:800; color:var(--text-hi); }
+.res-sum-label { font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; }
+.res-kda-section {
+  display: flex; flex: 1; min-height: 0; gap: 0; padding: 20px 40px; overflow-y: auto;
+}
+.res-kda-col { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
+.res-kda-divider { width:1px; background:#1a2a3a; margin:0 24px; flex-shrink:0; }
+.res-kda-header { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding-bottom:8px; border-bottom:1px solid #1a2a3a; }
+.res-kda-row td { padding:8px 10px; border-bottom:1px solid #0d1a20; font-size:13px; }
+.res-kda-row:hover td { background: rgba(255,255,255,.03); }
+.res-kda-pos  { width:24px; font-size:14px; }
+.res-kda-name { font-weight:700; }
+.res-kda-champ{ color:var(--text-dim); }
+.res-kda-kda  { font-size:13px; white-space:nowrap; }
+.res-kda-gold { color:var(--gold); font-weight:600; text-align:right; }
+.res-actions { padding:20px 40px; flex-shrink:0; border-top:1px solid #1a2a3a; }
+/* keep old name for gold-total-inline in case it's referenced */
 .gold-total-inline { color: var(--gold); font-size: 16px; margin-top: 4px; }
 
 /* ── T0 Rookie card styling ──────────────────────────────────────────── */
@@ -634,6 +653,7 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
   min-height: 0;
   min-width: 0;
   max-width: 100%;
+  max-height: calc(100vh - 290px);
   aspect-ratio: 1 / 1;
   border-radius: 8px;
   border: 1px solid #1e3a1e;
