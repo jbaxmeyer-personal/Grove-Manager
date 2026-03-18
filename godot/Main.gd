@@ -545,40 +545,8 @@ func _load_sprite_frames(sprite_key: String) -> SpriteFrames:
 		var ph_tex := ImageTexture.create_from_image(ph_img)
 		frames.add_frame("idle", ph_tex)
 
-	# Run animation — separate left/right animations, NO scale.x flipping ever
-	# Row 1 (y=32) of the run sheet: cols 0-5=walk_left, cols 6-11=walk_right
-	var run_img := Image.new()
-	if run_img.load(sprite_dir + sprite_key + "-run.png") == OK:
-		var run_tex := ImageTexture.create_from_image(run_img)
-		frames.add_animation("run_right")
-		frames.set_animation_loop("run_right", true)
-		frames.set_animation_speed("run_right", 10.0)
-		for i in range(6):
-			var atlas := AtlasTexture.new()
-			atlas.atlas = run_tex
-			atlas.region = Rect2((i + 6) * 32, 32, 32, 32)
-			frames.add_frame("run_right", atlas)
-		frames.add_animation("run_left")
-		frames.set_animation_loop("run_left", true)
-		frames.set_animation_speed("run_left", 10.0)
-		for i in range(6):
-			var atlas := AtlasTexture.new()
-			atlas.atlas = run_tex
-			atlas.region = Rect2(i * 32, 32, 32, 32)
-			frames.add_frame("run_left", atlas)
-	else:
-		# No run sheet — use idle for both directions
-		frames.add_animation("run_right")
-		frames.set_animation_loop("run_right", true)
-		frames.set_animation_speed("run_right", 6.0)
-		var n := frames.get_frame_count("idle")
-		for fi in range(n):
-			frames.add_frame("run_right", frames.get_frame_texture("idle", fi))
-		frames.add_animation("run_left")
-		frames.set_animation_loop("run_left", true)
-		frames.set_animation_speed("run_left", 6.0)
-		for fi in range(n):
-			frames.add_frame("run_left", frames.get_frame_texture("idle", fi))
+	# No run animations — idle plays at all times, movement shown via position.
+	# This avoids ALL sprite-direction issues. We may add directional run later.
 
 	# Death animation (optional)
 	var death_img := Image.new()
@@ -692,9 +660,6 @@ func _create_champion_node(side: String, role: String, champ_data: Dictionary) -
 	node.set_meta("prev_y", iy)
 	node.set_meta("next_x", ix)
 	node.set_meta("next_y", iy)
-	# Blue team faces right (toward map center), red faces left — stable default
-	node.set_meta("facing_right", side == "blue")
-
 	champions_node.add_child(node)
 	champ_nodes[side + "_" + role] = node
 
@@ -790,24 +755,10 @@ func _apply_tick(idx: int) -> void:
 
 			var sprite : AnimatedSprite2D = node.get_meta("sprite") as AnimatedSprite2D
 			if not is_dead:
-				var dx : float = nx - prev_x
-				var dy : float = ny_ - prev_y
-				var dist : float = absf(dx) + absf(dy)
-				var is_moving : bool = dist > 2.0
-
-				# Update facing only when clearly moving horizontally — prevents jitter
-				if absf(dx) > 5.0:
-					node.set_meta("facing_right", dx > 0.0)
-
-				var facing_right : bool = node.get_meta("facing_right", true) as bool
-				# scale.x is NEVER changed — use separate run_left/run_right animations
-				var want_anim : String
-				if is_moving:
-					want_anim = "run_right" if facing_right else "run_left"
-				else:
-					want_anim = "idle"
-				if sprite.animation != want_anim:
-					sprite.play(want_anim)
+				# Always idle — movement is visible through position interpolation.
+				# scale is never modified; no direction-based animation switching.
+				if sprite.animation != "idle":
+					sprite.play("idle")
 
 	# HUD update
 	_update_hud(tick_data)
