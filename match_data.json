@@ -1,0 +1,356 @@
+{
+  "teams": {
+    "blue": {"name": "Azure Foxes"},
+    "red":  {"name": "Crimson Wolves"}
+  },
+  "ticks": [
+    {
+      "time": "0:00",
+      "blueKills": 0, "redKills": 0,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 22,  "y": 278, "hp": 550, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 22,  "y": 278, "hp": 480, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 22,  "y": 278, "hp": 420, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 22,  "y": 278, "hp": 440, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 22,  "y": 278, "hp": 500, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 278, "y": 22,  "hp": 550, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 278, "y": 22,  "hp": 480, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 278, "y": 22,  "hp": 420, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 278, "y": 22,  "hp": 440, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 278, "y": 22,  "hp": 500, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [{"type": "commentary", "text": "The Ancient Grove awaits — both teams rush to their lanes!"}]
+    },
+    {
+      "time": "0:08",
+      "blueKills": 0, "redKills": 0,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 35,  "y": 220, "hp": 550, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 70,  "y": 185, "hp": 480, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 80,  "y": 240, "hp": 420, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 100, "y": 275, "hp": 440, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 85,  "y": 275, "hp": 500, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 150, "y": 35,  "hp": 550, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 215, "y": 90,  "hp": 480, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 200, "y": 145, "hp": 420, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 165, "hp": 440, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 265, "y": 185, "hp": 500, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": []
+    },
+    {
+      "time": "0:16",
+      "blueKills": 0, "redKills": 0,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 35,  "y": 170, "hp": 550, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 88,  "y": 115, "hp": 480, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 115, "y": 200, "hp": 420, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 175, "y": 265, "hp": 440, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 148, "y": 265, "hp": 500, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 110, "y": 35,  "hp": 550, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 212, "y": 185, "hp": 480, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 185, "y": 100, "hp": 420, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 140, "hp": 440, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 265, "y": 120, "hp": 500, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [{"type": "commentary", "text": "Vision control being established across the Grove."}]
+    },
+    {
+      "time": "0:36",
+      "blueKills": 0, "redKills": 0,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 35,  "y": 130, "hp": 490, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 120, "y": 150, "hp": 440, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 132, "y": 168, "hp": 395, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 195, "y": 265, "hp": 415, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 175, "y": 265, "hp": 475, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 165, "y": 35,  "hp": 500, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 148, "y": 150, "hp": 445, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 168, "y": 132, "hp": 380, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 120, "hp": 420, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 265, "y": 105, "hp": 465, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [{"type": "commentary", "text": "Both teams advancing toward mid-lane. The jungle is heating up."}]
+    },
+    {
+      "time": "1:00",
+      "blueKills": 1, "redKills": 0,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 140, "y": 160, "hp": 350, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 145, "y": 155, "hp": 290, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 149, "y": 152, "hp": 320, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 215, "y": 265, "hp": 380, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 195, "y": 265, "hp": 420, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 160, "y": 140, "hp": 310, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 22,  "y": 278, "hp": 0,   "maxHp": 480, "isDead": true},
+          "mid":     {"champName": "Hexwing",     "x": 155, "y": 148, "hp": 180, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 110, "hp": 400, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 265, "y": 95,  "hp": 440, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Emberpyre eliminated Thornback! First blood for Blue!"},
+        {"type": "commentary", "text": "A beautiful engage catches the enemy jungler in the open!"}
+      ]
+    },
+    {
+      "time": "1:20",
+      "blueKills": 1, "redKills": 1,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 138, "y": 162, "hp": 220, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 22,  "y": 278, "hp": 0,   "maxHp": 480, "isDead": true},
+          "mid":     {"champName": "Emberpyre",   "x": 148, "y": 153, "hp": 245, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 230, "y": 265, "hp": 310, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 210, "y": 265, "hp": 360, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 162, "y": 138, "hp": 180, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 278, "y": 22,  "hp": 480, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 152, "y": 147, "hp": 120, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 100, "hp": 380, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 265, "y": 88,  "hp": 415, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Irongrasp eliminated Duskwarden with a diving counter-engage!"}
+      ]
+    },
+    {
+      "time": "1:40",
+      "blueKills": 2, "redKills": 1,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 145, "y": 158, "hp": 400, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 85,  "y": 150, "hp": 480, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 150, "y": 150, "hp": 320, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 240, "y": 265, "hp": 290, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 220, "y": 265, "hp": 330, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 155, "y": 145, "hp": 80,  "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 180, "y": 160, "hp": 350, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 278, "y": 22,  "hp": 0,   "maxHp": 420, "isDead": true},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 90,  "hp": 360, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 265, "y": 75,  "hp": 390, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Stoneguard crushed Hexwing in a brutal all-in!"},
+        {"type": "objective", "text": "BLUE seized the Ley Shrine! Power surges through the Grove!"}
+      ]
+    },
+    {
+      "time": "2:00",
+      "blueKills": 3, "redKills": 2,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 90,  "y": 190, "hp": 130, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 110, "y": 160, "hp": 390, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 22,  "y": 278, "hp": 0,   "maxHp": 420, "isDead": true},
+          "adc":     {"champName": "Wildshot",    "x": 245, "y": 265, "hp": 180, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 228, "y": 265, "hp": 240, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 278, "y": 22,  "hp": 550, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 185, "y": 155, "hp": 250, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 200, "y": 120, "hp": 280, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 80,  "hp": 340, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 278, "y": 22,  "hp": 0,   "maxHp": 500, "isDead": true}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Wildshot sniped Tidecaller from long range!"},
+        {"type": "kill", "text": "Irongrasp eliminated Emberpyre in retaliation!"}
+      ]
+    },
+    {
+      "time": "2:30",
+      "blueKills": 4, "redKills": 3,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 70,  "y": 185, "hp": 480, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 95,  "y": 155, "hp": 420, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 120, "y": 195, "hp": 380, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 255, "y": 265, "hp": 310, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 240, "y": 265, "hp": 420, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 200, "y": 80,  "hp": 460, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 195, "y": 145, "hp": 310, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 185, "y": 115, "hp": 200, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 278, "y": 22,  "hp": 0,   "maxHp": 440, "isDead": true},
+          "support": {"champName": "Tidecaller",  "x": 250, "y": 90,  "hp": 380, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Duskwarden secured the kill on Swiftarrow near the roots!"},
+        {"type": "kill", "text": "Irongrasp avenged with a devastating slam on Bogveil!"}
+      ]
+    },
+    {
+      "time": "3:00",
+      "blueKills": 5, "redKills": 3,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 110, "y": 190, "hp": 430, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 130, "y": 150, "hp": 400, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 145, "y": 155, "hp": 350, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 265, "y": 195, "hp": 290, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 260, "y": 215, "hp": 390, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 190, "y": 110, "hp": 380, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 185, "y": 140, "hp": 280, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 278, "y": 22,  "hp": 0,   "maxHp": 420, "isDead": true},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 145, "hp": 320, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 255, "y": 130, "hp": 350, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Emberpyre's meteor strike deletes Hexwing again!"},
+        {"type": "commentary", "text": "Azure Foxes pulling ahead — roots are under pressure!"}
+      ]
+    },
+    {
+      "time": "3:30",
+      "blueKills": 6, "redKills": 4,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 115, "y": 35,  "hp": 290, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 135, "y": 145, "hp": 360, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 150, "y": 150, "hp": 310, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 265, "y": 185, "hp": 250, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 260, "y": 205, "hp": 350, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 185, "y": 115, "hp": 250, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 175, "y": 138, "hp": 190, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 178, "y": 122, "hp": 320, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 278, "y": 22,  "hp": 0,   "maxHp": 440, "isDead": true},
+          "support": {"champName": "Tidecaller",  "x": 248, "y": 125, "hp": 300, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Wildshot eliminates Swiftarrow in a bot lane duel!"},
+        {"type": "kill", "text": "Irongrasp clutch kill on Stoneguard who overextended!"},
+        {"type": "objective", "text": "RED destroyed Blue's top Root tower!"}
+      ]
+    },
+    {
+      "time": "4:00",
+      "blueKills": 7, "redKills": 4,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 35,  "y": 145, "hp": 480, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 235, "y": 235, "hp": 400, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 150, "y": 150, "hp": 280, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 265, "y": 175, "hp": 220, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 255, "y": 195, "hp": 315, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 180, "y": 118, "hp": 190, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 165, "y": 135, "hp": 140, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 170, "y": 130, "hp": 260, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 155, "hp": 380, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 242, "y": 122, "hp": 270, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Duskwarden slew the Grove Warden! BLUE empowered!"},
+        {"type": "commentary", "text": "Azure Foxes are snowballing — can Crimson Wolves turn it around?"}
+      ]
+    },
+    {
+      "time": "4:30",
+      "blueKills": 9, "redKills": 5,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 35,  "y": 115, "hp": 440, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 140, "y": 148, "hp": 380, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 155, "y": 145, "hp": 260, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 265, "y": 165, "hp": 200, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 250, "y": 185, "hp": 290, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 278, "y": 22,  "hp": 0,   "maxHp": 550, "isDead": true},
+          "jungle":  {"champName": "Thornback",   "x": 278, "y": 22,  "hp": 0,   "maxHp": 480, "isDead": true},
+          "mid":     {"champName": "Hexwing",     "x": 200, "y": 80,  "hp": 200, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 150, "hp": 320, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 278, "y": 22,  "hp": 0,   "maxHp": 500, "isDead": true}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Stoneguard and Emberpyre combine for a double kill!"},
+        {"type": "objective", "text": "BLUE pushing toward the Ancient Root!"}
+      ]
+    },
+    {
+      "time": "5:00",
+      "blueKills": 10, "redKills": 5,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 245, "y": 60,  "hp": 380, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 250, "y": 62,  "hp": 350, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 248, "y": 58,  "hp": 230, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 265, "y": 160, "hp": 170, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 252, "y": 180, "hp": 255, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 245, "y": 60,  "hp": 300, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Thornback",   "x": 255, "y": 55,  "hp": 280, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Hexwing",     "x": 240, "y": 65,  "hp": 150, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Swiftarrow",  "x": 265, "y": 148, "hp": 280, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Tidecaller",  "x": 248, "y": 155, "hp": 220, "maxHp": 500, "isDead": false}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Emberpyre eliminates Hexwing defending the base!"},
+        {"type": "commentary", "text": "Azure Foxes at the Ancient Root — this could be the end!"}
+      ]
+    },
+    {
+      "time": "5:20",
+      "blueKills": 12, "redKills": 5,
+      "positions": {
+        "blue": {
+          "top":     {"champName": "Stoneguard",  "x": 270, "y": 28,  "hp": 310, "maxHp": 550, "isDead": false},
+          "jungle":  {"champName": "Duskwarden",  "x": 272, "y": 25,  "hp": 315, "maxHp": 480, "isDead": false},
+          "mid":     {"champName": "Emberpyre",   "x": 268, "y": 30,  "hp": 195, "maxHp": 420, "isDead": false},
+          "adc":     {"champName": "Wildshot",    "x": 265, "y": 160, "hp": 130, "maxHp": 440, "isDead": false},
+          "support": {"champName": "Bogveil",     "x": 260, "y": 175, "hp": 210, "maxHp": 500, "isDead": false}
+        },
+        "red": {
+          "top":     {"champName": "Irongrasp",   "x": 278, "y": 22,  "hp": 0,   "maxHp": 550, "isDead": true},
+          "jungle":  {"champName": "Thornback",   "x": 278, "y": 22,  "hp": 0,   "maxHp": 480, "isDead": true},
+          "mid":     {"champName": "Hexwing",     "x": 278, "y": 22,  "hp": 0,   "maxHp": 420, "isDead": true},
+          "adc":     {"champName": "Swiftarrow",  "x": 278, "y": 22,  "hp": 0,   "maxHp": 440, "isDead": true},
+          "support": {"champName": "Tidecaller",  "x": 278, "y": 22,  "hp": 0,   "maxHp": 500, "isDead": true}
+        }
+      },
+      "events": [
+        {"type": "kill", "text": "Azure Foxes wipe Crimson Wolves in the base!"},
+        {"type": "result",  "text": "AZURE FOXES win! The Ancient Root has fallen!"}
+      ]
+    }
+  ]
+}

@@ -1183,3 +1183,131 @@ function draftChampions(blueTeamArr, redTeamArr) {
     counterScore:  getCounterScore(bluePicks, redPicks),
   };
 }
+
+// ─── Godot match data export ───────────────────────────────────────────────────
+// Call this after simulateMatch() to get JSON suitable for the Godot viewer.
+// Pass in the result object returned by simulateMatch(), plus team name strings.
+
+window.exportMatchDataForGodot = function(simResult, blueName, redName) {
+  if (!simResult || !simResult.events) return null;
+
+  // Convert simulation events (which include 'move' events with positions)
+  // into the tick format Godot expects.
+  const godotTicks = [];
+
+  simResult.events.forEach(ev => {
+    // Only emit ticks for move/kill/objective/commentary/result events
+    if (!ev.positions) return;
+
+    const tick = {
+      time: ev.time || '0:00',
+      blueKills:   ev.blueKills   || 0,
+      redKills:    ev.redKills    || 0,
+      blueShrines: ev.blueShrines || 0,
+      redShrines:  ev.redShrines  || 0,
+      blueRoots:   ev.blueRoots   || 0,
+      redRoots:    ev.redRoots    || 0,
+      positions:   { blue: {}, red: {} },
+      events:      [],
+      text:        '',
+    };
+
+    // Convert position map — include champName and hp data
+    ['blue','red'].forEach(side => {
+      const sidePos = ev.positions[side] || {};
+      Object.keys(sidePos).forEach(role => {
+        const p = sidePos[role];
+        tick.positions[side][role] = {
+          champName: p.champName || role,
+          x:      p.x || 150,
+          y:      p.y || 150,
+          hp:     p.alive === false ? 0 : (p.hp || 0),
+          maxHp:  p.maxHp || 420,
+          isDead: p.isDead !== undefined ? p.isDead : !p.alive,
+        };
+      });
+    });
+
+    // Add the event itself as a sub-event
+    if (ev.type !== 'move') {
+      tick.events.push({ type: ev.type, text: ev.text || '' });
+      if (ev.text) tick.text = ev.text;
+    }
+
+    godotTicks.push(tick);
+  });
+
+  const output = {
+    teams: {
+      blue: { name: blueName || 'Blue Team' },
+      red:  { name: redName  || 'Red Team'  },
+    },
+    ticks: godotTicks,
+    winner: simResult.winner,
+    playerStats: simResult.playerStats || {},
+  };
+
+  return JSON.stringify(output, null, 2);
+};
+
+// ─── Save match data for Godot (browser/Electron) ─────────────────────────────
+// If running in Electron (Node.js available), writes match_data.json to disk.
+// Otherwise, saves to localStorage for potential browser-based use.
+
+window.saveMatchDataForGodot = function(simResult, blueName, redName) {
+  const json = window.exportMatchDataForGodot(simResult, blueName, redName);
+  if (!json) return false;
+
+  // Electron / Node.js environment
+  if (typeof require !== 'undefined') {
+    try {
+      const fs   = require('fs');
+      const path = require('path');
+      // Write next to index.html (project root)
+      const outPath = path.join(process.cwd(), 'match_data.json');
+      fs.writeFileSync(outPath, json, 'utf8');
+      console.log('[Godot export] Wrote match_data.json to', outPath);
+      return outPath;
+    } catch(e) {
+      console.warn('[Godot export] Could not write file:', e.message);
+    }
+  }
+
+  // Browser fallback — localStorage
+  try {
+    localStorage.setItem('godot_match_data', json);
+    console.log('[Godot export] Saved match data to localStorage (godot_match_data)');
+  } catch(e) {
+    console.warn('[Godot export] localStorage save failed:', e.message);
+  }
+  return true;
+};
+
+// ─── Launch Godot viewer (Electron only) ──────────────────────────────────────
+// Saves match data then spawns the Godot executable with --match-data flag.
+
+window.launchGodotViewer = function(simResult, blueName, redName) {
+  const savedPath = window.saveMatchDataForGodot(simResult, blueName, redName);
+  if (!savedPath || typeof require === 'undefined') {
+    console.warn('[Godot launch] Not in Electron or save failed. Cannot launch Godot.');
+    return false;
+  }
+  try {
+    const { spawn } = require('child_process');
+    const path = require('path');
+    // Resolve paths relative to working directory
+    const godotExe = path.join(process.cwd(),
+      'Godot_v4.6.1-stable_win64.exe', 'Godot_v4.6.1-stable_win64.exe');
+    const projectPath = path.join(process.cwd(), 'godot');
+    const proc = spawn(godotExe, [
+      '--path', projectPath,
+      '--match-data', savedPath,
+    ], { detached: true, stdio: 'ignore' });
+    proc.unref();
+    console.log('[Godot launch] Launched Godot viewer, PID', proc.pid);
+    return true;
+  } catch(e) {
+    console.warn('[Godot launch] Failed to spawn Godot:', e.message);
+    return false;
+  }
+};

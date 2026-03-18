@@ -810,8 +810,29 @@ function _showMatchResult(result) {
 
     <div class="res-actions">
       <button class="btn-primary btn-large" onclick="returnFromMatch()">← Return to Manager</button>
+      <button class="btn-secondary btn-large" id="btn-watch-godot" onclick="onWatchInGodot()" style="margin-left:12px;background:#1a2d1a;border:1px solid #4a8c4a;color:#7fff7f;" title="Open Godot 3D match viewer">Watch in Godot Viewer</button>
     </div>
   `;
+
+  // Auto-save match data for Godot whenever we show results
+  if (typeof window.saveMatchDataForGodot === 'function' && result && _matchContext) {
+    window.saveMatchDataForGodot(result, _matchContext.blueName, _matchContext.redName);
+  }
+}
+
+function onWatchInGodot() {
+  if (!_matchResult || !_matchContext) return;
+  if (typeof window.launchGodotViewer === 'function') {
+    const launched = window.launchGodotViewer(
+      _matchResult, _matchContext.blueName, _matchContext.redName
+    );
+    if (!launched) {
+      // Not in Electron — show file path hint
+      alert('Match data saved. Open the Godot project at:\n  godot/\n\nRun: Godot_v4.6.1-stable_win64.exe/Godot_v4.6.1-stable_win64.exe --path godot --match-data match_data.json');
+    }
+  } else {
+    alert('Godot viewer integration not available in this environment.');
+  }
 }
 
 // ─── Interactive Draft ────────────────────────────────────────────────────────
