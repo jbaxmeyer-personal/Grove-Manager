@@ -71,6 +71,10 @@ var event_lines : Array = []
 
 var camera_target : Vector2 = Vector2(150, 150) * MAP_SCALE
 
+# ─── Projectiles ──────────────────────────────────────────────────────────────
+var projectiles : Array = []   # Array of Dicts
+var prev_hp     : Dictionary = {}  # champ key → last known HP
+
 # ─── Initialisation ───────────────────────────────────────────────────────────
 
 var _screenshot_frames : int = -1
@@ -687,6 +691,7 @@ func _process(delta: float) -> void:
 
 	var interp_t : float = tick_timer / TICK_INTERVAL
 	_interpolate_champions(interp_t)
+	_update_projectiles(delta)
 	_update_camera(delta)
 
 func _apply_tick(idx: int) -> void:
@@ -747,6 +752,15 @@ func _apply_tick(idx: int) -> void:
 				hp_fill.color = Color(0.9, 0.7, 0.1)
 			else:
 				hp_fill.color = Color(0.9, 0.2, 0.1)
+
+			# Detect HP drop → spawn projectile from nearest enemy
+			var prev_hp_val : float = prev_hp.get(key, mhp) as float
+			if hp < prev_hp_val - 1.0:
+				var attacker := _find_nearest_enemy(side, node.position)
+				if attacker != null:
+					var proj_color : Color = TEAM_RED if side == "blue" else TEAM_BLUE
+					_spawn_projectile(attacker.position, node.position, proj_color)
+			prev_hp[key] = hp
 
 			# Visibility / animation direction
 			var dead_v : Variant = champ_data.get("isDead", false)
@@ -810,6 +824,58 @@ func _update_hud(tick_data: Dictionary) -> void:
 		elif time_v is int or time_v is float:
 			var ts : int = int(time_v)
 			time_label.text = str(ts / 60) + ":" + str(ts % 60).pad_zeros(2)
+
+# ─── Projectiles ──────────────────────────────────────────────────────────────
+
+func _find_nearest_enemy(side: String, pos: Vector2) -> Node2D:
+	var enemy_side : String = "red" if side == "blue" else "blue"
+	var best_node : Node2D = null
+	var best_dist : float = INF
+	for key_v in champ_nodes.keys():
+		var key : String = key_v as String
+		if not key.begins_with(enemy_side):
+			continue
+		var n : Node2D = champ_nodes[key] as Node2D
+		if not n.visible:
+			continue
+		var d : float = pos.distance_to(n.position)
+		if d < best_dist:
+			best_dist = d
+			best_node = n
+	return best_node
+
+func _spawn_projectile(from_pos: Vector2, to_pos: Vector2, color: Color) -> void:
+	var pnode := _ProjectileDot.new()
+	pnode.dot_color = color
+	pnode.position = from_pos
+	pnode.z_index = 50
+	champions_node.add_child(pnode)
+	projectiles.append({
+		"node":     pnode,
+		"from":     from_pos,
+		"to":       to_pos,
+		"elapsed":  0.0,
+		"duration": 0.45,
+	})
+
+func _update_projectiles(delta: float) -> void:
+	var i : int = projectiles.size() - 1
+	while i >= 0:
+		var p : Dictionary = projectiles[i] as Dictionary
+		p["elapsed"] = (p["elapsed"] as float) + delta
+		var t : float = clampf((p["elapsed"] as float) / (p["duration"] as float), 0.0, 1.0)
+		var pnode : Node2D = p["node"] as Node2D
+		pnode.position = (p["from"] as Vector2).lerp(p["to"] as Vector2, t)
+		if t >= 1.0:
+			pnode.queue_free()
+			projectiles.remove_at(i)
+		i -= 1
+
+class _ProjectileDot extends Node2D:
+	var dot_color : Color = Color.WHITE
+	func _draw() -> void:
+		draw_circle(Vector2.ZERO, 5.0, dot_color)
+		draw_circle(Vector2.ZERO, 5.0, Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
 
 func _update_camera(delta: float) -> void:
 	var sum := Vector2.ZERO
