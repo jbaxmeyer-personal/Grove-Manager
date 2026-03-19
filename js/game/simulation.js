@@ -399,12 +399,12 @@ function decideAction(agent, allies, enemies, objs, jungles, tick, phase) {
   }
 
   // 9. Default: walk toward assigned position (shifts in late-game toward enemy)
-  const lt = laneTarget(agent.side, agent.pos, phase, enemySide, objs);
+  const lt = laneTarget(agent.side, agent.pos, phase, enemySide, objs, tick);
   agent.state  = 'laning';
   agent.target = { type:'position', x: lt.x, y: lt.y };
 }
 
-function laneTarget(side, pos, phase, enemySide, objs) {
+function laneTarget(side, pos, phase, enemySide, objs, tick) {
   if (phase >= 1) {
     const seq = enemySide === 'red'
       ? ['r_top1','r_top2','r_mid1','r_mid2','r_bot1','r_bot2','r_heart','r_ancient']
@@ -412,8 +412,11 @@ function laneTarget(side, pos, phase, enemySide, objs) {
     const next = objs.find(o => seq.includes(o.id) && !o.destroyed);
     if (next) return { x: next.x, y: next.y };
   }
-  if (phase >= 1 && LANE_POS_P1[side]?.[pos]) return LANE_POS_P1[side][pos];
-  return LANE_POS[side][pos];
+  // Gradually advance lane position during laning phase (0→50 ticks)
+  const start = LANE_POS[side][pos];
+  const end   = (LANE_POS_P1[side]?.[pos]) || start;
+  const t     = phase === 0 ? Math.min(1, (tick || 0) / 50) : 1;
+  return { x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t };
 }
 
 // ─── Movement ─────────────────────────────────────────────────────────────────
@@ -653,6 +656,16 @@ function resolveObjectives(objs, agents, events, score, tick) {
     if (obj.type === 'shrine') {
       if (capSide === 'blue') score.blueShrines++; else score.redShrines++;
       obj.hp = obj.maxHp; obj.tempDown = true; obj.respawnAt = tick + 90;
+      const drakeKey = capSide === 'blue' ? 'blueDrakes' : 'redDrakes';
+      score[drakeKey] = Math.min(4, (score[drakeKey] || 0) + 1);
+      const stacks = score[drakeKey];
+      // Dragon soul at 4 stacks
+      if (stacks >= 4) {
+        const soulText = capSide === 'blue' ? 'Blue' : 'Red';
+        events.push({ ...baseEv, type: 'dragon',
+          text: `${soulText} claims the Grove Dragon Soul — their champions are empowered!`,
+          advAfter: advScore(score, agents) });
+      }
       events.push({ ...baseEv,
         text: `${capSide === 'blue' ? 'BLUE' : 'RED'} seized a Ley Shrine!`,
         advAfter: advScore(score, agents),
@@ -661,8 +674,11 @@ function resolveObjectives(objs, agents, events, score, tick) {
     } else if (obj.type === 'warden') {
       score[capSide==='blue' ? 'blueWarden' : 'redWarden']++;
       obj.hp = obj.maxHp; obj.tempDown = true; obj.respawnAt = tick + 120;
-      events.push({ ...baseEv,
-        text: `${capSide === 'blue' ? 'BLUE' : 'RED'} slew the Grove Warden!`,
+      score.baronBuff[capSide] = 90; // 90 ticks = 3 min of baron buff
+      // Empower all surviving champions on winning side
+      near.forEach(a => { a._baronBuffed = 90; });
+      events.push({ ...baseEv, type: 'baron',
+        text: `${capSide === 'blue' ? 'BLUE' : 'RED'} slew the Grove Warden — Hand of the Warden buff granted!`,
         advAfter: advScore(score, agents),
         wardenBlue: capSide==='blue', wardenRed: capSide==='red' });
     } else if (obj.type === 'root') {
@@ -776,20 +792,85 @@ function totalGold(agents, side) {
   return agents.filter(a=>a.side===side).reduce((s,a)=>s+a.gold,0);
 }
 
-// Commentary lines
-const _COMMENTARY = [
-  'Both teams trading blows in the mid-lane.',
-  'The jungle is heating up — wards are down.',
-  'Vision control is being contested near the shrines.',
-  'Poke damage slowly whittles down the front-line.',
-  'Teams jockeying for Ley Shrine priority.',
-  'A beautiful engage caught them completely off guard.',
-  'Split-push pressure is mounting on the flanks.',
-  'Calculated positioning near the Ancient Roots.',
-  'The Grove Warden looms large over this contested zone.',
-  'The support is doing exceptional peel work.',
-];
-let _commIdx = 0;
+// Commentary — contextual, driven by live game state
+function _pickCommentary(all, score, tick) {
+  const gameMin = Math.floor(tick * TICK_S / 60);
+  const bGold   = totalGold(all, 'blue');
+  const rGold   = totalGold(all, 'red');
+  const diff    = bGold - rGold;
+  const bAlive  = all.filter(a => a.side === 'blue' && !a.isDead).length;
+  const rAlive  = all.filter(a => a.side === 'red'  && !a.isDead).length;
+  const totalK  = score.blueKills + score.redKills;
+
+  const pool = [
+    `${totalK} kills across the map — this one is intense.`,
+    gameMin < 8  ? 'Both teams farming carefully in the laning phase.' :
+    gameMin < 15 ? 'The map is opening up as teams begin to rotate.' :
+                   'Late-game teamfight battles are deciding this match.',
+    Math.abs(diff) > 4000
+      ? `${diff > 0 ? 'Blue' : 'Red'} is sitting on a ${Math.abs(Math.round(diff/1000))}K gold lead — snowball incoming.`
+      : 'The gold is remarkably even — anyone can take this.',
+    bAlive < rAlive ? 'Red has the numbers advantage right now.' :
+    rAlive < bAlive ? 'Blue has the numbers advantage — a fight could break out any moment.' :
+                      'Both teams at full strength — the next fight is critical.',
+    'Vision control is the invisible war being fought across the Grove.',
+    score.blueRoots > score.redRoots
+      ? `Blue has taken ${score.blueRoots - score.redRoots} more towers — structural lead.`
+      : score.redRoots > score.blueRoots
+      ? `Red leads in tower gold — map control advantage.`
+      : 'Tower damage is even — no structural advantage yet.',
+    'The jungler\'s pathing has been a key differentiator this game.',
+    'Mid lane priority is dictating where resources go.',
+    'Support roaming is opening up plays around the map.',
+  ];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// Fight rotation: after a decisive teamfight, winning side rotates to objectives
+function _checkFightRotation(all, events, score, objs, tick) {
+  const WINDOW = 10; // ticks
+  // Count recently dead per side
+  const bDead = all.filter(a => a.side === 'blue' && a.isDead && (tick - a.respawnAt + Math.min(28, 8 + Math.floor(a.level*1.4))) < WINDOW).length;
+  const rDead = all.filter(a => a.side === 'red'  && a.isDead && (tick - a.respawnAt + Math.min(28, 8 + Math.floor(a.level*1.4))) < WINDOW).length;
+  const diff = rDead - bDead; // positive = blue won fight
+  if (Math.abs(diff) < 2) return;
+
+  const winningSide = diff > 0 ? 'blue' : 'red';
+  const winners = all.filter(a => a.side === winningSide && !a.isDead);
+  if (winners.length < 2) return;
+
+  const gameMin = (tick * TICK_S) / 60;
+  const shrine  = objs.find(o => o.type === 'shrine' && !o.tempDown);
+  const warden  = objs.find(o => o.type === 'warden' && !o.tempDown);
+  const enemy   = winningSide === 'blue' ? 'red' : 'blue';
+  const towerSeq = enemy === 'red'
+    ? ['r_top1','r_top2','r_mid1','r_mid2','r_bot1','r_bot2','r_heart','r_ancient']
+    : ['b_bot1','b_bot2','b_mid1','b_mid2','b_top1','b_top2','b_heart','b_ancient'];
+  const nextTower = objs.find(o => towerSeq.includes(o.id) && !o.destroyed);
+  const W = winningSide === 'blue' ? 'Blue' : 'Red';
+
+  let rotTarget = null, rotType = 'objective', rotText = '';
+  if (gameMin >= 20 && warden) {
+    rotTarget = warden; rotType = 'warden';
+    rotText = `${W} wins the teamfight ${diff > 0 ? rDead : bDead}-for-${diff > 0 ? bDead : rDead} — rotating to Grove Warden!`;
+  } else if (shrine) {
+    rotTarget = shrine; rotType = 'objective';
+    rotText = `${W} wins the fight — taking Ley Shrine!`;
+  } else if (nextTower) {
+    rotTarget = nextTower; rotType = 'objective';
+    rotText = `${W} capitalizes — pushing ${enemy} towers!`;
+  }
+
+  if (rotTarget) {
+    winners.forEach(ag => { ag.state = 'contesting'; ag.target = { type: rotType, ref: rotTarget }; });
+    events.push({ tick, type: rotTarget.type === 'warden' ? 'baron' : 'objective',
+      time: fmtTime(tick), side: winningSide, text: rotText,
+      blueKills: score.blueKills, redKills: score.redKills,
+      blueShrines: score.blueShrines, redShrines: score.redShrines,
+      blueRoots: score.blueRoots, redRoots: score.redRoots,
+      advAfter: advScore(score, all), positions: posMap(all) });
+  }
+}
 
 // ─── Main simulation entry point ──────────────────────────────────────────────
 
@@ -849,7 +930,6 @@ function _applyTacticsModifiers(agents, side) {
 }
 
 function simulateMatch(blueTeamArr, redTeamArr, blueName, redName, preDraft) {
-  _commIdx = 0;
   const draft = preDraft || draftChampions(blueTeamArr, redTeamArr);
 
   // Init agents
@@ -878,6 +958,7 @@ function simulateMatch(blueTeamArr, redTeamArr, blueName, redName, preDraft) {
     blueShrines:0, redShrines:0,
     blueRoots:0, redRoots:0,
     blueWarden:0, redWarden:0,
+    blueDrakes: 0, redDrakes: 0, baronBuff: { blue: 0, red: 0 },
     winner: null,
   };
 
@@ -918,6 +999,7 @@ function simulateMatch(blueTeamArr, redTeamArr, blueName, redName, preDraft) {
 
     // Resolve deaths and captures
     resolveDeaths(all, events, score, tick);
+    if (!score.winner) _checkFightRotation(all, events, score, objs, tick);
     if (!score.winner) resolveObjectives(objs, all, events, score, tick);
 
     // Snapshots every 4 ticks
@@ -947,11 +1029,31 @@ function simulateMatch(blueTeamArr, redTeamArr, blueName, redName, preDraft) {
     if (tick > 0 && tick % 18 === 0 && !score.winner) {
       events.push({
         tick, side: null, time: fmtTime(tick), type: 'commentary',
-        text: _COMMENTARY[_commIdx++ % _COMMENTARY.length],
+        text: _pickCommentary(all, score, tick),
         blueKills:score.blueKills, redKills:score.redKills,
         blueShrines:score.blueShrines, redShrines:score.redShrines,
         blueRoots:score.blueRoots, redRoots:score.redRoots,
         advAfter: advScore(score, all),
+        positions: posMap(all),
+      });
+    }
+
+    // Team comms every ~20 ticks
+    if (tick > 0 && tick % 20 === 11 && !score.winner) {
+      const roles  = ['top','jungle','mid','adc','support'];
+      const role   = roles[tick % roles.length];
+      const side   = tick % 3 === 0 ? 'blue' : 'red';
+      const commsPool = {
+        top:     ['I need gank pressure — they have flash though.', 'Splitting side lane, keep them occupied.', 'I can flank if you engage first.', 'Wave frozen — don\'t overextend.'],
+        jungle:  ['Dragon in 40 — get vision now.', 'Pathing through mid after this camp.', 'Counter-jungling if they step up.', 'Tracking their jungler — be careful.'],
+        mid:     ['Roaming top after I shove this wave.', 'Need peel — I\'m squishy in this matchup.', 'Lane is pushed — let\'s contest Shrine.', 'They have ult — play safe for 30s.'],
+        adc:     ['Peeling for me matters more than engage.', 'I outrange them — let\'s poke before objectives.', 'Support, follow up if I engage.', 'Need one more item then I\'m online.'],
+        support: ['Setting vision around Ley Shrine.', 'Their support is aggressive — trade carefully.', 'I\'ll peel — you clean up the fight.', 'Roaming mid — ADC just recall.'],
+      };
+      const lines = commsPool[role] || commsPool.mid;
+      events.push({
+        tick, type: 'comms', time: fmtTime(tick), side, role,
+        text: lines[Math.floor(Math.random() * lines.length)],
         positions: posMap(all),
       });
     }
@@ -1075,6 +1177,7 @@ function agentStatsMap(agents) {
       isDead:  !!ag.isDead,
       level:   ag.level   || 1,
       items:   [...(ag.items || [])],
+      ultReady: ag.cdUlt <= 0 && ag.level >= 6,
     };
   });
   return m;

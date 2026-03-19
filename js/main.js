@@ -122,10 +122,6 @@ function _startSeriesGame() {
   document.getElementById('draft-phase').style.display        = 'block';
   document.getElementById('pbp-container').style.display      = 'none';
   document.getElementById('pbp-results').style.display        = 'none';
-  document.getElementById('pbp-events').innerHTML             = '';
-  const chatFeed = document.getElementById('pbp-chat-feed');
-  if (chatFeed) chatFeed.innerHTML = '';
-  _chatSeed = 0;
   setText('match-game-timer', '0:00');
   setText('mh-blue-gold', '0K');
   setText('mh-red-gold',  '0K');
@@ -170,28 +166,9 @@ function onStartMatch() {
   document.getElementById('tactics-phase').style.display = 'none';
   document.getElementById('pbp-container').style.display = 'flex';
   document.getElementById('pbp-results').style.display   = 'none';
-  document.getElementById('pbp-events').innerHTML        = '';
 
-  if (typeof initLiveStats === 'function' && draft) {
-    initLiveStats(draft, blueName, redName);
-  }
   _updateMatchScore(0, 0, 0, 0, 0, 0, 50);
   startPBP(_matchResult.events);
-  // Set player names on map dots after map is initialized
-  if (_matchContext?.draft) {
-    ['blue','red'].forEach(side => {
-      const picks = _matchContext.draft[side] || [];
-      picks.forEach((p, i) => {
-        const pos = POSITIONS[i];
-        const pfx = side[0];
-        const el = document.getElementById(`map-name-${pfx}-${pos}`);
-        if (el) {
-          const name = typeof p === 'string' ? p : (p.player?.name || p.champion || '');
-          el.textContent = name.length > 8 ? name.slice(0,7)+'.' : name;
-        }
-      });
-    });
-  }
 }
 
 function onSkipMatch() {
@@ -204,12 +181,8 @@ function onSkipMatch() {
   document.getElementById('role-assignment-phase').style.display = 'none';
   document.getElementById('tactics-phase').style.display = 'none';
   document.getElementById('pbp-container').style.display = 'flex';
-  if (typeof initLiveStats === 'function' && draft) {
-    initLiveStats(draft, blueName, redName);
-  }
 
   if (_pbpTimer) { clearTimeout(_pbpTimer); _pbpTimer = null; }
-  if (typeof setMapSkipMode === 'function') setMapSkipMode(true);
 
   _updateMatchScore(
     _matchResult.blueKills,   _matchResult.redKills,
@@ -223,7 +196,6 @@ function onSkipMatch() {
 
 function returnFromMatch() {
   if (_pbpTimer) { clearTimeout(_pbpTimer); _pbpTimer = null; }
-  if (typeof setMapSkipMode === 'function') setMapSkipMode(false);
 
   if (!_matchResult || !_matchContext || !_seriesState) {
     _matchResult = null; _matchContext = null; _seriesState = null;
@@ -450,83 +422,42 @@ const PBP_BASE_DELAY = 300; // ms per event at 1× speed
 let _pbpSpeedMult = 1;
 let _pbpPaused    = false;
 
-function pbpSpeed(mult) {
-  _pbpSpeedMult = mult;
-  _pbpPaused    = false;
-  if (typeof setMapTickMs === 'function') setMapTickMs(Math.round(PBP_BASE_DELAY / mult));
-  document.querySelectorAll('.pbp-speed-btn[id^="pbp-btn-"]').forEach(b => b.classList.remove('pbp-speed-active'));
-  const btn = document.getElementById(`pbp-btn-${mult}x`);
-  if (btn) btn.classList.add('pbp-speed-active');
-}
+function pbpSpeed (mult) { if (typeof mvSetSpeed === 'function') mvSetSpeed(mult); }
 
-function pbpPause() {
-  _pbpPaused = !_pbpPaused;
-  const btn = document.getElementById('pbp-btn-pause');
-  if (btn) btn.textContent = _pbpPaused ? '▶' : '⏸';
-  if (!_pbpPaused && _pbpContinueFn) _pbpContinueFn();
-}
+function pbpPause () { if (typeof mvPause === 'function') mvPause(); }
 
-let _pbpContinueFn = null;
+function mvSpeed (s) { if (typeof mvSetSpeed === 'function') mvSetSpeed(s); }
 
-function startPBP(events) {
-  if (typeof initMapVisualization === 'function') initMapVisualization();
-  if (typeof setMapSkipMode       === 'function') setMapSkipMode(false);
-  _pbpSpeedMult = 1;
-  _pbpPaused    = false;
-  _pbpContinueFn= null;
-  // Reset speed button state
-  document.querySelectorAll('.pbp-speed-btn[id^="pbp-btn-"]').forEach(b => b.classList.remove('pbp-speed-active'));
-  const btn1 = document.getElementById('pbp-btn-1x');
-  if (btn1) btn1.classList.add('pbp-speed-active');
-  const pauseBtn = document.getElementById('pbp-btn-pause');
-  if (pauseBtn) pauseBtn.textContent = '⏸';
+function startPBP (events) {
+  // Build champion/player name maps for the matchup panel
+  const champNames   = { blue: {}, red: {} };
+  const playerNames  = { blue: {}, red: {} };
+  const roles        = ['top', 'jungle', 'mid', 'adc', 'support'];
 
-  const feedEl = document.getElementById('pbp-events');
-  _updateMatchScore(0, 0, 0, 0, 0, 0, 50);
-
-  let idx = 0;
-  function step() {
-    if (_pbpPaused) { _pbpContinueFn = step; return; }
-    if (idx >= events.length) return;
-    const ev = events[idx++];
-
-    if (typeof updateMap === 'function') updateMap(ev);
-    if (ev.type !== 'move') {
-      _appendPBPEvent(ev, feedEl);
-    }
-    if (ev.agentStats && typeof updateLiveStats === 'function') updateLiveStats(ev.agentStats);
-    if (ev.agentStats) _updateMatchup(ev.agentStats);
-    // Live gold chart: update progressively each tick
-    if (ev.tick !== undefined && _matchResult?.goldSnapshots) {
-      _drawGoldChart(_matchResult.goldSnapshots.slice(0, ev.tick + 1));
-    }
-    _updateMatchScore(
-      ev.blueKills,   ev.redKills,
-      ev.blueShrines, ev.redShrines,
-      ev.blueRoots,   ev.redRoots,
-      ev.advAfter
-    );
-    // Timer
-    if (ev.time) setText('match-game-timer', ev.time);
-    // Live gold totals
-    if (ev.agentStats) {
-      const bg = Object.values(ev.agentStats.blue).reduce((s,p)=>s+(p.gold||0),0);
-      const rg = Object.values(ev.agentStats.red ).reduce((s,p)=>s+(p.gold||0),0);
-      const fmtG = g => g>=1000?(g/1000).toFixed(1)+'K':g+'';
-      setText('mh-blue-gold', fmtG(bg));
-      setText('mh-red-gold',  fmtG(rg));
-    }
-    // Chat
-    _generatePBPChat(ev);
-
-    if (ev.type === 'result') {
-      _drawGoldChart(_matchResult && _matchResult.goldSnapshots);
-      _showMatchResult(_matchResult);
-      return;
-    }
-    _pbpTimer = setTimeout(step, Math.round(PBP_BASE_DELAY / _pbpSpeedMult));
+  if (_matchContext && _matchResult) {
+    ['blue', 'red'].forEach(side => {
+      const roster    = side === 'blue' ? _matchContext.blueRoster : _matchContext.redRoster;
+      const draftPicks = (_matchResult.draft || {})[side] || [];
+      roles.forEach((role, i) => {
+        champNames[side][role]  = draftPicks[i]?.champion || draftPicks[i] || '?';
+        playerNames[side][role] = roster?.[i]?.name || '?';
+      });
+    });
   }
-  step();
+
+  if (typeof initMatchViewer === 'function') {
+    initMatchViewer(
+      events,
+      _matchContext?.blueName || 'Blue',
+      _matchContext?.redName  || 'Red',
+      champNames,
+      playerNames,
+      function onEnd () {
+        _drawGoldChart(_matchResult && _matchResult.goldSnapshots);
+        _showMatchResult(_matchResult);
+      }
+    );
+  }
 }
 
 function _appendPBPEvent(ev, feedEl) {

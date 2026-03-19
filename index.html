@@ -323,56 +323,56 @@
     </div>
   </div>
 
-  <!-- PBP -->
-  <div id="pbp-container" class="pbp-container" style="display:none">
-    <div class="pbp-main">
-      <!-- Blue stats panel (left) -->
-      <div class="pbp-side-panel pbp-side-blue">
-        <div class="lsp-panel-header" id="lsp-blue-label" style="color:#4fc3f7">Blue</div>
-        <div id="lsp-blue-rows"></div>
-        <div id="pbp-chat" class="pbp-chat">
-          <div class="pbp-chat-header">Comms</div>
-          <div id="pbp-chat-feed" class="pbp-chat-feed"></div>
+  <!-- ══════════════════════════════════════════════════════════════════
+       MATCH VIEWER (Hattrick-style: matchup panel | minimap | commentary)
+       ══════════════════════════════════════════════════════════════════ -->
+  <div id="pbp-container" class="mv-container" style="display:none">
+
+    <!-- Speed controls bar -->
+    <div class="mv-controls-bar">
+      <button class="mv-speed-btn" id="mv-btn-pause" onclick="mvPause()">⏸</button>
+      <button class="mv-speed-btn speed-active" id="mv-btn-1x" onclick="mvSpeed(1)">1×</button>
+      <button class="mv-speed-btn" id="mv-btn-2x" onclick="mvSpeed(2)">2×</button>
+      <button class="mv-speed-btn" id="mv-btn-5x" onclick="mvSpeed(5)">5×</button>
+    </div>
+
+    <!-- 3-column body -->
+    <div class="mv-body">
+
+      <!-- LEFT: Champion Matchup Panels -->
+      <div class="mv-matchups-col">
+        <div class="mv-matchups-header">
+          <span class="mv-mh-blue" id="mv-blue-team-name">Blue</span>
+          <span class="mv-mh-vs">vs</span>
+          <span class="mv-mh-red" id="mv-red-team-name">Red</span>
+        </div>
+        <div id="mv-matchup-rows" class="mv-matchup-rows"></div>
+      </div>
+
+      <!-- CENTER: Mini-map -->
+      <div class="mv-map-col">
+        <canvas id="mv-minimap-canvas" width="360" height="360"></canvas>
+        <div class="mv-obj-row-strip">
+          <div class="mv-obj-chip">🐉 <span id="mv-dragon-count">0</span> stacks</div>
+          <div class="mv-obj-chip mv-obj-chip-red">🐉 <span id="mv-dragon-count-r">0</span> stacks</div>
+          <div class="mv-obj-chip mv-obj-chip-baron">👁 Baron</div>
         </div>
       </div>
 
-      <!-- Camera column: large zoomed view + bottom strip -->
-      <div class="pbp-camera-col">
-        <div class="pbp-camera-wrap">
-          <canvas id="pbp-map-canvas" width="900" height="600"></canvas>
-        </div><!-- end pbp-camera-wrap -->
-
-        <!-- Bottom strip: matchup + events -->
-        <div class="pbp-bottom-strip">
-          <div id="pbp-matchup" class="pbp-matchup">
-            <div class="pbp-matchup-title">Matchups</div>
-            <div id="pbp-matchup-rows"></div>
-          </div>
-          <div class="pbp-events-section">
-            <div class="pbp-controls" id="pbp-controls">
-              <button class="pbp-speed-btn" id="pbp-btn-pause" onclick="pbpPause()" title="Pause">⏸</button>
-              <button class="pbp-speed-btn pbp-speed-active" id="pbp-btn-1x" onclick="pbpSpeed(1)" title="1× speed">1×</button>
-              <button class="pbp-speed-btn" id="pbp-btn-2x" onclick="pbpSpeed(2)" title="2× speed">2×</button>
-              <button class="pbp-speed-btn" id="pbp-btn-4x" onclick="pbpSpeed(4)" title="4× speed">4×</button>
-              <button class="pbp-speed-btn" id="pbp-btn-8x" onclick="pbpSpeed(8)" title="8× speed">8×</button>
-            </div>
-            <div id="pbp-events" class="pbp-events"></div>
-          </div>
-        </div><!-- end pbp-bottom-strip -->
-      </div><!-- end pbp-camera-col -->
-
-      <!-- Right column: red team panel + minimap -->
-      <div class="pbp-right-col">
-        <div class="pbp-side-panel pbp-side-red">
-          <div class="lsp-panel-header" id="lsp-red-label" style="color:#ff7b7b">Red</div>
-          <div id="lsp-red-rows"></div>
+      <!-- RIGHT: Live Commentary + Team Comms -->
+      <div class="mv-commentary-col">
+        <div class="mv-feed-header">
+          <span class="mv-live-dot"></span> LIVE FEED
         </div>
-        <!-- Minimap -->
-        <div class="pbp-minimap-wrap">
-          <canvas id="pbp-minimap-canvas" width="200" height="200"></canvas>
-        </div><!-- end pbp-minimap-wrap -->
-      </div><!-- end pbp-right-col -->
-    </div><!-- end pbp-main -->
+        <div id="mv-commentary-feed" class="mv-commentary-feed"></div>
+        <div class="mv-comms-section">
+          <div class="mv-comms-header">💬 Team Comms</div>
+          <div id="mv-comms-feed" class="mv-comms-feed"></div>
+        </div>
+      </div>
+
+    </div><!-- end mv-body -->
+
     <div id="pbp-results" class="pbp-results" style="display:none"></div>
   </div>
 
@@ -394,9 +394,7 @@
 <script src="js/data/players.js"></script>
 <script src="js/game/state.js"></script>
 <script src="js/game/simulation.js"></script>
-<script src="js/ui/asset-loader.js"></script>
-<script src="js/ui/sprites.js"></script>
-<script src="js/ui/pixel-map.js"></script>
+<script src="js/ui/match-viewer.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 
