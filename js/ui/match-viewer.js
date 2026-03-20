@@ -1,5 +1,5 @@
 // js/ui/match-viewer.js — Match viewer: matchup panel, minimap canvas, commentary
-// Layout: Left=matchup panels, Center=minimap, Right=live commentary
+// Layout: Left=matchup panels+comms, Center=minimap, Right=live commentary
 'use strict';
 
 (function () {
@@ -61,6 +61,7 @@
   let _redName     = 'Red';
   let _champNames  = { blue: {}, red: {} };
   let _playerNames = { blue: {}, red: {} };
+  let _humanSide   = 'blue';
 
   let _positions   = { blue: {}, red: {} };
   let _agentStats  = { blue: {}, red: {} };
@@ -68,14 +69,22 @@
   let _score = { blueKills:0, redKills:0, blueRoots:0, redRoots:0,
                  blueShrines:0, redShrines:0, blueWarden:0, redWarden:0 };
 
+  // rAF interpolation
+  let _prevPos     = { blue:{}, red:{} };
+  let _nextPos     = { blue:{}, red:{} };
+  let _tickStartMs = 0;
+  let _tickMs      = TICK_S * 1000;
+  let _rafHandle   = null;
+
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  window.initMatchViewer = function (events, blueName, redName, champNames, playerNames, onEnd) {
+  window.initMatchViewer = function (events, blueName, redName, champNames, playerNames, humanSide, onEnd) {
     _events      = events || [];
     _blueName    = blueName  || 'Blue';
     _redName     = redName   || 'Red';
     _champNames  = champNames  || { blue:{}, red:{} };
     _playerNames = playerNames || { blue:{}, red:{} };
+    _humanSide   = humanSide || 'blue';
     _onEnd       = onEnd || null;
 
     // Group events by tick
@@ -96,16 +105,22 @@
     _objStates   = {};
     _score       = { blueKills:0, redKills:0, blueRoots:0, redRoots:0,
                      blueShrines:0, redShrines:0, blueWarden:0, redWarden:0 };
+    _prevPos     = { blue:{}, red:{} };
+    _nextPos     = { blue:{}, red:{} };
+    _tickStartMs = performance.now();
+    _tickMs      = TICK_S * 1000;
 
     _buildMatchupPanel();
     _clearFeeds();
-    _drawMinimap();
     _updateSpeedBtns(1);
+    _stopRaf();
+    _startRaf();
     _startTimer();
   };
 
   window.mvSetSpeed = function (s) {
     _speed  = s;
+    _tickMs = Math.max(50, Math.round(TICK_S * 1000 / s));
     _paused = false;
     _updateSpeedBtns(s);
     const btn = document.getElementById('mv-btn-pause');
@@ -122,6 +137,7 @@
       if (_timer) clearInterval(_timer);
       _timer = null;
     } else {
+      _tickStartMs = performance.now(); // reset lerp start on resume
       _startTimer();
     }
   };
@@ -130,19 +146,78 @@
 
   function _startTimer () {
     if (_timer) clearInterval(_timer);
-    const ms = Math.max(50, Math.round(TICK_S * 1000 / _speed));
-    _timer = setInterval(_advanceTick, ms);
+    _tickMs = Math.max(50, Math.round(TICK_S * 1000 / _speed));
+    _timer = setInterval(_advanceTick, _tickMs);
   }
 
   function _advanceTick () {
     if (_paused) return;
+    // Snapshot positions before this tick's events
+    _prevPos = _deepCopyPos(_positions);
+
     const evs = _tickGroups[_curTick] || [];
     evs.forEach(_applyEvent);
+
+    // Snapshot positions after this tick's events
+    _nextPos = _deepCopyPos(_positions);
+    _tickStartMs = performance.now();
+
     _curTick++;
     if (_curTick > _maxTick) {
       clearInterval(_timer);
       _timer = null;
+      // Keep rAF running briefly so final positions render, then stop
+      setTimeout(_stopRaf, 2000);
     }
+  }
+
+  // ── rAF Interpolation ──────────────────────────────────────────────────────
+
+  function _startRaf () {
+    if (_rafHandle) cancelAnimationFrame(_rafHandle);
+    function loop (now) {
+      const elapsed = now - _tickStartMs;
+      const t = Math.min(1, elapsed / (_tickMs || (TICK_S * 1000)));
+      _drawMinimapLerped(t);
+      _rafHandle = requestAnimationFrame(loop);
+    }
+    _rafHandle = requestAnimationFrame(loop);
+  }
+
+  function _stopRaf () {
+    if (_rafHandle) { cancelAnimationFrame(_rafHandle); _rafHandle = null; }
+  }
+
+  function _deepCopyPos (pos) {
+    const out = { blue:{}, red:{} };
+    ['blue','red'].forEach(side => {
+      POSITIONS.forEach(role => {
+        const d = pos[side]?.[role];
+        if (d) out[side][role] = { x:d.x, y:d.y, hp:d.hp, maxHp:d.maxHp, alive:d.alive };
+      });
+    });
+    return out;
+  }
+
+  function _drawMinimapLerped (t) {
+    // Build interpolated position map
+    const lerped = { blue:{}, red:{} };
+    ['blue','red'].forEach(side => {
+      POSITIONS.forEach(role => {
+        const p = _prevPos[side]?.[role];
+        const n = _nextPos[side]?.[role];
+        if (n) {
+          lerped[side][role] = {
+            x:     p ? p.x + (n.x - p.x) * t : n.x,
+            y:     p ? p.y + (n.y - p.y) * t : n.y,
+            hp:    n.hp,
+            maxHp: n.maxHp,
+            alive: n.alive,
+          };
+        }
+      });
+    });
+    _drawMinimapWithPos(lerped);
   }
 
   // ── Event application ──────────────────────────────────────────────────────
@@ -150,7 +225,7 @@
   function _applyEvent (ev) {
     if (!ev) return;
 
-    if (ev.positions)  { _positions  = ev.positions;  _drawMinimap(); }
+    if (ev.positions)  { _positions  = ev.positions; }
     if (ev.agentStats) { _agentStats = ev.agentStats; _updateMatchupPanel(); }
     if (ev.objectives) { _updateObjStates(ev.objectives); }
 
@@ -182,7 +257,6 @@
     _setText('score-blue-shrines', _score.blueShrines);
     _setText('score-red-shrines',  _score.redShrines);
 
-    // Total gold per team from agent stats
     let bg = 0, rg = 0;
     POSITIONS.forEach(p => {
       bg += _agentStats.blue?.[p]?.gold || 0;
@@ -202,7 +276,7 @@
 
   function _updateObjStates (objectives) {
     objectives.forEach(o => { _objStates[o.id] = o; });
-    _drawMinimap();
+    // No direct draw call — rAF loop handles rendering
   }
 
   // ── Matchup Panel ──────────────────────────────────────────────────────────
@@ -211,7 +285,6 @@
     const container = document.getElementById('mv-matchup-rows');
     if (!container) return;
 
-    // Set team name headers
     _setText('mv-blue-team-name', _blueName);
     _setText('mv-red-team-name',  _redName);
 
@@ -272,7 +345,7 @@
   }
 
   function _emptyItems () {
-    return '<div class="mv-item-slot"></div>'.repeat(6);
+    return '<div class="mv-item-slot"></div>'.repeat(3);
   }
 
   function _updateMatchupPanel () {
@@ -281,23 +354,18 @@
       const rs = _agentStats.red?.[pos];
       if (!bs || !rs) return;
 
-      // HP bars
       _setWidth(`mv-bhp-${pos}`, bs.isDead ? 0 : (bs.hp / bs.maxHp) * 100);
       _setWidth(`mv-rhp-${pos}`, rs.isDead ? 0 : (rs.hp / rs.maxHp) * 100);
 
-      // KDA
       _setText(`mv-bkda-${pos}`, `${bs.kills}/${bs.deaths}/${bs.assists}`);
       _setText(`mv-rkda-${pos}`, `${rs.kills}/${rs.deaths}/${rs.assists}`);
 
-      // CS
       _setText(`mv-bcs-${pos}`, `${bs.cs} CS`);
       _setText(`mv-rcs-${pos}`, `${rs.cs} CS`);
 
-      // Level
       _setText(`mv-blvl-${pos}`, bs.level);
       _setText(`mv-rlvl-${pos}`, rs.level);
 
-      // Gold diff (blue advantage)
       const diff = (bs.gold || 0) - (rs.gold || 0);
       const gdEl = document.getElementById(`mv-gdiff-${pos}`);
       if (gdEl) {
@@ -307,15 +375,12 @@
           (diff > 500 ? 'gdiff-blue' : diff < -500 ? 'gdiff-red' : 'gdiff-even');
       }
 
-      // Ult ready
       _toggleClass(`mv-bult-${pos}`, 'ult-ready', !!bs.ultReady);
       _toggleClass(`mv-rult-${pos}`, 'ult-ready', !!rs.ultReady);
 
-      // Items
       _renderItems(`mv-bitems-${pos}`, bs.items || []);
       _renderItems(`mv-ritems-${pos}`, rs.items || []);
 
-      // Row dead state
       _toggleClass(`mv-row-${pos}`, 'row-dead-blue', !!bs.isDead);
       _toggleClass(`mv-row-${pos}`, 'row-dead-red',  !!rs.isDead);
     });
@@ -325,7 +390,7 @@
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = '';
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 3; i++) {
       const slot = document.createElement('div');
       slot.className = 'mv-item-slot';
       if (items[i]) {
@@ -341,7 +406,7 @@
 
   // ── Minimap Canvas ─────────────────────────────────────────────────────────
 
-  function _drawMinimap () {
+  function _drawMinimapWithPos (drawPos) {
     const canvas = document.getElementById('mv-minimap-canvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -364,15 +429,10 @@
     ctx.strokeStyle = COL.lane;
     ctx.lineWidth   = Math.max(3, W * 0.05);
     ctx.lineCap     = 'round';
-    // Bot lane
     _line(ctx, 0.07*W, 0.88*H, 0.93*W, 0.88*H);
-    // Top lane
     _line(ctx, 0.07*W, 0.12*H, 0.93*W, 0.12*H);
-    // Left (top lane vertical)
     _line(ctx, 0.12*W, 0.07*H, 0.12*W, 0.93*H);
-    // Right (bot lane vertical)
     _line(ctx, 0.88*W, 0.07*H, 0.88*W, 0.93*H);
-    // Mid diagonal
     _line(ctx, 0.12*W, 0.88*H, 0.88*W, 0.12*H);
 
     // River accent
@@ -403,17 +463,16 @@
     _drawBase(ctx, 0.055*W, 0.88*H, W*0.035, COL.blue);
     _drawBase(ctx, 0.945*W, 0.12*H, W*0.035, COL.red);
 
-    // Champion dots
+    // Champion dots (use interpolated drawPos)
     ['blue','red'].forEach(side => {
       POSITIONS.forEach(pos => {
-        const d = _positions[side]?.[pos];
+        const d = drawPos[side]?.[pos];
         if (!d) return;
         const dx    = d.x * sx;
         const dy    = d.y * sy;
         const alive = d.alive !== false;
         const r     = W * 0.032;
 
-        // HP arc
         if (alive && d.maxHp > 0) {
           const pct = Math.max(0, Math.min(1, d.hp / d.maxHp));
           const hc  = pct > 0.6 ? '#4caf50' : pct > 0.3 ? '#ffeb3b' : '#f44336';
@@ -427,12 +486,10 @@
           ctx.stroke();
         }
 
-        // Dot fill
         ctx.globalAlpha = alive ? 1.0 : 0.35;
         ctx.fillStyle   = alive ? (side === 'blue' ? COL.blue : COL.red) : '#555';
         ctx.beginPath(); ctx.arc(dx, dy, r, 0, Math.PI*2); ctx.fill();
 
-        // Role initial
         ctx.fillStyle    = '#fff';
         ctx.globalAlpha  = alive ? 0.95 : 0.5;
         ctx.font         = `bold ${Math.max(7, Math.floor(r * 0.95))}px sans-serif`;
@@ -484,7 +541,11 @@
 
   function _addToFeed (ev) {
     const isComms = ev.type === 'comms';
-    const feed    = document.getElementById(isComms ? 'mv-comms-feed' : 'mv-commentary-feed');
+
+    // Filter comms: only show messages from the human's team
+    if (isComms && ev.side !== _humanSide) return;
+
+    const feed = document.getElementById(isComms ? 'mv-comms-feed' : 'mv-commentary-feed');
     if (!feed) return;
 
     const meta = EV_META[ev.type] || EV_META.commentary;

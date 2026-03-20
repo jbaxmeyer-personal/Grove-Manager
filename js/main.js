@@ -446,12 +446,14 @@ function startPBP (events) {
   }
 
   if (typeof initMatchViewer === 'function') {
+    const humanSide = (_matchContext?.blueId === G.humanTeamId) ? 'blue' : 'red';
     initMatchViewer(
       events,
       _matchContext?.blueName || 'Blue',
       _matchContext?.redName  || 'Red',
       champNames,
       playerNames,
+      humanSide,
       function onEnd () {
         _drawGoldChart(_matchResult && _matchResult.goldSnapshots);
         _showMatchResult(_matchResult);
