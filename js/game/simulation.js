@@ -625,6 +625,8 @@ function resolveDeaths(agents, events, score, tick) {
       advAfter: advScore(score, agents),
       positions: posMap(agents),
       killBlue: killSide === 'blue',
+      victimSide: ag.side, victimRole: ag.pos,
+      killerSide: killer?.side || null, killerRole: killer?.pos || null,
       agentStats: agentStatsMap(agents),
     });
   });
@@ -646,7 +648,7 @@ function resolveObjectives(objs, agents, events, score, tick) {
     near.forEach(a => { grantXP(a, xpR); a.gold += gdR; });
 
     const baseEv = {
-      tick, side: capSide, time: fmtTime(tick), type: 'objective',
+      tick, side: capSide, time: fmtTime(tick), type: 'objective', objId: obj.id,
       blueKills: score.blueKills, redKills: score.redKills,
       blueShrines: score.blueShrines, redShrines: score.redShrines,
       blueRoots: score.blueRoots, redRoots: score.redRoots,
@@ -759,6 +761,11 @@ function posMap(agents) {
       isDead: !!ag.isDead,
       hp: Math.round(ag.hp), maxHp: ag.maxHp,
       champName: ag.champName,
+      // view-layer hints (3D viewer): current state + what the agent is targeting
+      state: ag.state, level: ag.level || 1,
+      tid: ag.target?.ref?.id || null,
+      tx: ag.target ? Math.round(ag.target.ref ? ag.target.ref.x : ag.target.x) : undefined,
+      ty: ag.target ? Math.round(ag.target.ref ? ag.target.ref.y : ag.target.y) : undefined,
     };
   });
   return m;

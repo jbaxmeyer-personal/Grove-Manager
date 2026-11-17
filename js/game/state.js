@@ -2016,9 +2016,9 @@ function loadGame() {
 }
 
 function hasSave() {
-  return !!localStorage.getItem('grove-manager-save-v1');
+  try { return !!localStorage.getItem('grove-manager-save-v1'); } catch(e) { return false; }
 }
 
 function deleteSave() {
-  localStorage.removeItem('grove-manager-save-v1');
+  try { localStorage.removeItem('grove-manager-save-v1'); } catch(e) {}
 }

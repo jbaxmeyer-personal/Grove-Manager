@@ -112,10 +112,27 @@
 
     _buildMatchupPanel();
     _clearFeeds();
+    _mount3D();
     _updateSpeedBtns(1);
     _stopRaf();
     _startRaf();
     _startTimer();
+  };
+
+  // ── 3D view (js/ui/match-viewer-3d.js, loaded as an ES module) ─────────────
+  function _mount3D () {
+    const el = document.getElementById('mv-3d');
+    if (!el) return;
+    const meta = { champNames: _champNames, playerNames: _playerNames, humanSide: _humanSide,
+                   blueName: _blueName, redName: _redName };
+    if (window.Match3D) { window.Match3D.mount(el, meta); return; }
+    // module not loaded yet (or CDN blocked) — mount when it arrives
+    window.addEventListener('match3d-ready', () => window.Match3D && window.Match3D.mount(el, meta), { once: true });
+  }
+
+  window.mvToggle2D = function () {
+    const el = document.getElementById('mv-3d');
+    if (el) el.classList.toggle('mv-show-2d');
   };
 
   window.mvSetSpeed = function (s) {
@@ -218,12 +235,14 @@
       });
     });
     _drawMinimapWithPos(lerped);
+    if (window.Match3D) window.Match3D.frame(lerped, t, _curTick);
   }
 
   // ── Event application ──────────────────────────────────────────────────────
 
   function _applyEvent (ev) {
     if (!ev) return;
+    if (window.Match3D) window.Match3D.event(ev);
 
     if (ev.positions)  { _positions  = ev.positions; }
     if (ev.agentStats) { _agentStats = ev.agentStats; _updateMatchupPanel(); }
@@ -438,13 +457,12 @@
     // River accent
     ctx.strokeStyle = 'rgba(100,160,200,0.18)';
     ctx.lineWidth   = W * 0.10;
-    _line(ctx, 0*W, 0.5*H, 0.5*W, 0*H);
-    _line(ctx, 0.5*W, 1.0*H, 1.0*W, 0.5*H);
+    _line(ctx, 0.06*W, 0.06*H, 0.94*W, 0.94*H);   // river runs top-left → bottom-right (matches sim)
 
-    // Dragon pit
-    _drawPit(ctx, 0.22*W, 0.78*H, W*0.055, 'rgba(200,155,60,0.3)', COL.neutral, '🐉', W);
-    // Baron pit
-    _drawPit(ctx, 0.78*W, 0.22*H, W*0.055, 'rgba(155,89,182,0.3)', COL.baron,   '👁', W);
+    // Shrine (dragon) pit — sim (65,65)
+    _drawPit(ctx, 0.217*W, 0.217*H, W*0.055, 'rgba(200,155,60,0.3)', COL.neutral, '🐉', W);
+    // Warden (baron) pit — sim (235,235)
+    _drawPit(ctx, 0.783*W, 0.783*H, W*0.055, 'rgba(155,89,182,0.3)', COL.baron,   '👁', W);
 
     // Towers
     TOWERS.forEach(t => {

@@ -2460,3 +2460,57 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 .ev-role-blue { color: #4fc3f7; background: #0a1e30; }
 .ev-role-red  { color: #ff7b7b; background: #2a0a0a; }
 .ev-comms-text { font-size: 11px; color: #777; font-style: italic; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   3D MATCH VIEW (js/ui/match-viewer-3d.js)
+   Centre column becomes the main broadcast view; 2D minimap sits in the corner.
+   ═══════════════════════════════════════════════════════════════════════ */
+.mv-matchups-col  { width: 28%; min-width: 280px; }
+.mv-map-col       { flex: 1 1 auto; min-width: 0; align-items: stretch; padding: 0; }
+.mv-commentary-col{ flex: 0 0 22%; min-width: 220px; }
+
+.mv-3d { position: relative; flex: 1; min-height: 360px; background: #0b130d; overflow: hidden; }
+.mv-3d .mv3d-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mv-3d #mv-minimap-canvas {
+  position: absolute; right: 10px; bottom: 10px; width: 150px; height: 150px; max-width: none;
+  z-index: 3; opacity: .92; border: 2px solid #c89b3c88; box-shadow: 0 4px 14px rgba(0,0,0,.5);
+}
+.mv-3d.mv-show-2d .mv3d-canvas, .mv-3d.mv-show-2d .mv3d-overlay { display: none; }
+.mv-3d.mv-show-2d #mv-minimap-canvas, .mv-3d.mv3d-failed #mv-minimap-canvas {
+  position: static; width: 100%; height: auto; max-width: 560px; margin: 10px auto; display: block; opacity: 1;
+}
+.mv3d-toggle {
+  position: absolute; right: 10px; bottom: 166px; z-index: 4; font-size: 11px; font-weight: 700;
+  background: rgba(10,16,12,.85); color: #c89b3c; border: 1px solid #c89b3c66; border-radius: 4px; padding: 3px 8px; cursor: pointer;
+}
+.mv-3d.mv-show-2d .mv3d-toggle { bottom: auto; top: 10px; }
+.mv3d-failed .mv3d-toggle { display: none; }
+
+.mv3d-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.mv3d-cams { position: absolute; top: 8px; left: 8px; display: flex; gap: 4px; flex-wrap: wrap; pointer-events: auto; max-width: calc(100% - 16px); }
+.mv3d-cams button, .mv3d-follow button {
+  font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 4px 8px; border-radius: 4px; cursor: pointer;
+  background: rgba(10,16,12,.8); color: #cfd8cf; border: 1px solid #2e4a2e;
+}
+.mv3d-cams button.on, .mv3d-follow button.on { color: #0b130d; background: #c89b3c; border-color: #c89b3c; }
+.mv3d-follow { display: inline-flex; gap: 4px; margin-left: 6px; }
+.mv3d-banner {
+  position: absolute; left: 50%; top: 46px; transform: translate(-50%, -12px); opacity: 0; transition: all .25s;
+  background: linear-gradient(90deg, rgba(8,12,10,0), rgba(8,12,10,.9) 15%, rgba(8,12,10,.9) 85%, rgba(8,12,10,0));
+  padding: 8px 40px; font-size: 15px; color: #fff; white-space: nowrap; max-width: 96%; overflow: hidden; text-overflow: ellipsis;
+  border-top: 2px solid #c89b3c; border-bottom: 2px solid #c89b3c;
+}
+.mv3d-banner.show { opacity: 1; transform: translate(-50%, 0); }
+.mv3d-banner.blue { border-color: #4fc3f7; } .mv3d-banner.red { border-color: #ff7b7b; }
+.mv3d-tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .12em; color: #0b130d; background: #c89b3c; padding: 1px 6px; border-radius: 2px; margin-right: 6px; vertical-align: 2px; }
+.mv3d-hint { position: absolute; left: 10px; bottom: 8px; font-size: 11px; color: rgba(255,255,255,.45); }
+
+@media (max-width: 900px) {
+  .mv-body { flex-direction: column; overflow-y: auto; }
+  .mv-map-col { order: -1; flex: 0 0 auto; border-right: 0; }
+  .mv-3d { height: 58vh; min-height: 300px; flex: 0 0 auto; }
+  .mv-matchups-col, .mv-commentary-col { width: 100%; min-width: 0; flex: 0 0 auto; max-height: none; }
+  .mv-3d #mv-minimap-canvas { width: 104px; height: 104px; }
+  .mv3d-toggle { bottom: 120px; }
+  .mv3d-hint { display: none; }
+}

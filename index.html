@@ -355,7 +355,10 @@
 
       <!-- CENTER: Mini-map -->
       <div class="mv-map-col">
-        <canvas id="mv-minimap-canvas" width="360" height="360"></canvas>
+        <div id="mv-3d" class="mv-3d">
+          <canvas id="mv-minimap-canvas" width="360" height="360"></canvas>
+          <button class="mv3d-toggle" onclick="mvToggle2D()" title="Switch between 3D and 2D map">3D / 2D</button>
+        </div>
         <div class="mv-obj-row-strip">
           <div class="mv-obj-chip">🐉 <span id="mv-dragon-count">0</span> stacks</div>
           <div class="mv-obj-chip mv-obj-chip-red">🐉 <span id="mv-dragon-count-r">0</span> stacks</div>
@@ -395,6 +398,11 @@
 <script src="js/game/state.js"></script>
 <script src="js/game/simulation.js"></script>
 <script src="js/ui/match-viewer.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+<script type="module" src="js/ui/match-viewer-3d.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 
