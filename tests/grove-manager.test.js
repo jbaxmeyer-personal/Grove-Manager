@@ -5,7 +5,9 @@
 const { chromium } = require('playwright');
 const path = require('path');
 
-const FILE_URL = 'file:///' + path.resolve(__dirname, '..', 'index.html').replace(/\\/g, '/');
+// Served over http: the 3D viewer is an ES module, which browsers refuse to load from file://
+const { startServer } = require('./e2e/harness');
+let FILE_URL = null, _srv = null;
 
 // ─── Test runner state ────────────────────────────────────────────────────────
 
@@ -14,8 +16,18 @@ const consoleErrors = [];
 const results       = [];
 
 async function setup() {
-  browser = await chromium.launch({ headless: true });
+  ({ srv: _srv, url: FILE_URL } = await startServer());
+  browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH || undefined,
+                                    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   page    = await browser.newPage();
+  // pin Three.js to node_modules (offline, deterministic) and block other external requests
+  const THREE_DIR = path.resolve(__dirname, '..', 'node_modules', 'three');
+  await page.route('**/*', route => {
+    const u = route.request().url(); const m = u.match(/cdn\.jsdelivr\.net\/npm\/three@[\d.]+\/(.*)$/);
+    if (m) return route.fulfill({ path: path.join(THREE_DIR, m[1]), contentType: 'application/javascript' });
+    if (/^https?:\/\/(127\.0\.0\.1|localhost)/.test(u)) return route.continue();
+    return route.abort();
+  });
 
   page.on('console', msg => {
     if (msg.type() === 'error') consoleErrors.push(msg.text());
@@ -27,6 +39,7 @@ async function setup() {
 
 async function teardown() {
   await browser.close();
+  if (_srv) _srv.close();
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -45,7 +58,7 @@ async function waitFor(condFn, timeoutMs = 6000, tickMs = 100) {
 }
 
 function clearErrors() { consoleErrors.length = 0; }
-function freshErrors() { return consoleErrors.filter(e => !e.includes('favicon')); }
+function freshErrors() { return consoleErrors.filter(e => !/favicon|fonts\.g|net::ERR_FAILED/.test(e)); }
 
 async function test(name, fn) {
   const t0 = Date.now();
@@ -142,7 +155,7 @@ async function skipToResult() {
 
 /** Click Return to Manager. */
 async function returnToManager() {
-  await page.click('button[onclick="returnFromMatch()"]');
+  await page.click('#pbp-results button[onclick="returnFromMatch()"]');
   await page.waitForTimeout(500);
 }
 
@@ -288,24 +301,30 @@ async function runTests() {
   // ── FINANCES ───────────────────────────────────────────────────────────────
   console.log('\n── Finances Panel ───────────────────────────────────────');
 
-  await test('Finances: shows budget, sponsor income, wage bill', async () => {
+  await test('Finances: shows balance, sponsor income, wage bill', async () => {
     await goToPanel('finances');
     const html = await page.$eval('#panel-finances', el => el.innerHTML);
-    assert(html.includes('Budget'), 'No "Budget" in finances');
-    assert(html.includes('Wage bill'), 'No "Wage bill" in finances');
+    assert(html.includes('Balance'), 'No "Balance" in finances');
+    assert(html.includes('Player wages'), 'No "Player wages" in finances');
     assert(html.includes('Sponsor'), 'No "Sponsor" in finances');
   });
 
   await test('Finances: wage bill/wk is in weekly range (not annual)', async () => {
     await goToPanel('finances');
-    // Extract the wage bill number from the .fr-neg element
-    const wageText = await page.$eval('.finance-row .fr-neg', el => el.textContent.trim()).catch(() => '');
-    assert(wageText.length > 0, 'No .fr-neg wage element found in finances');
-    // Weekly wages for a team of ~5 players with salaries ~$150k–$320k/yr → ~$3k–$6k/wk each → ~$15k–$30k/wk total
-    // If annual, total would be ~$1M+.  A simple check: text shouldn't contain "1,0" as in $1,0xx,xxx
-    const hasMillionScale = /\$?[1-9],\d{3},\d{3}/.test(wageText);
-    assert(!hasMillionScale, `Wage bill appears to be annual (too large): "${wageText}"`);
+    const wageText = await page.$$eval('.fin-bar-row', rows => {
+      const r = rows.find(x => /Player wages/.test(x.textContent)); return r ? r.querySelector('.fin-bar-val').textContent.trim() : '';
+    }).catch(() => '');
+    assert(wageText.length > 0, 'No player-wages row found in finances');
+    // ~5 players at $150k–$400k/yr → tens of $K per week; an annual figure would show as $1M+
+    assert(!/M$/.test(wageText), `Wage bill appears to be annual (too large): "${wageText}"`);
     console.log(`       Wage bill text: ${wageText}`);
+  });
+
+  await test('Finances: sponsors tab lists the 5 sponsor slots', async () => {
+    await page.click('[data-fintab="sponsors"]');
+    const n = await page.$$eval('.sponsor-slot', els => els.length);
+    assert(n === 5, `expected 5 sponsor slots, got ${n}`);
+    await page.click('[data-fintab="overview"]');
   });
 
   // ── LEAGUE ─────────────────────────────────────────────────────────────────

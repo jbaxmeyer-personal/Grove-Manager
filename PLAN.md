@@ -39,6 +39,17 @@ Build a Football Manager-style career sim set in the world of competitive esport
 
 ---
 
+## Phase 16B — Minions, Finances, Real Playtesting ✅ *(Nov 2026)*
+- **Minions in the sim**: lane waves every 12 ticks (melee/caster, siege every 3rd, super minions once a Heart falls); towers shoot minions before champions; laners shadow their wave and last-hit for CS gold; minion XP shared with nearby enemies
+- **Economy audit**: kills 300g+XP, assists 150g+XP (executions by minions/towers pay nothing); towers pay nearby champions + 75g team-wide; Shrine/Warden pay gold+XP; jungle camps gold+XP+CS; Hand of the Warden now actually buffs siege damage; 6 item slots (was 3, gold was piling up unused)
+- **Sim fixes**: towers almost never died and every game ended on the 6-min timer → structures/HP rebalanced, siege targeting (finish a lane → Heart → Ancient), group push on numbers advantage; ~75% of games now end on an Ancient kill (~36 min median on the new 8s-per-tick game clock, 44:00 cap)
+- **Fairness fixes**: blue top T1/T2 and red bot T1/T2 were swapped; jungle camps + lane positions weren't mirror-symmetric; CPU draft let red counter-pick all five roles; agents always acted blue-first → side win rate now ~50% (was 25–75% depending on version)
+- **Finances**: revenue = sponsors + merchandise + streaming (fan/engagement-driven) + league win bonus + playoff prize money; costs = wages, staff, upkeep; weekly ledger with breakdown + balance chart; wage bill now uses the live squad
+- **Sponsors**: 5 slots (jersey, peripherals, energy, apparel, streaming), contracts with length + bonuses, renewal offers 3 weeks before expiry, competing offers (with buyout fee), Sign/Decline UI
+- **Match viewer**: ⏭ Skip and 10× buttons; minimap/3D show real minions; removed Godot auto-export (multi-MB localStorage writes)
+- **UI bugs found by the playtest bot**: top bar blank until first Advance; phone intro screen unscrollable (Start/Continue unreachable); match "← Back" pushed off-screen; result screen unreadable on phones
+- **Testing**: `npm run test:unit` (headless sim + finance), `npm run test:browser`, `npm run playtest` (bot plays a full split on desktop + iPhone-sized screen through the real UI, watches a 3D match, checks every button is reachable), all in CI (`.github/workflows/tests.yml`) with screenshots as an artifact
+
 ## Phase 16A — 3D Match View ✅ *(Nov 2026)*
 - New `js/ui/match-viewer-3d.js` (Three.js via CDN import map) renders the live sim as a 3D broadcast view in the centre column
 - Animated champions (rigged mannequin tinted by team, class weapons, HP/level nameplates), Root towers, Heart, Ancient trees, Shrine spirit, Warden golem, jungle camps, river, ~950 instanced trees

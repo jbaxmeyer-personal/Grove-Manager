@@ -41,10 +41,10 @@
   const TOWERS = [
     { id:'b_bot1', x:185, y:265, side:'blue' }, { id:'b_bot2', x:115, y:265, side:'blue' },
     { id:'b_mid1', x:110, y:190, side:'blue' }, { id:'b_mid2', x: 80, y:220, side:'blue' },
-    { id:'b_top1', x: 35, y:185, side:'blue' }, { id:'b_top2', x: 35, y:115, side:'blue' },
+    { id:'b_top1', x: 35, y:115, side:'blue' }, { id:'b_top2', x: 35, y:185, side:'blue' },
     { id:'r_top1', x:115, y: 35, side:'red'  }, { id:'r_top2', x:185, y: 35, side:'red'  },
     { id:'r_mid1', x:190, y:110, side:'red'  }, { id:'r_mid2', x:220, y: 80, side:'red'  },
-    { id:'r_bot1', x:265, y:115, side:'red'  }, { id:'r_bot2', x:265, y:185, side:'red'  },
+    { id:'r_bot1', x:265, y:185, side:'red'  }, { id:'r_bot2', x:265, y:115, side:'red'  },
   ];
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -64,6 +64,7 @@
   let _humanSide   = 'blue';
 
   let _positions   = { blue: {}, red: {} };
+  let _minions     = [];
   let _agentStats  = { blue: {}, red: {} };
   let _objStates   = {};
   let _score = { blueKills:0, redKills:0, blueRoots:0, redRoots:0,
@@ -101,6 +102,7 @@
     _speed       = 1;
     _paused      = false;
     _positions   = { blue:{}, red:{} };
+    _minions     = [];
     _agentStats  = { blue:{}, red:{} };
     _objStates   = {};
     _score       = { blueKills:0, redKills:0, blueRoots:0, redRoots:0,
@@ -129,6 +131,20 @@
     // module not loaded yet (or CDN blocked) — mount when it arrives
     window.addEventListener('match3d-ready', () => window.Match3D && window.Match3D.mount(el, meta), { once: true });
   }
+
+  // Jump to the end of the match: apply every remaining event now and show the result
+  window.mvSkip = function () {
+    if (_timer) { clearInterval(_timer); _timer = null; }
+    _paused = false;
+    while (_curTick <= _maxTick) {
+      (_tickGroups[_curTick] || []).forEach(ev => { if (ev.type !== 'result') _applyEvent(ev); });
+      _curTick++;
+    }
+    _prevPos = _deepCopyPos(_positions); _nextPos = _deepCopyPos(_positions);
+    if (window.Match3D) window.Match3D.snap();
+    const res = _events.find(e => e.type === 'result');
+    if (res) _applyEvent(res);
+  };
 
   window.mvToggle2D = function () {
     const el = document.getElementById('mv-3d');
@@ -245,6 +261,7 @@
     if (window.Match3D) window.Match3D.event(ev);
 
     if (ev.positions)  { _positions  = ev.positions; }
+    if (ev.minions)    { _minions    = ev.minions; }
     if (ev.agentStats) { _agentStats = ev.agentStats; _updateMatchupPanel(); }
     if (ev.objectives) { _updateObjStates(ev.objectives); }
 
@@ -364,7 +381,7 @@
   }
 
   function _emptyItems () {
-    return '<div class="mv-item-slot"></div>'.repeat(3);
+    return '<div class="mv-item-slot"></div>'.repeat(6);
   }
 
   function _updateMatchupPanel () {
@@ -409,7 +426,7 @@
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = '';
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       const slot = document.createElement('div');
       slot.className = 'mv-item-slot';
       if (items[i]) {
@@ -475,6 +492,13 @@
       ctx.lineWidth   = 0.5;
       ctx.fillRect(tx - s, ty - s, s*2, s*2);
       ctx.strokeRect(tx - s, ty - s, s*2, s*2);
+    });
+
+    // Minions (sim) — tiny squares
+    _minions.forEach(m => {
+      ctx.fillStyle = m[1] ? 'rgba(255,140,130,.9)' : 'rgba(130,200,255,.9)';
+      const ms = Math.max(1.5, W * 0.008);
+      ctx.fillRect(m[2] * sx - ms, m[3] * sy - ms, ms * 2, ms * 2);
     });
 
     // Bases (nexus)
@@ -594,7 +618,7 @@
   // ── Speed buttons ──────────────────────────────────────────────────────────
 
   function _updateSpeedBtns (s) {
-    [1, 2, 5].forEach(n => {
+    [1, 2, 5, 10].forEach(n => {
       const btn = document.getElementById(`mv-btn-${n}x`);
       if (btn) btn.classList.toggle('speed-active', n === s);
     });

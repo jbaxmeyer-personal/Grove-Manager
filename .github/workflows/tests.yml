@@ -1,0 +1,35 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Simulation + finance tests (headless, no browser)
+        run: npm run test:unit
+
+      - name: Browser UI tests
+        run: npm run test:browser
+
+      - name: Playtest bot — plays a full split on desktop + phone, watches a 3D match
+        run: npm run playtest
+
+      - name: Upload playtest screenshots + report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtest-results
+          path: test-results/

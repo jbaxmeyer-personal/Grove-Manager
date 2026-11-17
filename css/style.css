@@ -2514,3 +2514,88 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
   .mv3d-toggle { bottom: 120px; }
   .mv3d-hint { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FINANCES (js/ui.js renderFinances + js/game/finance.js)
+   ═══════════════════════════════════════════════════════════════════════ */
+.fin-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.fin-badge { display: inline-block; min-width: 16px; padding: 0 5px; border-radius: 8px; background: var(--gold); color: #111; font-size: 10px; font-weight: 800; margin-left: 4px; }
+.fin-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.fin-kpi { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.fin-kpi-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; }
+.fin-kpi-val { font-size: 20px; font-weight: 700; color: var(--text-hi); margin-top: 3px; }
+.fin-bar-row { display: grid; grid-template-columns: 130px 1fr 80px; gap: 8px; align-items: center; font-size: 12px; padding: 4px 0; }
+.fin-bar-label { color: var(--text); }
+.fin-bar-track { height: 8px; background: #0a0f18; border-radius: 4px; overflow: hidden; }
+.fin-bar-fill { display: block; height: 100%; border-radius: 4px; }
+.fin-bar-fill.fr-pos { background: var(--win); } .fin-bar-fill.fr-neg { background: var(--loss); }
+.fin-bar-val { text-align: right; font-weight: 600; }
+.fin-sub { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin: 10px 0 2px; }
+.fin-note { font-size: 11px; color: var(--text-dim); margin-top: 8px; line-height: 1.4; }
+.fin-empty { font-size: 12px; color: var(--text-dim); padding: 10px 0; }
+.fin-chart { width: 100%; height: 150px; display: block; }
+.fin-chart .fin-line { fill: none; stroke: var(--gold); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fin-chart .fin-area { fill: rgba(200,155,60,.12); }
+.fin-chart .fin-zero { stroke: var(--border2); stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.fin-chart .fin-dot { fill: var(--gold); }
+.fin-chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+.sponsor-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.sponsor-slot { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.sponsor-slot.empty { border-style: dashed; opacity: .85; }
+.ss-head { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; }
+.ss-head .sponsor-income { margin-left: auto; text-transform: none; letter-spacing: 0; font-size: 12px; }
+.ss-icon { font-size: 14px; }
+.sponsor-slot .sponsor-name { font-size: 15px; font-weight: 700; color: var(--text-hi); margin: 6px 0; }
+.ss-empty { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+.ss-term { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+.ss-term-track { flex: 1; height: 4px; background: #0a0f18; border-radius: 2px; overflow: hidden; }
+.ss-term-track span { display: block; height: 100%; background: var(--gold); }
+.sponsor-offer { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.sponsor-offer:last-child { border-bottom: 0; }
+.so-title { font-weight: 700; color: var(--text-hi); font-size: 14px; }
+.so-slot { font-weight: 400; color: var(--text-dim); font-size: 12px; }
+.so-tag { font-size: 10px; font-weight: 800; background: var(--blue-l); color: #08121c; border-radius: 3px; padding: 1px 5px; margin-right: 6px; }
+.so-terms { font-size: 12px; margin-top: 3px; }
+.so-bonuses, .so-exp { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+.so-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.fin-table-wrap { overflow-x: auto; }
+.fin-table th, .fin-table td { padding: 5px 8px; font-size: 12px; text-align: right; white-space: nowrap; }
+.fin-table th:first-child, .fin-table td:first-child { text-align: left; }
+@media (max-width: 720px) {
+  .fin-bar-row { grid-template-columns: 100px 1fr 70px; }
+  .sponsor-offer { flex-direction: column; align-items: stretch; }
+  .so-actions { flex-direction: row; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE FIXES (found by tests/e2e/playtest.js on an iPhone-sized screen)
+   ═══════════════════════════════════════════════════════════════════════ */
+/* Intro: .screen is overflow:hidden + vertically centred, so on a phone the top of the card
+   (incl. Continue Career) sat above the viewport and the Start button below it — unreachable. */
+.intro-screen { overflow-y: auto; justify-content: safe center; }
+@media (max-width: 720px) {
+  .intro-screen { justify-content: flex-start; gap: 18px; padding: 18px 12px; }
+  .intro-title { font-size: 34px; letter-spacing: 3px; }
+}
+/* Match result: stack the two KDA tables and let the banner/summary wrap */
+@media (max-width: 900px) {
+  .res-banner { flex-wrap: wrap; gap: 6px 12px; padding: 14px 12px; text-align: center; }
+  .res-victory-word { font-size: 26px; }
+  .res-summary-bar { flex-wrap: wrap; padding: 10px 12px; gap: 10px; }
+  .res-summary-side { gap: 12px; justify-content: center !important; flex: 1 1 100%; }
+  .res-summary-center { order: -1; flex: 1 1 100%; padding: 0; }
+  .res-kda-section { flex-direction: column; padding: 12px; gap: 16px; overflow: visible; }
+  .res-kda-divider { display: none; }
+  .res-kda-row td { padding: 6px 4px; font-size: 12px; }
+  .res-actions { padding: 12px; }
+}
+/* Match header: the right-aligned left column overflowed leftwards, pushing "← Back" off-screen
+   (on phones always; on smaller laptops too). Pin Back to the left edge and let the rest clip. */
+.match-header { position: relative; padding-left: 78px; }
+.match-back { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); z-index: 2; margin: 0; }
+.mh-left, .mh-right { overflow: hidden; }
+@media (max-width: 720px) {
+  .match-header { padding-left: 70px; padding-right: 6px; }
+  .mh-chip-row, .mh-series-dots { display: none; }
+  .mh-team-name { font-size: 12px; max-width: 26vw; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
+}

@@ -42,6 +42,7 @@ function onStartGame() {
   initGame(_selectedTeamId);
   showScreen('screen-game');
   showMain('dashboard');
+  renderAll();            // top bar (budget, wages, fans, record) was blank until the first Advance
 }
 
 // ─── Week Advancement ─────────────────────────────────────────────────────────
@@ -249,6 +250,7 @@ function _finalizeHumanSeries() {
 
   if (blueWon) { blueTeam.wins++; blueTeam.points += 3; redTeam.losses++; }
   else         { redTeam.wins++;  redTeam.points  += 3; blueTeam.losses++; }
+  if (typeof payWinBonus === 'function') payWinBonus(blueWon ? ss.blueId : ss.redId);   // league series-win bonus
 
   const winner = blueWon ? blueTeam : redTeam;
   const loser  = blueWon ? redTeam  : blueTeam;
@@ -326,6 +328,7 @@ function onContinueCareer() {
   const saved = loadGame();
   if (!saved) return;
   G = saved;
+  if (typeof ensureFinanceState === 'function') ensureFinanceState();   // migrate older saves
   showScreen('screen-game');
   showMain('dashboard');
   renderAll();
@@ -743,14 +746,11 @@ function _showMatchResult(result) {
 
     <div class="res-actions">
       <button class="btn-primary btn-large" onclick="returnFromMatch()">← Return to Manager</button>
-      <button class="btn-secondary btn-large" id="btn-watch-godot" onclick="onWatchInGodot()" style="margin-left:12px;background:#1a2d1a;border:1px solid #4a8c4a;color:#7fff7f;" title="Open Godot 3D match viewer">Watch in Godot Viewer</button>
     </div>
   `;
 
-  // Auto-save match data for Godot whenever we show results
-  if (typeof window.saveMatchDataForGodot === 'function' && result && _matchContext) {
-    window.saveMatchDataForGodot(result, _matchContext.blueName, _matchContext.redName);
-  }
+  // (The old Godot export auto-saved every match to localStorage; the in-browser 3D viewer replaces it,
+  //  and the multi-MB minion data would blow the storage quota.)
 }
 
 function onWatchInGodot() {

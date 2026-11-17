@@ -1,10 +1,14 @@
 {
-  "name": "moba-auto-battler",
+  "name": "grove-manager",
   "version": "1.0.0",
   "description": "",
-  "main": "playtest.js",
+  "main": "index.html",
   "scripts": {
-    "test": "node tests/grove-manager.test.js"
+    "test": "npm run test:unit && npm run test:browser",
+    "test:unit": "node tests/sim.test.js && node tests/finance.test.js",
+    "test:browser": "node tests/grove-manager.test.js",
+    "playtest": "node tests/e2e/playtest.js",
+    "pacing": "node tests/pacing-report.js"
   },
   "repository": {
     "type": "git",
@@ -20,5 +24,8 @@
   "homepage": "https://github.com/jbaxmeyer-personal/MOBA-Auto-Battler#readme",
   "dependencies": {
     "playwright": "^1.58.2"
+  },
+  "devDependencies": {
+    "three": "0.170.0"
   }
 }

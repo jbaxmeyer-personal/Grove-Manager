@@ -843,89 +843,160 @@ function renderTraining() {
 
 // ─── Finances ────────────────────────────────────────────────────────────────
 
+let _finTab = 'overview';
+function showFinanceTab(tab) { _finTab = tab; renderFinances(); }
+
+function onAcceptSponsor(id) {
+  const r = acceptSponsorOffer(id);
+  if (!r.ok) alertSafe(r.msg);
+  renderFinances(); if (typeof renderTopBar === 'function') renderTopBar();
+}
+function onDeclineSponsor(id) { declineSponsorOffer(id); renderFinances(); }
+function alertSafe(msg) { try { addNews(msg, 'alert'); } catch (e) {} }
+
+function _finBar(label, val, max, cls) {
+  const pct = max > 0 ? Math.max(2, Math.round(Math.abs(val) / max * 100)) : 0;
+  return `<div class="fin-bar-row"><span class="fin-bar-label">${label}</span>
+    <span class="fin-bar-track"><span class="fin-bar-fill ${cls}" style="width:${pct}%"></span></span>
+    <span class="fin-bar-val ${cls}">${val < 0 ? '-' : '+'}${fmtMoney(Math.abs(val))}</span></div>`;
+}
+
+function _finChart(log) {
+  if (!log.length) return '<div class="fin-empty">The balance chart starts after your first week.</div>';
+  const W = 560, H = 150, P = 6;
+  const vals = log.map(e => e.balance);
+  const lo = Math.min(0, ...vals), hi = Math.max(...vals, 1);
+  const x = i => P + (log.length === 1 ? (W - 2 * P) / 2 : i * (W - 2 * P) / (log.length - 1));
+  const y = v => H - P - (v - lo) / (hi - lo || 1) * (H - 2 * P);
+  const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const zero = y(0);
+  return `<svg class="fin-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Club balance by week">
+    <line x1="0" x2="${W}" y1="${zero}" y2="${zero}" class="fin-zero"/>
+    <polygon points="${x(0)},${zero} ${pts} ${x(vals.length - 1)},${zero}" class="fin-area"/>
+    <polyline points="${pts}" class="fin-line"/>
+    ${vals.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" class="fin-dot"><title>Wk ${log[i].week}: ${fmtMoney(v)}</title></circle>`).join('')}
+  </svg>
+  <div class="fin-chart-axis"><span>Wk ${log[0].week}</span><span>${fmtMoney(hi)} high · ${fmtMoney(lo)} low</span><span>Wk ${log[log.length - 1].week}</span></div>`;
+}
+
+const FIN_OTHER_LABELS = { prizeMoney: 'Prize money', sponsorBonus: 'Sponsor bonuses', signingBonus: 'Signing bonuses', transfers: 'Transfers',
+  facilityBuilds: 'Facility builds', fanEvents: 'Fan events', coStreaming: 'Co-streaming', scouting: 'Scouting', sponsorBuyout: 'Sponsor buyouts' };
+
 function renderFinances() {
   if (!G) return;
+  if (typeof ensureFinanceState === 'function') ensureFinanceState();
   const team = G.teams[G.humanTeamId];
-  const net  = team.sponsorIncome - team.weeklyWages;
-  const weeksLeft = Math.max(0, G.season.totalWeeks - G.season.week + 1);
+  const rev  = weeklyRevenue(team), exp = weeklyExpenses(team);
+  const inc  = rev.sponsors + rev.merch + rev.streaming, out = exp.wages + exp.staff + exp.facilities;
+  const net  = inc - out;
+  const weeksLeft = Math.max(0, (G.season.totalWeeks || 7) - (G.season.week || 1) + 1);
+  const log = (G.financeLog || []).filter(e => typeof e.balance === 'number');
+  const last = log[log.length - 1];
+  const offers = G.sponsorOffers || [];
+  const tabs = [['overview', 'Overview'], ['sponsors', `Sponsors${offers.length ? ` <span class="fin-badge">${offers.length}</span>` : ''}`], ['history', 'History']];
+  const tabBar = `<div class="ptabs fin-tabs">${tabs.map(([k, l]) => `<button class="ptab ${_finTab === k ? 'active' : ''}" data-fintab="${k}" onclick="showFinanceTab('${k}')">${l}</button>`).join('')}</div>`;
 
-  // Sponsor cards section
-  const sponsors = team.sponsors || [];
-  const sponsorCardsHtml = sponsors.length ? `
-    <div class="finance-card" style="margin-top:14px">
-      <h3>Sponsors</h3>
-      <div class="sponsor-cards">
-        ${sponsors.map(sp => `
-          <div class="sponsor-card">
-            <div class="sponsor-card-header">
-              <div class="sponsor-name">${_escHtml(sp.name)}</div>
-              <div class="sponsor-income">+${fmtMoney(sp.weeklyIncome)}/wk</div>
-            </div>
-            <div class="sponsor-bonuses">
-              ${(sp.bonuses || []).map(b => `
-                <div class="sponsor-bonus">
-                  <span class="bonus-label">${_escHtml(b.label)}</span>
-                  <span>
-                    <span class="bonus-reward">${fmtMoney(b.reward)}</span>
-                    ${b.paid
-                      ? '<span class="bonus-paid"> ✓ Paid</span>'
-                      : '<span class="bonus-pending"> Pending</span>'}
-                  </span>
-                </div>`).join('')}
-            </div>
-          </div>`).join('')}
+  let body = '';
+  if (_finTab === 'overview') {
+    const maxv = Math.max(inc, out, 1);
+    const otherRows = last && last.other ? Object.entries(last.other).filter(([, v]) => v) : [];
+    body = `
+      <div class="fin-kpis">
+        <div class="fin-kpi"><div class="fin-kpi-label">Balance</div><div class="fin-kpi-val ${team.budget < 0 ? 'fr-neg' : 'fr-gold'}" id="fin-balance">${fmtMoney(team.budget)}</div></div>
+        <div class="fin-kpi"><div class="fin-kpi-label">Net / week</div><div class="fin-kpi-val ${net >= 0 ? 'fr-pos' : 'fr-neg'}">${net >= 0 ? '+' : ''}${fmtMoney(net)}</div></div>
+        <div class="fin-kpi"><div class="fin-kpi-label">End of split (${weeksLeft} wk)</div><div class="fin-kpi-val ${team.budget + net * weeksLeft < 0 ? 'fr-neg' : ''}">${fmtMoney(team.budget + net * weeksLeft)}</div></div>
+        <div class="fin-kpi"><div class="fin-kpi-label">Wages vs income</div><div class="fin-kpi-val ${exp.wages > inc ? 'fr-neg' : 'fr-pos'}">${inc ? Math.round(exp.wages / inc * 100) : 0}%</div></div>
       </div>
-    </div>` : '';
-
-  setHtml('finances-content', `
-    <div class="finance-grid">
-      <div class="finance-card">
-        <h3>Cash Flow</h3>
-        <div class="finance-row"><span class="fr-label">Budget</span><span class="fr-val fr-gold">${fmtMoney(team.budget)}</span></div>
-        <div class="finance-row"><span class="fr-label">Sponsor income/wk</span><span class="fr-val fr-pos">+${fmtMoney(team.sponsorIncome)}</span></div>
-        <div class="finance-row"><span class="fr-label">Wage bill/wk</span><span class="fr-val fr-neg">-${fmtMoney(team.weeklyWages)}</span></div>
-        <div class="finance-row"><span class="fr-label">Net/week</span><span class="fr-val ${net >= 0 ? 'fr-pos' : 'fr-neg'}">${net >= 0 ? '+' : ''}${fmtMoney(net)}</span></div>
-        <div class="finance-row"><span class="fr-label">Projected (${weeksLeft}wk)</span><span class="fr-val ${net*weeksLeft >= 0 ? 'fr-pos':'fr-neg'}">${fmtMoney(team.budget + net * weeksLeft)}</span></div>
+      <div class="finance-grid">
+        <div class="finance-card">
+          <h3>Weekly income</h3>
+          ${_finBar('Sponsors', rev.sponsors, maxv, 'fr-pos')}
+          ${_finBar('Merchandise', rev.merch, maxv, 'fr-pos')}
+          ${_finBar('Streaming & content', rev.streaming, maxv, 'fr-pos')}
+          <div class="fin-note">Merch and streaming grow with fans (${(team.fans || 0).toLocaleString()}) and engagement (FES ${team.fes ?? (typeof calcFES === 'function' ? calcFES(team.id) : '—')}/10). League pays ${fmtMoney(WIN_BONUS)} per series win.</div>
+        </div>
+        <div class="finance-card">
+          <h3>Weekly costs</h3>
+          ${_finBar('Player wages', -exp.wages, maxv, 'fr-neg')}
+          ${_finBar('Staff wages', -exp.staff, maxv, 'fr-neg')}
+          ${_finBar('Facility upkeep', -exp.facilities, maxv, 'fr-neg')}
+          ${otherRows.length ? `<h4 class="fin-sub">Last week's one-offs</h4>${otherRows.map(([k, v]) => _finBar(FIN_OTHER_LABELS[k] || k, v, maxv, v >= 0 ? 'fr-pos' : 'fr-neg')).join('')}` : ''}
+        </div>
       </div>
-      <div class="finance-card">
-        <h3>Roster Cost</h3>
+      <div class="finance-card" style="margin-top:14px">
+        <h3>Balance</h3>
+        ${_finChart(log.slice(-24))}
+      </div>
+      <div class="finance-card" style="margin-top:14px">
+        <h3>Roster cost</h3>
         ${POSITIONS.map(pos => {
-          const pid = team.roster[pos];
-          const p   = pid ? G.players[pid] : null;
-          return `<div class="finance-row">
-            <span class="fr-label">${posLabel(pos)}</span>
-            <span class="fr-val">${p ? `${p.name} — ${fmtMoney(p.contract.salary)}/yr` : '<i style="color:var(--text-dim)">Empty slot</i>'}</span>
-          </div>`;
+          const pid = team.roster[pos]; const p = pid ? G.players[pid] : null;
+          return `<div class="finance-row"><span class="fr-label">${posLabel(pos)}</span>
+            <span class="fr-val">${p ? `${p.name} — ${fmtMoney(p.contract.salary)}/yr (${fmtMoney(Math.round(p.contract.salary / 52))}/wk)` : '<i style="color:var(--text-dim)">Empty slot</i>'}</span></div>`;
         }).join('')}
+      </div>`;
+  } else if (_finTab === 'sponsors') {
+    const slotCard = slot => {
+      const sp = team.sponsors.find(x => x.slot === slot.key);
+      if (!sp) return `<div class="sponsor-slot empty" data-slot="${slot.key}"><div class="ss-head"><span class="ss-icon">${slot.icon}</span><span class="ss-slot">${slot.label}</span></div>
+        <div class="ss-empty">Open — offers appear in the list below. Market value ≈ ${fmtMoney(sponsorValue(team, slot.key))}/wk</div></div>`;
+      const pct = Math.round((sp.weeksLeft / (sp.weeksTotal || sp.weeksLeft || 1)) * 100);
+      return `<div class="sponsor-slot" data-slot="${slot.key}">
+        <div class="ss-head"><span class="ss-icon">${slot.icon}</span><span class="ss-slot">${slot.label}</span><span class="sponsor-income">+${fmtMoney(sp.weeklyIncome)}/wk</span></div>
+        <div class="sponsor-name">${_escHtml(sp.name)}</div>
+        <div class="ss-term"><span class="ss-term-track"><span style="width:${pct}%"></span></span>${sp.weeksLeft} wk left</div>
+        <div class="sponsor-bonuses">${(sp.bonuses || []).map(b => `<div class="sponsor-bonus"><span class="bonus-label">${_escHtml(b.label)}</span><span><span class="bonus-reward">${fmtMoney(b.reward)}</span>${b.paid ? '<span class="bonus-paid"> ✓ Paid</span>' : '<span class="bonus-pending"> Pending</span>'}</span></div>`).join('')}</div>
+      </div>`;
+    };
+    const offerCard = o => {
+      const cur = team.sponsors.find(x => x.slot === o.slot);
+      const delta = cur ? o.weeklyIncome - cur.weeklyIncome : o.weeklyIncome;
+      return `<div class="sponsor-offer" data-offer="${o.id}">
+        <div class="so-main">
+          <div class="so-title">${o.renewal ? '<span class="so-tag">RENEWAL</span>' : ''}${_escHtml(o.name)} <span class="so-slot">· ${slotLabel(o.slot)}</span></div>
+          <div class="so-terms"><b>${fmtMoney(o.weeklyIncome)}/wk</b> for ${o.weeks} wk · signing bonus ${fmtMoney(o.signingBonus)}
+            ${cur && cur.name !== o.name ? ` · <span class="${delta >= 0 ? 'fr-pos' : 'fr-neg'}">${delta >= 0 ? '+' : ''}${fmtMoney(delta)}/wk vs ${_escHtml(cur.name)}</span> · ${fmtMoney(cur.weeklyIncome * 2)} to end that deal` : ''}</div>
+          <div class="so-bonuses">${o.bonuses.map(b => `${_escHtml(b.label)}: ${fmtMoney(b.reward)}`).join(' · ')}</div>
+          <div class="so-exp">Offer open until week ${o.expiresWeek}</div>
+        </div>
+        <div class="so-actions">
+          <button class="btn-primary so-accept" onclick="onAcceptSponsor('${o.id}')">Sign</button>
+          <button class="btn-secondary so-decline" onclick="onDeclineSponsor('${o.id}')">Decline</button>
+        </div>
+      </div>`;
+    };
+    body = `
+      <div class="fin-kpis">
+        <div class="fin-kpi"><div class="fin-kpi-label">Sponsor income</div><div class="fin-kpi-val fr-pos">+${fmtMoney(rev.sponsors)}/wk</div></div>
+        <div class="fin-kpi"><div class="fin-kpi-label">Slots filled</div><div class="fin-kpi-val">${team.sponsors.length}/${SPONSOR_SLOTS.length}</div></div>
+        <div class="fin-kpi"><div class="fin-kpi-label">Open offers</div><div class="fin-kpi-val">${offers.length}</div></div>
       </div>
-    </div>
-    ${sponsorCardsHtml}
-    ${(G.financeLog && G.financeLog.length > 0) ? `
-    <div class="finance-card" style="margin-top:14px">
-      <h3>Transaction History</h3>
-      <table class="squad-table" style="width:100%">
-        <thead><tr>
-          <th style="text-align:left;color:var(--text-dim);font-size:11px;padding:4px 6px">Week</th>
-          <th style="text-align:right;color:var(--text-dim);font-size:11px;padding:4px 6px">Income</th>
-          <th style="text-align:right;color:var(--text-dim);font-size:11px;padding:4px 6px">Wages</th>
-          <th style="text-align:right;color:var(--text-dim);font-size:11px;padding:4px 6px">Net</th>
-          <th style="text-align:right;color:var(--text-dim);font-size:11px;padding:4px 6px">Balance</th>
-        </tr></thead>
-        <tbody>
-          ${G.financeLog.slice().reverse().map(e => {
-            const rowNet = e.income - e.wages;
-            return `<tr>
-              <td style="padding:5px 6px;font-size:12px;color:var(--text-dim)">Wk ${e.week}</td>
-              <td style="padding:5px 6px;font-size:12px;text-align:right;color:var(--win)">+${fmtMoney(e.income)}</td>
-              <td style="padding:5px 6px;font-size:12px;text-align:right;color:var(--loss)">-${fmtMoney(e.wages)}</td>
-              <td style="padding:5px 6px;font-size:12px;text-align:right;color:${rowNet >= 0 ? 'var(--win)' : 'var(--loss)'}">${rowNet >= 0 ? '+':''}${fmtMoney(rowNet)}</td>
-              <td style="padding:5px 6px;font-size:12px;text-align:right;color:var(--gold);font-weight:600">${fmtMoney(e.balance)}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>` : ''}
-  `);
+      <div class="sponsor-slots">${SPONSOR_SLOTS.map(slotCard).join('')}</div>
+      <div class="finance-card" style="margin-top:14px">
+        <h3>Offers</h3>
+        ${offers.length ? offers.map(offerCard).join('') : '<div class="fin-empty">No offers right now. Brands approach you every week or two — more fans, wins and prestige mean bigger deals.</div>'}
+      </div>`;
+  } else {
+    body = `<div class="finance-card">
+      <h3>Weekly ledger</h3>
+      ${log.length ? `<div class="fin-table-wrap"><table class="squad-table fin-table">
+        <thead><tr><th>Week</th><th>Sponsors</th><th>Merch</th><th>Streaming</th><th>One-offs</th><th>Wages</th><th>Staff + upkeep</th><th>Net</th><th>Balance</th></tr></thead>
+        <tbody>${log.slice().reverse().map(e => {
+          const oth = e.other ? Object.values(e.other).reduce((a, b) => a + b, 0) : 0;
+          const n = e.net;
+          return `<tr><td>${e.season ? _escHtml(e.season) + ' · ' : ''}Wk ${e.week}</td>
+            <td class="fr-pos">${e.sponsors !== undefined ? '+' + fmtMoney(e.sponsors) : '+' + fmtMoney(e.income)}</td>
+            <td class="fr-pos">${e.merch !== undefined ? '+' + fmtMoney(e.merch) : '—'}</td>
+            <td class="fr-pos">${e.streaming !== undefined ? '+' + fmtMoney(e.streaming) : '—'}</td>
+            <td class="${oth >= 0 ? 'fr-pos' : 'fr-neg'}">${oth ? (oth > 0 ? '+' : '') + fmtMoney(oth) : '—'}</td>
+            <td class="fr-neg">-${fmtMoney(e.wagesOnly !== undefined ? e.wagesOnly : e.wages)}</td>
+            <td class="fr-neg">${e.staff !== undefined ? '-' + fmtMoney(e.staff + e.facilities) : '—'}</td>
+            <td class="${n >= 0 ? 'fr-pos' : 'fr-neg'}">${n >= 0 ? '+' : ''}${fmtMoney(n)}</td>
+            <td>${fmtMoney(e.balance)}</td></tr>`;
+        }).join('')}</tbody></table></div>` : '<div class="fin-empty">No weeks played yet.</div>'}
+    </div>`;
+  }
+  setHtml('finances-content', tabBar + body);
 }
 
 // ─── League ───────────────────────────────────────────────────────────────────
