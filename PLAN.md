@@ -39,6 +39,18 @@ Build a Football Manager-style career sim set in the world of competitive esport
 
 ---
 
+## Phase 16A — 3D Match View ✅ *(Nov 2026)*
+- New `js/ui/match-viewer-3d.js` (Three.js via CDN import map) renders the live sim as a 3D broadcast view in the centre column
+- Animated champions (rigged mannequin tinted by team, class weapons, HP/level nameplates), Root towers, Heart, Ancient trees, Shrine spirit, Warden golem, jungle camps, river, ~950 instanced trees
+- Auto-director camera follows fights/kills/objectives; Map overview; follow-a-role buttons; drag to pan, pinch/scroll to zoom
+- Cosmetic minion waves (view-only — not part of the sim)
+- 2D minimap kept as a corner overlay + 3D/2D toggle; falls back to 2D if WebGL is unavailable
+- Sim change is additive only: `posMap` now includes `state`, `level`, target id/position; kill events carry victim/killer side+role; objective events carry `objId`
+- Fixed minimap: Shrine/Warden pits and river now match sim coordinates
+- Responsive: ≤900px stacks the 3D view above the matchup/commentary panels
+
+---
+
 ## Active Phase
 
 ### Phase 14B — Pixel Art Canvas System *(current session)*
