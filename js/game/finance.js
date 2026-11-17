@@ -7,20 +7,19 @@
 // builds, events…) are recorded with finNote() and rolled into that week's ledger entry.
 'use strict';
 
+// Three slots keeps it phone-simple: a main partner, a gear deal and a streaming deal.
 const SPONSOR_SLOTS = [
-  { key: 'jersey',      label: 'Jersey (main partner)', icon: '👕', weight: 1.00 },
-  { key: 'peripherals', label: 'Peripherals',           icon: '🖱️', weight: 0.55 },
-  { key: 'energy',      label: 'Energy drink',          icon: '⚡', weight: 0.45 },
-  { key: 'apparel',     label: 'Apparel',               icon: '🧢', weight: 0.40 },
-  { key: 'broadcast',   label: 'Streaming platform',    icon: '📺', weight: 0.35 },
+  { key: 'main',      label: 'Main partner',       icon: '👕', weight: 1.00 },
+  { key: 'gear',      label: 'Gear & apparel',     icon: '🖱️', weight: 0.50 },
+  { key: 'streaming', label: 'Streaming platform', icon: '📺', weight: 0.30 },
 ];
+// older saves used five slots — fold them into the three
+const LEGACY_SLOT = { jersey: 'main', peripherals: 'gear', apparel: 'gear', energy: 'gear', broadcast: 'streaming' };
 
 const SPONSOR_BRANDS = {
-  jersey:      ['GroveTech Gaming', 'Canopy Bank', 'Verdant Mobile', 'Rootline Telecom', 'Mossbyte Cloud', 'Elderwood Motors'],
-  peripherals: ['Thornkey Peripherals', 'Barkclick', 'Sapling Audio', 'Leafline Mice', 'Ironwood Gear'],
-  energy:      ['Sylvane Energy', 'Sapburst', 'Glowcap Soda', 'Thunderroot Drinks', 'Dewfall Hydration'],
-  apparel:     ['Fernweave', 'Bramble & Co', 'Oakthread', 'Lichen Labs Apparel'],
-  broadcast:   ['GroveStream', 'Hollowcast', 'Brookline TV', 'Spritewave Live'],
+  main:      ['GroveTech Gaming', 'Canopy Bank', 'Verdant Mobile', 'Rootline Telecom', 'Mossbyte Cloud', 'Elderwood Motors'],
+  gear:      ['Thornkey Peripherals', 'Barkclick', 'Sapling Audio', 'Fernweave', 'Ironwood Gear', 'Sylvane Energy'],
+  streaming: ['GroveStream', 'Hollowcast', 'Brookline TV', 'Spritewave Live'],
 };
 
 const BONUS_TEMPLATES = [
@@ -32,10 +31,13 @@ const BONUS_TEMPLATES = [
   { condition: 'fans_1m',   label: 'Reach 1M fans',    mult: 2.4 },
 ];
 
-const WIN_BONUS     = 30000;   // league pays per series win
-const PRIZE_MONEY   = { champion: 600000, runnerUp: 300000, semifinal: 150000 };
-const MERCH_PER_FAN = 0.015;   // $/fan/week
-const STREAM_PER_FAN = 0.008;  // $/fan/week at engagement 5/10
+// Weekly economy is tuned so a sensible club roughly breaks even on wages + a couple of staff,
+// and real progress (transfers, facilities, fan events) needs sponsors, wins and prize money.
+const WIN_BONUS     = 15000;   // league pays per series win
+const PRIZE_MONEY   = { champion: 300000, runnerUp: 150000, semifinal: 75000 };
+const MERCH_PER_FAN = 0.010;   // $/fan/week
+const STREAM_PER_FAN = 0.006;  // $/fan/week at engagement 5/10
+const SPONSOR_BASE  = 28000;   // main-partner value for a 1M-fan, mid-prestige, .500 team
 
 // ─── State / migration ───────────────────────────────────────────────────────
 
@@ -47,15 +49,36 @@ function ensureFinanceState() {
   if (G._sponsorSeq === undefined) G._sponsorSeq = 1000;
   Object.values(G.teams).forEach(t => {
     if (!t.sponsors) t.sponsors = [];
+    // migrate 5-slot saves: map old slots, keep the best deal per slot
+    t.sponsors.forEach(sp => { if (sp.slot && LEGACY_SLOT[sp.slot]) sp.slot = LEGACY_SLOT[sp.slot]; });
+    const bySlot = {};
+    t.sponsors.forEach(sp => { if (!sp.slot) return; if (!bySlot[sp.slot] || bySlot[sp.slot].weeklyIncome < sp.weeklyIncome) bySlot[sp.slot] = sp; });
+    t.sponsors = t.sponsors.filter(sp => !sp.slot || bySlot[sp.slot] === sp);
     const used = new Set(t.sponsors.map(s => s.slot).filter(Boolean));
     t.sponsors.forEach(sp => {
-      if (!sp.slot) { sp.slot = SPONSOR_SLOTS.find(s => !used.has(s.key))?.key || 'broadcast'; used.add(sp.slot); }
+      if (!sp.slot) { sp.slot = SPONSOR_SLOTS.find(s => !used.has(s.key))?.key || null; if (sp.slot) used.add(sp.slot); }
       if (sp.weeksLeft === undefined) sp.weeksLeft = 10 + Math.floor(Math.random() * 18);
       if (sp.weeksTotal === undefined) sp.weeksTotal = sp.weeksLeft;
       if (!sp.bonuses) sp.bonuses = [];
     });
+    t.sponsors = t.sponsors.filter(sp => sp.slot);          // more deals than slots → extras lapse
     recomputeSponsorIncome(t);
   });
+}
+
+// New careers: price every club's starting deals at today's market rate (team data predates the model)
+function priceStartingSponsors() {
+  Object.values(G.teams).forEach(t => {
+    (t.sponsors || []).forEach(sp => {
+      sp.weeklyIncome = Math.round(sponsorValue(t, sp.slot) * (0.9 + Math.random() * 0.2) / 500) * 500;
+      sp.bonuses = (sp.bonuses || []).filter(b => !_bonusAlreadyMet(t, b.condition));   // no free day-one payouts
+    });
+    recomputeSponsorIncome(t);
+  });
+}
+
+function _bonusAlreadyMet(team, cond) {
+  return (cond === 'fans_500k' && (team.fans || 0) >= 500000) || (cond === 'fans_1m' && (team.fans || 0) >= 1000000);
 }
 
 function recomputeSponsorIncome(team) {
@@ -149,17 +172,17 @@ function sponsorValue(team, slotKey) {
   const fans = Math.max(50000, team.fans || 0);
   const prestige = team.prestige || 5;
   const perf = 0.85 + _teamWinPct(team) * 0.4;                // 0.85 – 1.25
-  const base = 70000 * slot.weight * Math.pow(fans / 1000000, 0.55) * (0.75 + prestige / 25) * perf;
+  const base = SPONSOR_BASE * slot.weight * Math.pow(fans / 1000000, 0.55) * (0.75 + prestige / 25) * perf;
   return Math.round(base / 1000) * 1000;
 }
 
 function _makeOffer(team, slotKey, week, opts = {}) {
-  const brandPool = SPONSOR_BRANDS[slotKey] || SPONSOR_BRANDS.jersey;
+  const brandPool = SPONSOR_BRANDS[slotKey] || SPONSOR_BRANDS.main;
   const taken = new Set([...(team.sponsors || []).map(s => s.name), ...(G.sponsorOffers || []).map(o => o.name)]);
   const name = opts.name || brandPool.find(b => !taken.has(b)) || brandPool[Math.floor(Math.random() * brandPool.length)];
   const val  = Math.round(sponsorValue(team, slotKey) * (opts.mult || (0.85 + Math.random() * 0.35)) / 1000) * 1000;
   const weeks = [12, 16, 20, 26][Math.floor(Math.random() * 4)];
-  const picks = BONUS_TEMPLATES.slice().sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 2));
+  const picks = BONUS_TEMPLATES.filter(b => !_bonusAlreadyMet(team, b.condition)).sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 2));
   return {
     id: `so${++G._sponsorSeq}`, name, slot: slotKey, weeklyIncome: Math.max(5000, val), weeks,
     signingBonus: Math.round(val * (1 + Math.random() * 2) / 1000) * 1000,

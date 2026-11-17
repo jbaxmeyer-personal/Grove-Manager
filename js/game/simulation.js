@@ -7,11 +7,11 @@
 // ─── Engine constants ─────────────────────────────────────────────────────────
 
 const TICK_S         = 2;     // in-game seconds per engine tick
-const MAX_TICKS      = 330;   // 44:00 on the game clock (CLOCK_SCALE) — games normally end on an Ancient kill first
-const MOVE_SCALE     = 60;    // moveSpeed unit → px/tick = moveSpeed * TICK_S / MOVE_SCALE
-const STR_DMG_REDUCE = 2.0; 
-const MAX_ITEMS      = 6;     // full build (was 3) — late gold keeps turning into power  // fraction of damage champions deal to structures
-const CLOCK_SCALE    = 4;     // displayed game clock: 1 tick = TICK_S*CLOCK_SCALE seconds (8s; 330 ticks = 44:00)
+const MAX_TICKS      = 180;   // 24:00 game-clock cap (6 min at 1×) — most games end on an Ancient kill well before
+const MOVE_SCALE     = 40;    // moveSpeed unit → px/tick = moveSpeed * TICK_S / MOVE_SCALE (fast: mobile-length games)
+const STR_DMG_REDUCE = 2.0;   // multiplier on champion damage vs structures
+const MAX_ITEMS      = 3;     // short games → 3-item builds
+const CLOCK_SCALE    = 4;     // displayed game clock: 1 tick = 8s (median game ≈ 18 min on the clock, ≈ 4.5 min to watch at 1×)
 
 // ─── Minions ──────────────────────────────────────────────────────────────────
 // Real lane minions: they walk the lanes, fight each other, tank tower shots and
@@ -21,12 +21,13 @@ const MINION_LANES = {
   mid: [[50, 250], [250, 50]],
   bot: [[50, 265], [265, 265], [265, 50]],
 };
-const WAVE_FIRST_TICK = 4;
-const WAVE_INTERVAL   = 12;
+const PHASE_1 = 20, PHASE_2 = 40;   // laning → mid game → grouped late game (ticks)
+const WAVE_FIRST_TICK = 2;
+const WAVE_INTERVAL   = 8;
 const MINION_DEF = {
-  melee:  { hp: 150, dmg: 10, range: 8,  aggro: 26, gold: 21, xp: 30, speed: 9 },
-  caster: { hp: 95,  dmg: 13, range: 24, aggro: 30, gold: 15, xp: 26, speed: 9 },
-  siege:  { hp: 300, dmg: 26, range: 30, aggro: 34, gold: 48, xp: 60, speed: 8.5 },
+  melee:  { hp: 150, dmg: 10, range: 8,  aggro: 26, gold: 21, xp: 30, speed: 13 },
+  caster: { hp: 95,  dmg: 13, range: 24, aggro: 30, gold: 15, xp: 26, speed: 13 },
+  siege:  { hp: 300, dmg: 26, range: 30, aggro: 34, gold: 48, xp: 60, speed: 12 },
 };
 const MINION_XP_RANGE = 60;
 
@@ -113,32 +114,32 @@ const LANE_POS_P1 = {
 // T1 = outer (enemies hit first), T2 = inner (closer to base)
 const OBJ_DEFS = [
   // ── Blue bot lane (bottom edge, enemies come from right) ────────────────────
-  { id:'b_bot1',   side:'blue',    type:'root',    x:185, y:265, maxHp: 900, atkDmg: 8, atkRange:32 },
-  { id:'b_bot2',   side:'blue',    type:'root',    x:115, y:265, maxHp: 1100, atkDmg:12, atkRange:32 },
+  { id:'b_bot1',   side:'blue',    type:'root',    x:185, y:265, maxHp: 500, atkDmg: 8, atkRange:32 },
+  { id:'b_bot2',   side:'blue',    type:'root',    x:115, y:265, maxHp: 600, atkDmg:12, atkRange:32 },
   // ── Blue mid lane (diagonal, enemies from top-right) ────────────────────────
   // ON the diagonal: x + y = 300. b_mid1 outer (hit first by red), b_mid2 inner (closer to blue base)
-  { id:'b_mid1',   side:'blue',    type:'root',    x:110, y:190, maxHp: 900, atkDmg: 8, atkRange:32 },
-  { id:'b_mid2',   side:'blue',    type:'root',    x: 80, y:220, maxHp: 1100, atkDmg:12, atkRange:32 },
+  { id:'b_mid1',   side:'blue',    type:'root',    x:110, y:190, maxHp: 500, atkDmg: 8, atkRange:32 },
+  { id:'b_mid2',   side:'blue',    type:'root',    x: 80, y:220, maxHp: 600, atkDmg:12, atkRange:32 },
   // ── Blue top lane (left edge, enemies come from above) ──────────────────────
   //    T1 (outer) is the one further from base (y=115); T2 (inner) guards the base (y=185)
-  { id:'b_top1',   side:'blue',    type:'root',    x: 35, y:115, maxHp: 900, atkDmg: 8, atkRange:32 },
-  { id:'b_top2',   side:'blue',    type:'root',    x: 35, y:185, maxHp: 1100, atkDmg:12, atkRange:32 },
+  { id:'b_top1',   side:'blue',    type:'root',    x: 35, y:115, maxHp: 500, atkDmg: 8, atkRange:32 },
+  { id:'b_top2',   side:'blue',    type:'root',    x: 35, y:185, maxHp: 600, atkDmg:12, atkRange:32 },
   // ── Blue base ───────────────────────────────────────────────────────────────
-  { id:'b_heart',  side:'blue',    type:'root',    x: 55, y:240, maxHp: 1200, atkDmg:10, atkRange:32 },
-  { id:'b_ancient',side:'blue',    type:'ancient', x: 22, y:278, maxHp: 1800, atkDmg:12, atkRange:36 },
+  { id:'b_heart',  side:'blue',    type:'root',    x: 55, y:240, maxHp: 600, atkDmg:10, atkRange:32 },
+  { id:'b_ancient',side:'blue',    type:'ancient', x: 22, y:278, maxHp: 800, atkDmg: 6, atkRange:36 },
   // ── Red top lane (top edge, enemies come from left) — mirror of blue bot ────
-  { id:'r_top1',   side:'red',     type:'root',    x:115, y: 35, maxHp: 900, atkDmg: 8, atkRange:32 },
-  { id:'r_top2',   side:'red',     type:'root',    x:185, y: 35, maxHp: 1100, atkDmg:12, atkRange:32 },
+  { id:'r_top1',   side:'red',     type:'root',    x:115, y: 35, maxHp: 500, atkDmg: 8, atkRange:32 },
+  { id:'r_top2',   side:'red',     type:'root',    x:185, y: 35, maxHp: 600, atkDmg:12, atkRange:32 },
   // ── Red mid lane (diagonal, enemies from bottom-left) — mirror of blue mid ─
   // ON the diagonal: x + y = 300. r_mid1 outer (hit first by blue), r_mid2 inner (closer to red base)
-  { id:'r_mid1',   side:'red',     type:'root',    x:190, y:110, maxHp: 900, atkDmg: 8, atkRange:32 },
-  { id:'r_mid2',   side:'red',     type:'root',    x:220, y: 80, maxHp: 1100, atkDmg:12, atkRange:32 },
+  { id:'r_mid1',   side:'red',     type:'root',    x:190, y:110, maxHp: 500, atkDmg: 8, atkRange:32 },
+  { id:'r_mid2',   side:'red',     type:'root',    x:220, y: 80, maxHp: 600, atkDmg:12, atkRange:32 },
   // ── Red bot lane (right edge, enemies come from below) — mirror of blue top ─
-  { id:'r_bot1',   side:'red',     type:'root',    x:265, y:185, maxHp: 900, atkDmg: 8, atkRange:32 },
-  { id:'r_bot2',   side:'red',     type:'root',    x:265, y:115, maxHp: 1100, atkDmg:12, atkRange:32 },
+  { id:'r_bot1',   side:'red',     type:'root',    x:265, y:185, maxHp: 500, atkDmg: 8, atkRange:32 },
+  { id:'r_bot2',   side:'red',     type:'root',    x:265, y:115, maxHp: 600, atkDmg:12, atkRange:32 },
   // ── Red base ────────────────────────────────────────────────────────────────
-  { id:'r_heart',  side:'red',     type:'root',    x:240, y: 55, maxHp: 1200, atkDmg:10, atkRange:32 },
-  { id:'r_ancient',side:'red',     type:'ancient', x:278, y: 22, maxHp: 1800, atkDmg:12, atkRange:36 },
+  { id:'r_heart',  side:'red',     type:'root',    x:240, y: 55, maxHp: 600, atkDmg:10, atkRange:32 },
+  { id:'r_ancient',side:'red',     type:'ancient', x:278, y: 22, maxHp: 800, atkDmg: 6, atkRange:36 },
   // ── Neutral objectives ──────────────────────────────────────────────────────
   // Neutral objectives: Shrine (Dragon-side, bot lane river) and Warden (Baron-side, top lane river)
   { id:'shrine',   side:'neutral', type:'shrine',  x: 65, y: 65, maxHp: 1500, atkDmg: 0, atkRange: 0 },
@@ -148,12 +149,12 @@ const OBJ_DEFS = [
 // Jungle camps
 const JUNGLE_DEF = [
   // The map is mirror-symmetric across the river (the x = y diagonal): red camp = blue camp with x/y swapped.
-  { id:'bjc1', side:'blue', large:false, x: 75, y:140, maxHp:400, xp:XP_JG_SM, gold:30, respawn:20 },
-  { id:'bjc2', side:'blue', large:false, x:140, y:225, maxHp:400, xp:XP_JG_SM, gold:30, respawn:20 },
-  { id:'bjcL', side:'blue', large:true,  x: 95, y:150, maxHp:700, xp:XP_JG_LG, gold:60, respawn:30 },
-  { id:'rjc1', side:'red',  large:false, x:140, y: 75, maxHp:400, xp:XP_JG_SM, gold:30, respawn:20 },
-  { id:'rjc2', side:'red',  large:false, x:225, y:140, maxHp:400, xp:XP_JG_SM, gold:30, respawn:20 },
-  { id:'rjcL', side:'red',  large:true,  x:150, y: 95, maxHp:700, xp:XP_JG_LG, gold:60, respawn:30 },
+  { id:'bjc1', side:'blue', large:false, x: 75, y:140, maxHp:400, xp:XP_JG_SM, gold:30, respawn:12 },
+  { id:'bjc2', side:'blue', large:false, x:140, y:225, maxHp:400, xp:XP_JG_SM, gold:30, respawn:12 },
+  { id:'bjcL', side:'blue', large:true,  x: 95, y:150, maxHp:700, xp:XP_JG_LG, gold:60, respawn:18 },
+  { id:'rjc1', side:'red',  large:false, x:140, y: 75, maxHp:400, xp:XP_JG_SM, gold:30, respawn:12 },
+  { id:'rjc2', side:'red',  large:false, x:225, y:140, maxHp:400, xp:XP_JG_SM, gold:30, respawn:12 },
+  { id:'rjcL', side:'red',  large:true,  x:150, y: 95, maxHp:700, xp:XP_JG_LG, gold:60, respawn:18 },
 ];
 
 // ─── Agent initialisation ─────────────────────────────────────────────────────
@@ -212,7 +213,9 @@ function initAgent(side, posIdx, player, champName) {
 
 // ─── Level-up ─────────────────────────────────────────────────────────────────
 
+const XP_MULT = 1.7;   // short games: level up faster
 function grantXP(agent, amount) {
+  amount = Math.round(amount * XP_MULT);
   agent.xp += amount;
   while (agent.level < 10 && agent.xp >= XP_THRESH[agent.level]) {
     agent.level++;
@@ -365,7 +368,7 @@ function decideAction(agent, allies, enemies, objs, jungles, tick, phase) {
   // 4b. Numbers advantage (2+ more alive) after laning → group up and siege
   if (phase >= 1) {
     const upBy = (allies.filter(a => !a.isDead).length + 1) - enemies.filter(e => !e.isDead).length;
-    if (upBy >= 2) {
+    if (upBy >= 2 || (phase === 2 && upBy >= 1)) {
       const tgt = nextSiegeTarget(enemySide, objs);
       if (tgt && !tgt.destroyed) { agent.state = 'contesting'; agent.target = { type: 'objective', ref: tgt }; return; }
     }
@@ -733,7 +736,7 @@ function tickMinions(minions, agents, objs, tick) {
     }
     // 2. enemy structure in range (minions siege towers once the wave is clear)
     const obj = objs.find(o => o.side !== m.side && _structureTargetable(o, objs) && dist(m, o) <= m.range + 14);
-    if (obj) { obj.hp = Math.max(0, obj.hp - m.dmg * 0.6); return; }
+    if (obj) { obj.hp = Math.max(0, obj.hp - m.dmg * 1.5); return; }
     // 3. enemy champion standing in the wave
     const champ = agents.find(a => !a.isDead && a.side !== m.side && dist(m, a) <= Math.max(14, m.range));
     if (champ) { champ.hp -= m.dmg * 0.5; return; }
@@ -840,7 +843,7 @@ function resolveDeaths(agents, events, score, tick) {
     ag.hp        = 0;
     ag.diedAt    = tick;
     ag.deaths++;
-    ag.respawnAt = tick + Math.min(36, 8 + Math.floor(ag.level * 2.6)); // longer late-game death timers → decisive pushes
+    ag.respawnAt = tick + Math.min(20, 5 + Math.floor(ag.level * 1.6)); // death timers grow with level → decisive late pushes
     ag.state     = 'dead';
     ag.target    = null;
 
@@ -913,7 +916,7 @@ function resolveObjectives(objs, agents, events, score, tick) {
 
     if (obj.type === 'shrine') {
       if (capSide === 'blue') score.blueShrines++; else score.redShrines++;
-      obj.hp = obj.maxHp; obj.tempDown = true; obj.respawnAt = tick + 90;
+      obj.hp = obj.maxHp; obj.tempDown = true; obj.respawnAt = tick + 45;
       const drakeKey = capSide === 'blue' ? 'blueDrakes' : 'redDrakes';
       score[drakeKey] = Math.min(4, (score[drakeKey] || 0) + 1);
       const stacks = score[drakeKey];
@@ -931,7 +934,7 @@ function resolveObjectives(objs, agents, events, score, tick) {
         shrineBlue: capSide==='blue', shrineRed: capSide==='red' });
     } else if (obj.type === 'warden') {
       score[capSide==='blue' ? 'blueWarden' : 'redWarden']++;
-      obj.hp = obj.maxHp; obj.tempDown = true; obj.respawnAt = tick + 120;
+      obj.hp = obj.maxHp; obj.tempDown = true; obj.respawnAt = tick + 60;
       score.baronBuff[capSide] = 90; // 90 ticks = 3 min of baron buff
       // Empower all surviving champions on winning side
       near.forEach(a => { a._baronBuffed = 90; });
@@ -1066,8 +1069,8 @@ function _pickCommentary(all, score, tick) {
 
   const pool = [
     `${totalK} kills across the map — this one is intense.`,
-    gameMin < 8  ? 'Both teams farming carefully in the laning phase.' :
-    gameMin < 15 ? 'The map is opening up as teams begin to rotate.' :
+    tick < PHASE_1 ? 'Both teams farming carefully in the laning phase.' :
+    tick < PHASE_2 ? 'The map is opening up as teams begin to rotate.' :
                    'Late-game teamfight battles are deciding this match.',
     Math.abs(diff) > 4000
       ? `${diff > 0 ? 'Blue' : 'Red'} is sitting on a ${Math.abs(Math.round(diff/1000))}K gold lead — snowball incoming.`
@@ -1114,7 +1117,7 @@ function _checkFightRotation(all, events, score, objs, tick) {
 
   let rotTarget = null, rotType = 'objective', rotText = '';
   const roll = Math.random();
-  if (gameMin >= 20 && warden && roll < 0.35) {
+  if (tick >= PHASE_2 && warden && roll < 0.35) {
     rotTarget = warden; rotType = 'warden';
     rotText = `${W} wins the teamfight ${diff > 0 ? rDead : bDead}-for-${diff > 0 ? bDead : rDead} — rotating to Grove Warden!`;
   } else if (shrine && roll < 0.55) {
@@ -1235,7 +1238,7 @@ function simulateMatch(blueTeamArr, redTeamArr, blueName, redName, preDraft) {
 
   // ── Main game loop ────────────────────────────────────────────────────────
   for (let tick = 0; tick <= MAX_TICKS && !score.winner; tick++) {
-    const phase = tick < 40 ? 0 : tick < 85 ? 1 : 2;
+    const phase = tick < PHASE_1 ? 0 : tick < PHASE_2 ? 1 : 2;
 
     tickCDs(all);
     processRespawns(all, tick);
@@ -1269,6 +1272,12 @@ function simulateMatch(blueTeamArr, redTeamArr, blueName, redName, preDraft) {
 
     // Minions fight, push and siege
     tickMinions(minions, all, objs, tick);
+
+    // An Ancient whose Heart has fallen withers (4% max HP per tick) — keeps endgames short
+    ['b', 'r'].forEach(sd => {
+      const heart = objs.find(o => o.id === sd + '_heart'), anc = objs.find(o => o.id === sd + '_ancient');
+      if (heart?.destroyed && anc && !anc.destroyed) anc.hp = Math.max(0, anc.hp - anc.maxHp * 0.04);
+    });
 
     // Objective counter-attacks (towers prefer minions)
     objCounterAttack(objs, all, minions);

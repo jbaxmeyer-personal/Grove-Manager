@@ -320,10 +320,10 @@ async function runTests() {
     console.log(`       Wage bill text: ${wageText}`);
   });
 
-  await test('Finances: sponsors tab lists the 5 sponsor slots', async () => {
+  await test('Finances: sponsors tab lists the 3 sponsor slots', async () => {
     await page.click('[data-fintab="sponsors"]');
     const n = await page.$$eval('.sponsor-slot', els => els.length);
-    assert(n === 5, `expected 5 sponsor slots, got ${n}`);
+    assert(n === 3, `expected 3 sponsor slots, got ${n}`);
     await page.click('[data-fintab="overview"]');
   });
 

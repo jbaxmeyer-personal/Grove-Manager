@@ -65,6 +65,7 @@
 
   let _positions   = { blue: {}, red: {} };
   let _minions     = [];
+  let _deathPos    = {};
   let _agentStats  = { blue: {}, red: {} };
   let _objStates   = {};
   let _score = { blueKills:0, redKills:0, blueRoots:0, redRoots:0,
@@ -103,6 +104,7 @@
     _paused      = false;
     _positions   = { blue:{}, red:{} };
     _minions     = [];
+    _deathPos    = {};
     _agentStats  = { blue:{}, red:{} };
     _objStates   = {};
     _score       = { blueKills:0, redKills:0, blueRoots:0, redRoots:0,
@@ -240,12 +242,24 @@
         const p = _prevPos[side]?.[role];
         const n = _nextPos[side]?.[role];
         if (n) {
+          const key = side + role;
+          // dead champions stay where they fell (no gliding back to base)…
+          if (!n.alive) {
+            if (!_deathPos[key]) _deathPos[key] = p && p.alive !== false ? { x: p.x, y: p.y } : { x: n.x, y: n.y };
+            lerped[side][role] = { x: _deathPos[key].x, y: _deathPos[key].y, hp: 0, maxHp: n.maxHp, alive: false };
+            return;
+          }
+          delete _deathPos[key];
+          // …and recalls / respawns blink: a jump bigger than a champion can walk in one tick is a teleport
+          const jump = p && (Math.hypot(n.x - p.x, n.y - p.y) > 40 || p.alive === false);
+          const k = jump ? 1 : t;
           lerped[side][role] = {
-            x:     p ? p.x + (n.x - p.x) * t : n.x,
-            y:     p ? p.y + (n.y - p.y) * t : n.y,
-            hp:    n.hp,
+            x:     p ? p.x + (n.x - p.x) * k : n.x,
+            y:     p ? p.y + (n.y - p.y) * k : n.y,
+            hp:    p && !jump ? p.hp + (n.hp - p.hp) * Math.min(1, t * 1.6) : n.hp,   // health drains smoothly
             maxHp: n.maxHp,
             alive: n.alive,
+            blink: !!jump,
           };
         }
       });

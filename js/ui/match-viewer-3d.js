@@ -177,7 +177,7 @@ function buildStatic() {
   const pts = [];
   const blockers = [];
   for (const o of G_OBJ) blockers.push([o.x, o.y, o.type === 'ancient' ? 42 : o.type === 'shrine' || o.type === 'warden' ? 28 : 14]);
-  for (const j of G_JG) blockers.push([j.x, j.y, 13]);
+  for (const j of G_JG) blockers.push([j.x, j.y, 17]);
   let tries = 0;
   while (pts.length < 950 && tries < 40000) {
     tries++;
@@ -311,7 +311,7 @@ function attachCreatures() {
   }
   for (const j of G_JG) {
     const r = makeRig({ body: j.large ? 0x5d4a2c : 0x4f5d2c, joint: 0x2a2a1a });
-    r.g.scale.setScalar(j.large ? 2.6 : 1.9); r.g.position.copy(W(j.x, j.y)); r.g.rotation.y = rnd(0, 6.28);
+    r.g.scale.setScalar(j.large ? 3.6 : 2.8); r.g.position.copy(W(j.x, j.y)); r.g.rotation.y = rnd(0, 6.28);
     scene.add(r.g); r.play(Math.random() < 0.5 ? 'idle' : 'sneak_pose'); r.mixer.update(rnd(0, 3)); jungleRigs.push(r);
   }
 }
@@ -379,7 +379,8 @@ function makePlate(side) {
 function drawPlate(ch) {
   const sp = ch.plate, u = sp.userData;
   const pct = ch.maxHp ? clamp(ch.hp / ch.maxHp, 0, 1) : 1;
-  const key = `${Math.round(pct * 60)}|${ch.level}|${ch.alive}|${ch.state}`;
+  const tpct = ch.maxHp ? clamp((ch.hpTrail ?? ch.hp) / ch.maxHp, 0, 1) : pct;
+  const key = `${Math.round(pct * 100)}|${Math.round(tpct * 50)}|${ch.level}|${ch.alive}|${ch.state}`;
   if (u.key === key) return; u.key = key;
   const x = u.c.getContext('2d'); x.clearRect(0, 0, 256, 72);
   const human = ch.side === meta.humanSide;
@@ -387,6 +388,7 @@ function drawPlate(ch) {
   x.fillStyle = 'rgba(0,0,0,.6)'; x.fillText(ch.name, 129, 17); x.fillStyle = human ? '#fff' : '#ffe3e0'; x.fillText(ch.name, 128, 16);
   // bar
   x.fillStyle = 'rgba(8,10,14,.85)'; x.fillRect(30, 34, 210, 22);
+  if (tpct > pct) { x.fillStyle = 'rgba(255,255,255,.75)'; x.fillRect(33, 37, 204 * tpct, 16); }
   x.fillStyle = ch.side === 'blue' ? '#3fa2ff' : '#ff4f43'; if (!ch.alive) x.fillStyle = '#555';
   x.fillRect(33, 37, 204 * pct, 16);
   x.fillStyle = 'rgba(0,0,0,.35)'; for (let i = 1; i < 8; i++) x.fillRect(33 + i * 25.5, 37, 2, 16);
@@ -415,7 +417,7 @@ class Champ {
     this.hp = 1; this.maxHp = 1; this.level = 1; this.alive = true; this.state = 'laning';
     this.deadT = 0; this.atkT = rnd(0, 1); this.lunge = 0; this.respawnFlash = 0;
     this.rig.play('idle', 0); this.rig.mixer.update(rnd(0, 2));
-    this.recallFx = null; this.first = true;
+    this.recallFx = null; this.first = true; this.seed = Math.random() * 10;
   }
   dispose() { scene.remove(this.g, this.wR, this.wL); if (this.recallFx) scene.remove(this.recallFx); }
 }
@@ -457,6 +459,15 @@ function floatText(pos, text, color) {
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false })); sp.scale.set(20, 5, 1); sp.renderOrder = 12;
   sp.position.copy(pos); sp.position.y += 14; scene.add(sp); fx.push({ m: sp, life: 1.6, t: 0, kind: 'text' });
 }
+function dmgNumber(pos, n) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 48; const x = c.getContext('2d');
+  x.font = '800 30px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 5; x.strokeStyle = 'rgba(0,0,0,.8)';
+  x.strokeText('-' + n, 64, 24); x.fillStyle = '#ffd0c8'; x.fillText('-' + n, 64, 24);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false })); sp.scale.set(8, 3, 1); sp.renderOrder = 12;
+  sp.position.copy(pos); sp.position.x += rnd(-2, 2); sp.position.y += 9; scene.add(sp); fx.push({ m: sp, life: 0.9, t: 0, kind: 'text' });
+}
+
 function banner(html, side) {
   if (!bannerEl) return;
   bannerEl.innerHTML = html; bannerEl.className = 'mv3d-banner show ' + (side || '');
@@ -560,12 +571,22 @@ function updateChamps(dt, gdt) {
     W(L.x, L.y, _v1);
     if (ch.first) { ch.g.position.copy(_v1); ch.first = false; }
     const prev = _v2.copy(ch.g.position);
+    if (L.blink && L.alive !== false && prev.distanceTo(_v1) > 25) {
+      // recall / teleport: blink out here, blink in there — never glide across the map
+      pillar(prev, TEAM_COL[ch.side], 0.6, 2.5); ch.g.position.copy(_v1); pillar(_v1, TEAM_COL[ch.side], 0.8, 3);
+      prev.copy(_v1);
+    }
     // smooth toward lerped position (the 2D viewer already interpolates per tick)
     ch.g.position.lerp(_v1, 1 - Math.pow(0.0005, dt));
     const moved = prev.distanceTo(ch.g.position);
     const spd = dt > 0 ? moved / dt : 0;
     ch.vel = lerp(ch.vel, spd, 0.2);
+    if (ch.alive && L.hp < ch.hp - 0.5) {
+      ch.lastDropT = gameTime; ch.dmgAcc = (ch.dmgAcc || 0) + (ch.hp - L.hp);
+      if (ch.dmgAcc > (L.maxHp || 600) * 0.06) { dmgNumber(ch.g.position, Math.round(ch.dmgAcc)); ch.dmgAcc = 0; }
+    }
     ch.hp = L.hp; ch.maxHp = L.maxHp || 1;
+    ch.hpTrail = Math.max(ch.hp, (ch.hpTrail ?? ch.hp) - ch.maxHp * 0.35 * dt);   // white "recent damage" chip
     if (rec) { ch.level = rec.level || ch.level; ch.state = rec.state || ch.state; }
     const wasAlive = ch.alive; ch.alive = L.alive !== false;
 
@@ -604,7 +625,9 @@ function updateChamps(dt, gdt) {
     ch.rig.mixer.update(dt);
 
     // attacks (game-time based so they scale with match speed)
-    if (engaging && gdt > 0) {
+    const tgtChamp = rec && /^[br]\d$/.test(rec.tid || '') ? champs[(rec.tid[0] === 'b' ? 'blue' : 'red') + '_' + ROLES[+rec.tid[1]]] : null;
+    const landing = !tgtChamp || (tgtChamp.lastDropT ?? -9) > gameTime - 2.5;
+    if (engaging && gdt > 0 && landing) {
       ch.atkT -= gdt;
       if (ch.atkT <= 0) {
         ch.atkT = (CLASS_ATK_INT[ch.cls] || 1.3) * rnd(0.85, 1.15);
@@ -617,7 +640,15 @@ function updateChamps(dt, gdt) {
       }
     }
     ch.lunge = Math.max(0, ch.lunge - dt * 5);
-    ch.rig.g.position.x = Math.sin(ch.heading) * ch.lunge * 2; ch.rig.g.position.z = Math.cos(ch.heading) * ch.lunge * 2;
+    // fights: ranged champions kite side to side, melee shuffle — no more statues trading hits
+    const ranged = ['Mage', 'Marksman', 'Sentinel'].includes(ch.cls);
+    const strafeGoal = engaging ? Math.sin(gameTime * (ranged ? 1.7 : 2.6) + ch.seed) * (ranged ? 5 : 2.2) : 0;
+    ch.strafe = lerp(ch.strafe || 0, strafeGoal, 1 - Math.pow(0.02, dt));
+    const sx = Math.cos(ch.heading) * ch.strafe, sz = -Math.sin(ch.heading) * ch.strafe;
+    ch.rig.g.position.x = Math.sin(ch.heading) * ch.lunge * 2 + sx + (ch.sepX || 0);
+    ch.rig.g.position.z = Math.cos(ch.heading) * ch.lunge * 2 + sz + (ch.sepZ || 0);
+    if (engaging && Math.abs(strafeGoal - (ch._lastStrafe || 0)) > 0.02 && ch.vel < 1.5) ch.rig.play('walk', 0.2, 0.8);
+    ch._lastStrafe = strafeGoal;
 
     // recall swirl
     if (ch.alive && ch.state === 'recalling') {
@@ -629,6 +660,15 @@ function updateChamps(dt, gdt) {
     ch.ring.material.opacity = engaging ? 0.6 + Math.sin(gameTime * 10) * 0.3 : 0.75;
     drawPlate(ch);
   }
+  // keep champions from standing inside each other
+  const list = Object.values(champs).filter(c => c.alive && c.g.visible);
+  for (const a of list) { a._sx = 0; a._sz = 0; }
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    const a = list[i], b = list[j]; const dx = b.g.position.x - a.g.position.x, dz = b.g.position.z - a.g.position.z; const d = Math.hypot(dx, dz);
+    if (d < 5 && d > 0.001) { const push = (5 - d) / 2; a._sx -= dx / d * push; a._sz -= dz / d * push; b._sx += dx / d * push; b._sz += dz / d * push; }
+  }
+  for (const a of list) { a.sepX = lerp(a.sepX || 0, a._sx, 1 - Math.pow(0.05, dt)); a.sepZ = lerp(a.sepZ || 0, a._sz, 1 - Math.pow(0.05, dt)); }
+
   // weapons follow hands (after all mixers updated)
   for (const key in champs) {
     const ch = champs[key]; if (!ch.g.visible) continue;
@@ -726,6 +766,7 @@ function updateCamera(dt) {
 }
 
 // pointer controls: drag = pan, wheel / pinch = zoom
+const COARSE = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 const pointer = { down: false, id: null, x: 0, y: 0, pts: new Map(), pinch0: 0, dist0: 0 };
 const _ray = new THREE.Raycaster(), _plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 function groundAt(cx, cy) {
@@ -743,6 +784,7 @@ function bindControls(el) {
     if (!pointer.pts.has(e.pointerId)) return;
     pointer.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointer.pts.size === 2) { const [a, b] = [...pointer.pts.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); camDistGoal = clamp(pointer.dist0 * pointer.pinch0 / Math.max(10, d), 45, 360); setCamMode('free'); return; }
+    if (COARSE && e.pointerType === 'touch') return;   // phones: one finger scrolls the page; two fingers zoom
     const p0 = groundAt(pointer.x, pointer.y), p1 = groundAt(e.clientX, e.clientY);
     if (p0 && p1 && (Math.abs(e.clientX - pointer.x) + Math.abs(e.clientY - pointer.y) > 1)) {
       setCamMode('free'); camTargetGoal.add(p0.sub(p1)); camTarget.copy(camTargetGoal);
@@ -752,7 +794,8 @@ function bindControls(el) {
   const up = e => { pointer.pts.delete(e.pointerId); if (pointer.pts.size === 0) pointer.down = false; manualUntil = performance.now() + 7000; };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   el.addEventListener('wheel', e => { e.preventDefault(); camDistGoal = clamp(camDistGoal * (1 + Math.sign(e.deltaY) * 0.12), 45, 360); if (camMode === 'auto') { setCamMode('free'); camTargetGoal.copy(camTarget); } manualUntil = performance.now() + 7000; }, { passive: false });
-  el.style.touchAction = 'none';
+  // phones: let a one-finger swipe scroll the page (pinch still reaches us for zoom)
+  el.style.touchAction = COARSE ? 'pan-y' : 'none';
 }
 function setCamMode(m, key) {
   camMode = m; if (key !== undefined) followKey = key;
@@ -772,7 +815,7 @@ function buildOverlay() {
       <span class="mv3d-follow"></span>
     </div>
     <div class="mv3d-banner"></div>
-    <div class="mv3d-hint">Drag to pan · pinch/scroll to zoom</div>`;
+    <div class="mv3d-hint">${COARSE ? 'Pinch to zoom' : 'Drag to pan · scroll to zoom'}</div>`;
   bannerEl = overlay.querySelector('.mv3d-banner');
   overlay.querySelectorAll('[data-m]').forEach(b => { camBtns[b.dataset.m] = b; b.addEventListener('click', () => setCamMode(b.dataset.m)); });
   return overlay;
@@ -802,6 +845,10 @@ function resize() {
 function loop() {
   rafId = requestAnimationFrame(loop);
   if (!container || !container.isConnected || container.offsetParent === null) return; // hidden: skip work
+  // once the match is decided (or the result card is up) idle at ~4 fps — saves battery on phones
+  const results = document.getElementById('pbp-results');
+  const idle = (ended && gameTime - (window.Match3D._endT ?? gameTime) > 0) || (results && results.offsetParent !== null);
+  if (idle) { const now = performance.now(); if (now - (loop._last || 0) < 250) return; loop._last = now; }
   const dt = Math.min(clock.getDelta(), 0.05);
   resize();
   // game time follows the 2D viewer's tick clock
@@ -887,7 +934,7 @@ window.Match3D = {
       if (o) { const col = TEAM_COL[ev.side] || 0xffd54a; pillar(o.g.position, col, 1.8, ev.type === 'objective' ? 5 : 9); eventFocus = { pos: o.g.position.clone(), until: gameTime + 5, dist: ev.type === 'objective' ? 95 : 105 }; }
       banner(`<span class="mv3d-tag">${ev.type === 'baron' ? 'WARDEN' : ev.type === 'dragon' ? 'SOUL' : 'OBJECTIVE'}</span> ${ev.text || ''}`, sideCss);
     } else if (ev.type === 'result') {
-      ended = true;
+      ended = true; window.Match3D._endT = gameTime + 4;
       const loser = ev.side === 'blue' ? 'r_ancient' : 'b_ancient'; const v = objViews[loser];
       if (v) { for (let i = 0; i < 3; i++) setTimeout(() => burst(v.g.position, 0xffffff, 50, 40, 1.6, 2), i * 250); eventFocus = { pos: v.g.position.clone(), until: gameTime + 999, dist: 120 }; }
       banner(`<span class="mv3d-tag">VICTORY</span> ${teamName || ''}`, sideCss);

@@ -100,7 +100,7 @@ test(`${N} matches finish with a winner and sane numbers`, () => {
   for (const r of results) {
     assert.ok(r.winner === 'blue' || r.winner === 'red');
     for (const p of [...r.playerStats.blue, ...r.playerStats.red]) {
-      assert.ok(Number.isFinite(p.gold) && p.gold >= 0, 'gold'); assert.ok(p.items.length <= 6, 'items');
+      assert.ok(Number.isFinite(p.gold) && p.gold >= 0, 'gold'); assert.ok(p.items.length <= 3, 'items');
     }
     const last = r.events.filter(e => e.type === 'move').pop();
     for (const s of ['blue', 'red']) for (const p of Object.values(last.positions[s])) {
@@ -113,7 +113,7 @@ test('minions are simulated (present in move events) and laners farm them', () =
   assert.ok(r.events.filter(e => e.type === 'move').some(e => e.minions && e.minions.length > 20));
   const laneCS = results.map(r => [...r.playerStats.blue, ...r.playerStats.red].filter(p => ['top', 'mid', 'adc'].includes(p.pos)).reduce((s, p) => s + p.cs, 0) / 6);
   const avg = laneCS.reduce((a, b) => a + b, 0) / laneCS.length;
-  assert.ok(avg >= 6, `avg laner CS ${avg.toFixed(1)} too low`);
+  assert.ok(avg >= 3, `avg laner CS ${avg.toFixed(1)} too low`);
 });
 test('most games end on an Ancient kill (not the time limit)', () => {
   const natural = results.filter(r => r.events[r.events.length - 1].tick < api.MAX_TICKS).length / N;
@@ -123,7 +123,7 @@ test('towers, shrines and kills happen at sensible rates', () => {
   const avg = f => results.reduce((s, r) => s + f(r), 0) / N;
   const towers = avg(r => r.blueRoots + r.redRoots), kills = avg(r => r.blueKills + r.redKills), shrines = avg(r => r.blueShrines + r.redShrines);
   console.log(`       per game: ${towers.toFixed(1)} towers, ${kills.toFixed(1)} kills, ${shrines.toFixed(1)} shrines, ${avg(r => r.duration).toFixed(0)} min`);
-  assert.ok(towers >= 5, 'towers'); assert.ok(kills >= 12 && kills <= 50, 'kills'); assert.ok(shrines >= 1, 'shrines');
+  assert.ok(towers >= 4, 'towers'); assert.ok(kills >= 12 && kills <= 50, 'kills'); assert.ok(shrines >= 1, 'shrines');
 });
 test('no big side bias (blue win rate within 35–65%)', () => {
   const blue = results.filter(r => r.winner === 'blue').length / N;

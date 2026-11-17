@@ -26,13 +26,16 @@ function startServer() {
   });
 }
 
-async function launch({ mobile = false } = {}) {
+async function launch({ mobile = false, landscape = false } = {}) {
+  // "New" headless Chrome: unlike the old headless shell it really scrolls on touch drags,
+  // so the phone checks below exercise genuine finger scrolling.
   const browser = await chromium.launch({
     headless: true,
+    channel: process.env.CHROME_PATH ? undefined : 'chromium',
     executablePath: process.env.CHROME_PATH || undefined,
-    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+    args: ['--headless=new', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
   });
-  const ctxOpts = mobile ? { ...devices['iPhone 13'], defaultBrowserType: undefined } : { viewport: { width: 1366, height: 850 } };
+  const ctxOpts = mobile ? { ...devices[landscape ? 'iPhone 13 landscape' : 'iPhone 13'] } : { viewport: { width: 1366, height: 850 } };
   delete ctxOpts.defaultBrowserType;
   const context = await browser.newContext(ctxOpts);
   const page = await context.newPage();
@@ -54,7 +57,18 @@ async function launch({ mobile = false } = {}) {
     if (/^https?:\/\/(127\.0\.0\.1|localhost)/.test(u)) return route.continue();
     return route.abort();   // no other network in tests
   });
-  return { browser, context, page, errors };
+  // Real finger swipe (touchStart → touchMove… → touchEnd) — moves the page only if a person could.
+  let cdp = null;
+  const swipe = async (dy = 380, x = null, y0 = null) => {
+    if (!cdp) cdp = await context.newCDPSession(page);
+    const vp = page.viewportSize(); const X = x ?? Math.round(vp.width * 0.6); let y = y0 ?? Math.round(vp.height * 0.75);
+    const pt = yy => [{ x: X, y: yy, id: 1 }];
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pt(y) });
+    const steps = 24; for (let i = 1; i <= steps; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(y - dy * i / steps) }); await page.waitForTimeout(6); }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(250);
+  };
+  return { browser, context, page, errors, swipe };
 }
 
 module.exports = { startServer, launch, ROOT };

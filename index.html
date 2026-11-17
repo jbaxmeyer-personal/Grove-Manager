@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Grove Manager</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -239,6 +239,31 @@
       </div>
 
     </main>
+  </div>
+  <!-- Phone navigation: bottom tab bar + "More" sheet (hidden on desktop) -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="bn-item active" data-bn="dashboard" onclick="showMain('dashboard')"><span>🏠</span>Home</button>
+    <button class="bn-item" data-bn="squad" onclick="showMain('squad')"><span>👥</span>Squad</button>
+    <button class="bn-item" data-bn="league" onclick="showMain('league')"><span>🏆</span>League</button>
+    <button class="bn-item" data-bn="finances" onclick="showMain('finances')"><span>💰</span>Money</button>
+    <button class="bn-item" data-bn="more" onclick="toggleMoreSheet()"><span>☰</span>More<i class="bn-badge" id="bn-news-badge" style="display:none"></i></button>
+  </nav>
+  <div class="more-sheet" id="more-sheet" onclick="if (event.target === this) toggleMoreSheet(false)">
+    <div class="more-grid">
+      <button class="more-item" data-more="teaminfo" onclick="showMain('teaminfo')"><span>🏢</span>Club</button>
+      <button class="more-item" data-more="training" onclick="showMain('training')"><span>🎯</span>Training</button>
+      <button class="more-item" data-more="transfers" onclick="showMain('transfers')"><span>💼</span>Transfers</button>
+      <button class="more-item" data-more="scouting" onclick="showMain('scouting')"><span>🔭</span>Scouting</button>
+      <button class="more-item" data-more="staff" onclick="showMain('staff')"><span>🎓</span>Staff</button>
+      <button class="more-item" data-more="facilities" onclick="showMain('facilities')"><span>🏗️</span>Facilities</button>
+      <button class="more-item" data-more="fans" onclick="showMain('fans')"><span>📣</span>Fans</button>
+      <button class="more-item" data-more="news" onclick="showMain('news')"><span>📰</span>News</button>
+      <button class="more-item" data-more="manager" onclick="showMain('manager')"><span>🧑‍💼</span>Manager</button>
+      <button class="more-item" data-more="champions" onclick="showMain('champions')"><span>⚔️</span>Champions</button>
+      <button class="more-item" data-more="items" onclick="showMain('items')"><span>🗡️</span>Items</button>
+      <button class="more-item" data-more="statistics" onclick="showMain('statistics')"><span>📈</span>Stats</button>
+      <button class="more-item" data-more="schedule" onclick="showMain('schedule')"><span>📅</span>Schedule</button>
+    </div>
   </div>
 </div>
 

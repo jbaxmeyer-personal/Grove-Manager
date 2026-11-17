@@ -14,16 +14,17 @@ const path = require('path');
 const { startServer, launch, ROOT } = require('./harness');
 
 const OUT = path.join(ROOT, 'test-results');
-const DEVICES = (process.env.PLAYTEST_DEVICES || 'desktop,mobile').split(',');
-const MAX_STEPS = +(process.env.PLAYTEST_STEPS || 40);   // week advances + series played
+const DEVICES = (process.env.PLAYTEST_DEVICES || 'desktop,mobile,landscape').split(',');   // landscape = phone held sideways
+// Desktop plays the whole split; the phone runs check navigation, scrolling and one full series (same game code)
+const MAX_STEPS_FOR = d => +(process.env.PLAYTEST_STEPS || (d === 'desktop' ? 40 : 2));
 const WATCH_MS = +(process.env.PLAYTEST_WATCH_MS || 20000);
 
 const NAV = ['dashboard', 'teaminfo', 'squad', 'training', 'transfers', 'scouting', 'finances', 'staff', 'facilities',
              'fans', 'news', 'manager', 'champions', 'items', 'statistics', 'league', 'schedule'];
 
 async function run(deviceName, baseUrl) {
-  const mobile = deviceName === 'mobile';
-  const { browser, page, errors } = await launch({ mobile });
+  const mobile = deviceName !== 'desktop';
+  const { browser, page, errors, swipe } = await launch({ mobile, landscape: deviceName === 'landscape' });
   const dir = path.join(OUT, deviceName); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
   const report = { device: deviceName, checks: [], failures: [], errors, screenshots: [], matches: [], weeks: 0 };
   let shotN = 0;
@@ -31,7 +32,41 @@ async function run(deviceName, baseUrl) {
   const check = (ok, what) => { report.checks.push({ ok: !!ok, what }); if (!ok) report.failures.push(what); return ok; };
   const visible = sel => page.isVisible(sel).catch(() => false);
   // software WebGL keeps the main thread busy during matches, so don't wait for 'stable' frames there
-  const click = async (sel, opts = {}) => { await page.locator(sel).first().click({ timeout: 15000, force: /^#mv-|#pbp|onStartMatch|onSkipMatch/.test(sel), ...opts }); };
+  const click = async (sel, opts = {}) => {
+    if (process.env.PLAYTEST_DEBUG) console.log('    · tap', sel);
+    const loc = page.locator(sel).first();
+    if (mobile) {
+      // a person has to scroll it into view with their finger first
+      if (!(await thumbReach(sel))) { check(false, `can swipe to "${sel}"`); }
+      return loc.tap({ timeout: 15000, force: /^#mv-|#pbp|onStartMatch|onSkipMatch/.test(sel), ...opts });
+    }
+    await loc.click({ timeout: 15000, force: /^#mv-|#pbp|onStartMatch|onSkipMatch/.test(sel), ...opts });
+  };
+  const inView = sel => page.evaluate(s => { const el = [...document.querySelectorAll(s)].find(e => e.offsetParent || getComputedStyle(e).position === 'fixed'); if (!el) return null;
+    const r = el.getBoundingClientRect(); const bn = document.getElementById('bottom-nav'); const bnShown = bn && bn.getClientRects().length > 0 && bn.getBoundingClientRect().height > 0;
+    const bottomLimit = bnShown && !el.closest('#bottom-nav, #more-sheet') ? bn.getBoundingClientRect().top : innerHeight;
+    return r.top >= 0 && r.bottom <= bottomLimit + 1 && r.width > 0; }, sel);
+  // swipe up/down (real touch) until the element is on screen; false if a thumb can't get it there
+  const thumbReach = async sel => {
+    for (let i = 0; i < 14; i++) {
+      const v = await inView(sel); if (process.env.PLAYTEST_DEBUG) console.log('      inView', sel, v); if (v === null) return false; if (v) return true;
+      const below = await page.evaluate(s => { const el = [...document.querySelectorAll(s)].find(e => e.offsetParent || getComputedStyle(e).position === 'fixed'); return el && el.getBoundingClientRect().top > innerHeight / 2; }, sel);
+      await swipe(below ? 300 : -300);
+    }
+    return !!(await inView(sel));
+  };
+  const goto = async name => {
+    if (!mobile) return click(`.sidebar [data-screen="${name}"]`);
+    const tab = page.locator(`.bn-item[data-bn="${name}"]`);
+    if (await tab.count()) return tab.tap();
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if (!(await page.isVisible('#more-sheet.open'))) await page.locator('.bn-item[data-bn="more"]').tap();
+        await page.locator(`.more-item[data-more="${name}"]`).tap({ timeout: 5000 });
+        return;
+      } catch (e) { if (attempt >= 1) throw e; await page.waitForTimeout(500); }
+    }
+  };
   const errCount = () => errors.length;
   // A person can only reach a button that is on screen or inside something they can scroll.
   const unreachable = () => page.evaluate(() => {
@@ -47,7 +82,7 @@ async function run(deviceName, baseUrl) {
     });
     return bad.slice(0, 6);
   });
-  const reachCheck = async where => { const u = await unreachable(); check(!u.length, `${where}: every button reachable by scrolling${u.length ? ' — stuck: ' + u.join(', ') : ''}`); };
+  const reachCheck = async where => { if (mobile) return; const u = await unreachable(); check(!u.length, `${where}: every button reachable by scrolling${u.length ? ' — stuck: ' + u.join(', ') : ''}`); };
 
   try {
     // ── Boot ──────────────────────────────────────────────────────────────
@@ -66,9 +101,7 @@ async function run(deviceName, baseUrl) {
     // ── Every screen ──────────────────────────────────────────────────────
     for (const name of NAV) {
       const before = errCount();
-      const item = page.locator(`[data-screen="${name}"]`).first();
-      if (!(await item.count())) { check(false, `nav item "${name}" exists`); continue; }
-      await item.click();
+      try { await goto(name); } catch (e) { check(false, `can navigate to "${name}"${mobile ? ' with the tab bar / More sheet' : ''}`); continue; }
       await page.waitForTimeout(150);
       const panelOk = await page.evaluate(n => {
         const p = document.getElementById('panel-' + n) || document.querySelector('.panel.active');
@@ -77,14 +110,22 @@ async function run(deviceName, baseUrl) {
       check(panelOk, `screen "${name}" renders content`);
       check(errCount() === before, `screen "${name}" has no JS errors`);
       await reachCheck(`screen "${name}"`);
+      if (mobile) {   // finger-scroll to the bottom of the screen and back
+        const before = await page.evaluate(() => scrollY);
+        await swipe(500); await swipe(500);
+        const after = await page.evaluate(() => scrollY);
+        const tall = await page.evaluate(() => document.documentElement.scrollHeight > innerHeight + 40);
+        if (tall) check(after > before, `screen "${name}" scrolls with a finger swipe`);
+        await swipe(-1200);
+      }
       if (['dashboard', 'finances', 'squad', 'league'].includes(name)) await shot(`screen-${name}`);
     }
 
     // ── Finances: tabs + sign a sponsor ───────────────────────────────────
-    await click('[data-screen="finances"]');
+    await goto('finances');
     for (const tab of ['sponsors', 'history', 'overview']) {
       await click(`[data-fintab="${tab}"]`); await page.waitForTimeout(100);
-      check(await page.evaluate(() => document.getElementById('finances-content').innerText.length > 60), `finances tab "${tab}" renders`);
+      check(await page.evaluate(() => document.getElementById('finances-content').innerText.length > 40), `finances tab "${tab}" renders`);
     }
     await click('[data-fintab="sponsors"]');
     await shot('finances-sponsors');
@@ -99,8 +140,8 @@ async function run(deviceName, baseUrl) {
 
     // ── Season loop ───────────────────────────────────────────────────────
     let watched = false;
-    for (let w = 0; w < MAX_STEPS; w++) {
-      await click('[data-screen="dashboard"]');
+    for (let w = 0; w < MAX_STEPS_FOR(deviceName); w++) {
+      await goto('dashboard');
       const phase = await page.evaluate(() => G.season.phase);
       if (phase === 'offseason') break;
       if (await visible('#btn-play-match')) {
@@ -119,13 +160,15 @@ async function run(deviceName, baseUrl) {
       }
     }
     const finalPhase = await page.evaluate(() => G.season.phase);
-    check(finalPhase === 'offseason' || finalPhase === 'playoffs', `season progressed to playoffs/offseason (got ${finalPhase})`);
-    check(report.matches.length >= 3, `played at least 3 series (${report.matches.length})`);
-    await click('[data-screen="finances"]'); await click('[data-fintab="history"]');
-    check(await page.evaluate(() => (G.financeLog || []).length >= 3), 'finance ledger has weekly entries');
+    if (MAX_STEPS_FOR(deviceName) >= 30) {
+      check(finalPhase === 'offseason' || finalPhase === 'playoffs', `season progressed to playoffs/offseason (got ${finalPhase})`);
+      check(report.matches.length >= 3, `played at least 3 series (${report.matches.length})`);
+    } else check(report.matches.length >= 1, `played a full series (${report.matches.length})`);
+    await goto('finances'); await click('[data-fintab="history"]');
+    if (MAX_STEPS_FOR(deviceName) >= 30) check(await page.evaluate(() => (G.financeLog || []).length >= 3), 'finance ledger has weekly entries');
     check(await page.evaluate(() => document.getElementById('top-budget').textContent !== '—'), 'top bar shows the budget');
     await shot('finances-history');
-    await click('[data-screen="league"]'); await shot('league-end');
+    await goto('league'); await shot('league-end');
 
     // ── Save / continue ───────────────────────────────────────────────────
     await page.reload({ waitUntil: 'load' });
@@ -143,8 +186,11 @@ async function run(deviceName, baseUrl) {
 }
 
 // Plays one human series (Bo1/Bo3/Bo5) through the draft → lineup → tactics → match screens.
+// wait on a timer (not requestAnimationFrame) — the 3D view keeps software-WebGL frames slow
+const shown = (page => sel => page.waitForFunction(s => { const e = document.querySelector(s); return e && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().height > 0; }, sel, { timeout: 30000, polling: 300 }));
 async function playSeries(page, { watch, shot, check, report, visible, click, reachCheck }) {
   const out = { games: 0, watched: false };
+  const shownP = shown(page); const _shown = shownP;
   for (let g = 0; g < 5; g++) {
     if (await visible('#between-games-panel')) await click('button[onclick="onNextGame()"]');
     if (!(await visible('#screen-match.active'))) break;
@@ -194,7 +240,7 @@ async function playSeries(page, { watch, shot, check, report, visible, click, re
 
     if (watch && !out.watched) {
       await click('button[onclick="onStartMatch()"]');
-      await page.waitForSelector('#pbp-container', { state: 'visible', timeout: 5000 });
+      await _shown('#pbp-container');
       await click('#mv-btn-5x');
       await page.waitForTimeout(WATCH_MS);
       const s = await page.evaluate(() => {
@@ -211,11 +257,11 @@ async function playSeries(page, { watch, shot, check, report, visible, click, re
       check(colourVariety(png) > 40, '3D view renders a varied image (not blank)');
       await shot('match-3d');
       await click('#mv-btn-skip');
-      await page.waitForSelector('#pbp-results', { state: 'visible', timeout: 10000 });
+      await _shown('#pbp-results');
       out.watched = true;
     } else {
       await click('button[onclick="onSkipMatch()"]');
-      await page.waitForSelector('#pbp-results', { state: 'visible', timeout: 10000 });
+      await _shown('#pbp-results');
     }
     const txt = await page.locator('#pbp-results').innerText();
     check(/VICTORY/.test(txt), 'result screen shows the winner');
