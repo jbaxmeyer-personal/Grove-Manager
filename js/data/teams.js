@@ -9,12 +9,12 @@ const TEAMS_DATA = [
     budget:4200000, fans:1050000, prestige:10,
     playstyle:'engage',
     sponsors: [
-      { id:'s1', name:'GroveTech Gaming', weeklyIncome:120000, bonuses:[
+      { id:'s1', name:'GroveTech Gaming', weeklyIncome:60000, bonuses:[
         { id:'b1', condition:'wins_5',   label:'Win 5 matches', reward:200000, paid:false },
         { id:'b2', condition:'playoffs', label:'Reach playoffs', reward:350000, paid:false },
         { id:'b3', condition:'champion', label:'Win championship', reward:600000, paid:false },
       ]},
-      { id:'s2', name:'Sylvane Energy', weeklyIncome:80000, bonuses:[
+      { id:'s2', name:'Sylvane Energy', weeklyIncome:40000, bonuses:[
         { id:'b4', condition:'fans_500k', label:'500K fans', reward:250000, paid:false },
         { id:'b5', condition:'fans_1m',   label:'1M fans',   reward:400000, paid:false },
       ]},
@@ -26,12 +26,12 @@ const TEAMS_DATA = [
     budget:3800000, fans:940000, prestige:9,
     playstyle:'poke',
     sponsors: [
-      { id:'s1', name:'Ironwood Peripherals', weeklyIncome:100000, bonuses:[
+      { id:'s1', name:'Ironwood Peripherals', weeklyIncome:50000, bonuses:[
         { id:'b1', condition:'wins_5',   label:'Win 5 matches', reward:180000, paid:false },
         { id:'b2', condition:'playoffs', label:'Reach playoffs', reward:300000, paid:false },
         { id:'b3', condition:'champion', label:'Win championship', reward:500000, paid:false },
       ]},
-      { id:'s2', name:'StoneStream Media', weeklyIncome:65000, bonuses:[
+      { id:'s2', name:'StoneStream Media', weeklyIncome:32500, bonuses:[
         { id:'b4', condition:'fans_500k', label:'500K fans', reward:200000, paid:false },
       ]},
     ],
@@ -42,7 +42,7 @@ const TEAMS_DATA = [
     budget:2800000, fans:720000, prestige:7,
     playstyle:'scaling',
     sponsors: [
-      { id:'s1', name:'Pale Root Nutrition', weeklyIncome:70000, bonuses:[
+      { id:'s1', name:'Pale Root Nutrition', weeklyIncome:35000, bonuses:[
         { id:'b1', condition:'wins_3',   label:'Win 3 matches', reward:120000, paid:false },
         { id:'b2', condition:'playoffs', label:'Reach playoffs', reward:220000, paid:false },
       ]},
@@ -54,7 +54,7 @@ const TEAMS_DATA = [
     budget:2400000, fans:610000, prestige:6,
     playstyle:'splitpush',
     sponsors: [
-      { id:'s1', name:'Thornwall Hardware', weeklyIncome:55000, bonuses:[
+      { id:'s1', name:'Thornwall Hardware', weeklyIncome:27500, bonuses:[
         { id:'b1', condition:'wins_3',   label:'Win 3 matches', reward:100000, paid:false },
         { id:'b2', condition:'playoffs', label:'Reach playoffs', reward:180000, paid:false },
       ]},
@@ -66,7 +66,7 @@ const TEAMS_DATA = [
     budget:2100000, fans:530000, prestige:6,
     playstyle:'pick',
     sponsors: [
-      { id:'s1', name:'Dusk Fiber', weeklyIncome:55000, bonuses:[
+      { id:'s1', name:'Dusk Fiber', weeklyIncome:27500, bonuses:[
         { id:'b1', condition:'wins_3',   label:'Win 3 matches', reward:90000, paid:false },
       ]},
     ],
@@ -77,7 +77,7 @@ const TEAMS_DATA = [
     budget:1700000, fans:420000, prestige:4,
     playstyle:'engage',
     sponsors: [
-      { id:'s1', name:'Grove Snacks Co.', weeklyIncome:35000, bonuses:[
+      { id:'s1', name:'Grove Snacks Co.', weeklyIncome:17500, bonuses:[
         { id:'b1', condition:'wins_3', label:'Win 3 matches', reward:70000, paid:false },
       ]},
     ],
@@ -88,7 +88,7 @@ const TEAMS_DATA = [
     budget:1400000, fans:340000, prestige:3,
     playstyle:'poke',
     sponsors: [
-      { id:'s1', name:'Ashfall Apparel', weeklyIncome:25000, bonuses:[
+      { id:'s1', name:'Ashfall Apparel', weeklyIncome:12500, bonuses:[
         { id:'b1', condition:'wins_3', label:'Win 3 matches', reward:50000, paid:false },
       ]},
     ],
@@ -99,7 +99,7 @@ const TEAMS_DATA = [
     budget:1100000, fans:270000, prestige:2,
     playstyle:'engage',
     sponsors: [
-      { id:'s1', name:'Hollow Crown Fan Club', weeklyIncome:15000, bonuses:[
+      { id:'s1', name:'Hollow Crown Fan Club', weeklyIncome:7500, bonuses:[
         { id:'b1', condition:'wins_3', label:'Win 3 matches', reward:30000, paid:false },
       ]},
     ],

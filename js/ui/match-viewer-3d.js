@@ -54,7 +54,7 @@ let gltf = null, gltfPromise = null;
 let staticBuilt = false;
 let champs = {};            // key side_role → Champ
 let objViews = {};          // obj id → view
-let minions = [], fx = [], projectiles = [];
+let fx = [], projectiles = [];
 let meta = { champNames: { blue: {}, red: {} }, playerNames: { blue: {}, red: {} }, humanSide: 'blue', blueName: 'Blue', redName: 'Red' };
 let latest = { blue: {}, red: {} };   // most recent full position records (state/target/champ)
 let lerped = null;
@@ -64,9 +64,8 @@ let rafId = null, clock = new THREE.Clock();
 let camMode = 'auto', followKey = null, manualUntil = 0;
 const camTarget = new THREE.Vector3(-60, 0, 60), camTargetGoal = new THREE.Vector3(-60, 0, 60);
 let camDist = 120, camDistGoal = 120;
-let focus = { key: null, until: 0, score: 0 };
+let focus = { key: null, until: 0 };
 let eventFocus = null;
-let nextWaveTick = 6;
 let ended = false;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -485,62 +484,58 @@ function updateFx(dt) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Minions (cosmetic lane waves — not part of the simulation)
+// Minions — rendered from the simulation (move events carry [id, side, x, y, hp%, type])
 // ─────────────────────────────────────────────────────────────────────────────
-const minionGeo = (() => { const g = new THREE.CapsuleGeometry(0.9, 1.4, 3, 8); g.translate(0, 1.6, 0); return g; })();
+const minionGeo = (() => { const g = new THREE.CapsuleGeometry(1.0, 1.5, 3, 8); g.translate(0, 1.75, 0); return g; })();
+const siegeGeo  = (() => { const g = new THREE.BoxGeometry(3.2, 2.6, 3.8); g.translate(0, 1.6, 0); return g; })();
 const minionMats = { blue: null, red: null };
-function lanePath(side, lane) { const p = LANES[lane].map(q => q.slice()); return side === 'blue' ? p : p.reverse(); }
-function spawnWave() {
-  for (const side of ['blue', 'red']) for (const lane of ['top', 'mid', 'bot']) {
-    const path = lanePath(side, lane);
-    for (let i = 0; i < 5; i++) {
-      const caster = i >= 3;
-      const m = new THREE.Mesh(minionGeo, minionMats[side]); m.castShadow = true; m.scale.setScalar(caster ? 0.85 : 1.05);
-      scene.add(m);
-      minions.push({ side, lane, path, seg: 0, d: -i * 5.5, m, hp: caster ? 8 : 12, state: 'walk', atkT: rnd(0, 1), caster, off: rnd(-3.5, 3.5) });
+let minionPrev = new Map(), minionCur = new Map();   // id → [side, x, y, hp, type]
+const minionMeshes = new Map();                     // id → mesh
+
+function setMinions(list) {
+  minionPrev = minionCur; minionCur = new Map();
+  for (const m of list) minionCur.set(m[0], m);
+  // deaths: present before, gone now
+  for (const [id, m] of minionPrev) if (!minionCur.has(id)) {
+    const mesh = minionMeshes.get(id);
+    if (mesh) { burst(mesh.position, m[1] ? 0xff8f7f : 0x7fc8ff, 6, 9, 0.5, 0.55); scene.remove(mesh); minionMeshes.delete(id); }
+  }
+}
+function updateMinions() {
+  const t = clamp(simT, 0, 1);
+  for (const [id, m] of minionCur) {
+    let mesh = minionMeshes.get(id);
+    const side = m[1] ? 'red' : 'blue';
+    if (!mesh) {
+      mesh = new THREE.Mesh(m[5] === 's' ? siegeGeo : minionGeo, minionMats[side]);
+      mesh.castShadow = true; mesh.scale.setScalar(m[5] === 'c' ? 0.85 : 1.05);
+      scene.add(mesh); minionMeshes.set(id, mesh);
     }
+    const p = minionPrev.get(id) || m;
+    const x = lerp(p[2], m[2], t), y = lerp(p[3], m[3], t);
+    const dx = m[2] - p[2], dy = m[3] - p[3];
+    mesh.position.set(x - 150, Math.abs(Math.sin(gameTime * 7 + id)) * (Math.hypot(dx, dy) > 0.5 ? 0.45 : 0.15), y - 150);
+    if (Math.hypot(dx, dy) > 0.3) mesh.rotation.y = Math.atan2(dx, dy);
   }
 }
-function minionPos(mn) {
-  // distance along polyline
-  let d = Math.max(0, mn.d); const P = mn.path;
-  for (let i = 0; i < P.length - 1; i++) {
-    const L = Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
-    if (d <= L || i === P.length - 2) { const t = clamp(d / L, 0, 1); const dx = (P[i + 1][0] - P[i][0]) / L, dy = (P[i + 1][1] - P[i][1]) / L; return [P[i][0] + dx * L * t - dy * mn.off, P[i][1] + dy * L * t + dx * mn.off, Math.atan2(dx, dy)]; }
-    d -= L;
-  }
-  return [P[P.length - 1][0], P[P.length - 1][1], 0];
-}
-function updateMinions(gdt) {
+// cosmetic shots: casters fire at nearby enemy minions, towers fire at minions in range
+function minionShots(gdt) {
   if (gdt <= 0) return;
-  for (const mn of minions) { const p = minionPos(mn); mn.x = p[0]; mn.y = p[1]; mn.h = p[2]; }
-  for (const mn of minions) {
-    if (mn.dead) continue;
-    // nearest enemy minion / tower in front
-    let tgt = null, best = mn.caster ? 14 : 7;
-    for (const e of minions) { if (e.dead || e.side === mn.side || e.lane !== mn.lane || e.d < 0) continue; const d = Math.hypot(e.x - mn.x, e.y - mn.y); if (d < best) { best = d; tgt = e; } }
-    let tower = null;
-    if (!tgt) for (const id in objViews) { const v = objViews[id]; const o = v.def; if (o.side === mn.side || o.side === 'neutral' || v.destroyed) continue; const d = Math.hypot(o.x - mn.x, o.y - mn.y); if (d < (mn.caster ? 22 : 16)) { tower = v; break; } }
-    if (tgt || tower) {
-      mn.state = 'fight'; mn.atkT -= gdt;
-      if (mn.atkT <= 0) {
-        mn.atkT = rnd(1.1, 1.6);
-        if (tgt) { tgt.hp -= rnd(1, 2.4); if (mn.caster && mn.m.visible) shoot(new THREE.Vector3(mn.x - 150, 2.5, mn.y - 150), new THREE.Vector3(tgt.x - 150, 1.8, tgt.y - 150), mn.side === 'blue' ? 0x7fc8ff : 0xff8f7f); }
-      }
-      if (tower) { mn.hp -= gdt * 0.9; if (Math.random() < gdt * 0.6) shoot(new THREE.Vector3(tower.def.x - 150, 16, tower.def.y - 150), new THREE.Vector3(mn.x - 150, 1.8, mn.y - 150), TEAM_COL[tower.def.side], true); }
-    } else { mn.state = 'walk'; mn.d += gdt * 4.6; }
-    if (mn.hp <= 0) { mn.dead = true; burst(new THREE.Vector3(mn.x - 150, 0, mn.y - 150), mn.side === 'blue' ? 0x7fc8ff : 0xff8f7f, 6, 8, 0.5, 0.5); }
-    const end = mn.path.length; const last = mn.path[end - 1];
-    if (Math.hypot(mn.x - last[0], mn.y - last[1]) < 4) mn.dead = true;
+  const list = [...minionMeshes.entries()].map(([id, mesh]) => ({ id, mesh, m: minionCur.get(id) })).filter(o => o.m);
+  for (const o of list) {
+    if (o.m[5] === 'm' || Math.random() > gdt * 0.7) continue;
+    let best = null, bd = 30;
+    for (const e of list) if (e.m[1] !== o.m[1]) { const d = Math.hypot(e.m[2] - o.m[2], e.m[3] - o.m[3]); if (d < bd) { bd = d; best = e; } }
+    if (best) shoot(o.mesh.position.clone().setY(2.6), best.mesh.position.clone().setY(1.8), o.m[1] ? 0xff8f7f : 0x7fc8ff);
   }
-  for (let i = minions.length - 1; i >= 0; i--) {
-    const mn = minions[i];
-    if (mn.dead) { scene.remove(mn.m); minions.splice(i, 1); continue; }
-    mn.m.visible = mn.d >= 0;
-    mn.m.position.set(mn.x - 150, mn.state === 'fight' ? Math.abs(Math.sin(gameTime * 9 + i)) * 0.5 : Math.abs(Math.sin(gameTime * 7 + i)) * 0.35, mn.y - 150);
-    mn.m.rotation.y = mn.h;
+  for (const id in objViews) {
+    const v = objViews[id], d = v.def; if (v.destroyed || d.side === 'neutral' || !d.atkDmg) continue;
+    if (Math.random() > gdt * 0.55) continue;
+    const tgt = list.find(e => (e.m[1] ? 'red' : 'blue') !== d.side && Math.hypot(e.m[2] - d.x, e.m[3] - d.y) <= d.atkRange);
+    if (tgt) shoot(v.g.position.clone().setY(d.type === 'ancient' ? 14 : 16), tgt.mesh.position.clone().setY(1.8), TEAM_COL[d.side], true);
   }
 }
+function clearMinions() { for (const mesh of minionMeshes.values()) scene.remove(mesh); minionMeshes.clear(); minionPrev = new Map(); minionCur = new Map(); }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-frame champion update
@@ -695,18 +690,23 @@ function directorGoal(now) {
   if (camMode !== 'auto') return;
   if (eventFocus && eventFocus.until > gameTime) { camTargetGoal.copy(eventFocus.pos); camDistGoal = eventFocus.dist || 100; return; }
   // densest cluster, weighted toward actual fights
-  let best = null, bestScore = -1;
+  let best = null, bestScore = -1; const scoreOf = {};
   for (const c of list) {
     let n = 0, b = 0, r = 0, cx = 0, cz = 0;
     for (const o of list) { if (Math.hypot(o.g.position.x - c.g.position.x, o.g.position.z - c.g.position.z) < 42) { n++; cx += o.g.position.x; cz += o.g.position.z; if (o.side === 'blue') b++; else r++; } }
     const engaged = list.some(o => o.side !== c.side && Math.hypot(o.g.position.x - c.g.position.x, o.g.position.z - c.g.position.z) < 50);
-    const score = n + Math.min(b, r) * 2.5 + (engaged ? 2 : 0) + (c.side === meta.humanSide ? 0.3 : 0) + (c.key === focus.key ? 1.2 : 0);
+    // lane action counts too: champions standing in a minion clash beat a jungler walking alone
+    let mn = 0; for (const m of minionCur.values()) if (Math.hypot(m[2] - 150 - c.g.position.x, m[3] - 150 - c.g.position.z) < 40) mn++;
+    const score = n + Math.min(b, r) * 2.5 + (engaged ? 2 : 0) + Math.min(mn, 12) * 0.25 + (c.side === meta.humanSide ? 0.3 : 0) + (c.key === focus.key ? 1.2 : 0);
+    scoreOf[c.key] = { score, x: cx / n, z: cz / n, n };
     if (score > bestScore) { bestScore = score; best = { c, x: cx / n, z: cz / n, n }; }
   }
   if (!best) return;
-  if (focus.key !== best.c.key && focus.until > gameTime && bestScore < focus.score + 3) {
-    const c = champs[focus.key]; if (c && c.alive) { best = { c, x: c.g.position.x, z: c.g.position.z, n: 1 }; }
-  } else if (focus.key !== best.c.key) { focus = { key: best.c.key, until: gameTime + 10, score: bestScore }; }
+  // hold the current shot for a few seconds unless something clearly better is happening now
+  const cur = scoreOf[focus.key];
+  if (focus.key !== best.c.key && focus.until > gameTime && cur && bestScore < cur.score + 2) {
+    best = { c: champs[focus.key], x: cur.x, z: cur.z, n: cur.n };
+  } else if (focus.key !== best.c.key) { focus = { key: best.c.key, until: gameTime + 8 }; }
   camTargetGoal.set(best.x, 0, best.z);
   camDistGoal = best.n >= 6 ? 112 : best.n >= 3 ? 96 : 86;
 }
@@ -808,9 +808,8 @@ function loop() {
   gameTime = (Math.max(0, simTick - 1) + simT) * TICK_S;
   let gdt = gameTime - lastGameTime; if (gdt < 0 || gdt > 6) gdt = 0; lastGameTime = gameTime;
   if (gltf) {
-    while (simTick >= nextWaveTick && !ended) { spawnWave(); nextWaveTick += 15; }
     updateChamps(dt, gdt);
-    updateMinions(gdt);
+    updateMinions(); minionShots(gdt);
   }
   updateObjectives(dt);
   for (const a of staticAnims) a(gameTime);
@@ -832,13 +831,13 @@ function ensureChamps() {
 
 function resetMatch() {
   for (const k in champs) champs[k].dispose(); champs = {};
-  for (const mn of minions) scene.remove(mn.m); minions = [];
+  clearMinions();
   for (const f of fx) scene.remove(f.m); fx = [];
   for (const p of projectiles) scene.remove(p.m, p.trail); projectiles = [];
   latest = { blue: {}, red: {} }; lerped = null; objStates = {};
-  simTick = 0; simT = 0; gameTime = 0; lastGameTime = 0; nextWaveTick = 6; ended = false;
+  simTick = 0; simT = 0; gameTime = 0; lastGameTime = 0; ended = false;
   for (const id in objViews) { objViews[id].destroyed = false; objViews[id].down = false; }
-  eventFocus = null; focus = { key: null, until: 0, score: 0 };
+  eventFocus = null; focus = { key: null, until: 0 };
   const hs = meta.humanSide === 'red' ? G_SPAWN.red : G_SPAWN.blue;
   camTarget.copy(W(hs.x, hs.y)).multiplyScalar(0.6); camTargetGoal.copy(camTarget); camDist = camDistGoal = 150;
   setCamMode('auto');
@@ -873,6 +872,7 @@ window.Match3D = {
     if (!ev) return;
     if (ev.positions) { latest = ev.positions; if (gltf && !Object.keys(champs).length) ensureChamps(); }
     if (ev.objectives) for (const o of ev.objectives) objStates[o.id] = o;
+    if (ev.minions) setMinions(ev.minions);
     if (ev.tick !== undefined) simTick = Math.max(simTick, ev.tick);
     const sideCss = ev.side === 'blue' ? 'blue' : ev.side === 'red' ? 'red' : '';
     const teamName = ev.side === 'blue' ? meta.blueName : meta.redName;
@@ -897,5 +897,6 @@ window.Match3D = {
   // snap champions + camera to the current positions (after a seek / skip)
   snap() { for (const k in champs) champs[k].first = true; camTarget.copy(camTargetGoal); camDist = camDistGoal; },
 };
+window.__m3dMinions = () => minionMeshes.size;
 window.__m3d = { get champs(){return champs;}, get camTarget(){return camTarget;}, get camDist(){return camDist;}, get lerped(){return lerped;}, get gltf(){return gltf;}, get camera(){return camera;} };
 window.dispatchEvent(new Event('match3d-ready'));

@@ -383,6 +383,7 @@ function upgradeFacility(facilityKey) {
   const cost = def.costs[fac.level]; // index = current level (0-based costs: index 0 = L1→2)
   if (team.budget < cost) return 'no_budget';
   team.budget -= cost;
+  finNote(team.id, 'facilityBuilds', -cost);
   const buildWeeks = FACILITY_BUILD_WEEKS[fac.level - 1] || 2;
   fac.upgrading = true;
   fac.upgradeToLevel = fac.level + 1;
@@ -401,6 +402,7 @@ function cancelFacilityUpgrade(facilityKey) {
   // 50% refund
   const cost = def.costs[fac.level - 1] || 0;
   team.budget += Math.round(cost * 0.5);
+  finNote(team.id, 'facilityBuilds', Math.round(cost * 0.5));
   fac.upgrading = false;
   fac.upgradeToLevel = null;
   fac.weeksRemaining = 0;
@@ -778,6 +780,7 @@ function initGame(humanTeamId) {
   addNews(`Welcome to Grove Manager! You are now the manager of ${teams[humanTeamId].name}. Good luck!`, 'info');
   addNews(`The ${G.season.split === 'spring' ? 'Spring' : 'Summer'} Split ${G.season.year} is about to begin. Your first match is in Week 1.`, 'info');
 
+  if (typeof ensureFinanceState === 'function') { ensureFinanceState(); generateSponsorOffers(G.season.week || 1); }
   return G;
 }
 
@@ -804,9 +807,11 @@ function buildStartingLineup(teamId) {
 }
 
 function calcWagesBill(teamId) {
-  return Math.round(PLAYER_DB
+  // live squad (G.players reflects transfers/releases); PLAYER_DB only before a career exists
+  const pool = (typeof G !== 'undefined' && G && G.players) ? Object.values(G.players) : PLAYER_DB;
+  return Math.round(pool
     .filter(p => p.teamId === teamId)
-    .reduce((sum, p) => sum + (p.contract.salary || 0), 0) / 52);
+    .reduce((sum, p) => sum + (p.contract?.salary || 0), 0) / 52);
 }
 
 // ─── Season builder ───────────────────────────────────────────────────────────
@@ -896,23 +901,9 @@ function advanceWeek() {
     }
   });
 
-  // Weekly finances: wages out, sponsor income in (all teams)
-  Object.values(G.teams).forEach(t => {
-    t.weeklyWages = calcWagesBill(t.id);
-    const wages  = t.weeklyWages;
-    const income = t.sponsorIncome;
-    const staffCost    = t.id === G.humanTeamId ? getStaffWages() : 0;
-    const facilCost    = t.id === G.humanTeamId ? getFacilityMaintenanceCost(t.id) : 0;
-    t.budget = (t.budget || 0) - wages - staffCost - facilCost + income;
-    if (t.id === G.humanTeamId) {
-      G.financeLog.push({
-        week, wages: wages + staffCost + facilCost, income,
-        net: income - wages - staffCost - facilCost, balance: t.budget,
-      });
-      if (t.budget < 0)
-        addNews(`Financial warning: budget is ${fmtMoneySafe(t.budget)}. Consider releasing high earners.`, 'alert');
-    }
-  });
+  // Weekly finances (all teams): sponsors + merch + streaming in; wages, staff, upkeep out.
+  // See js/game/finance.js — also ticks sponsor contracts and generates sponsor offers.
+  processWeeklyFinances(week);
 
   // Check sponsor bonuses and fan milestones for human team
   _checkSponsorBonuses(G.humanTeamId);
@@ -945,6 +936,7 @@ function advanceWeek() {
     const team = G.teams[G.humanTeamId];
     const bonus = Math.round(team.sponsorIncome * 0.10);
     team.budget += bonus;
+    finNote(team.id, 'sponsorBonus', bonus);
   }
 
   // Process training for human team
@@ -989,6 +981,9 @@ function advanceWeek() {
   // Player development tick (every week, minor)
   processPlayerDevelopment();
 
+  // Close the week's finance ledger (after every system above has spent/earned money)
+  closeFinanceWeek();
+
   // Advance week counter
   season.week++;
 
@@ -1004,6 +999,7 @@ function advanceWeek() {
   // Check for playoffs advancement
   if (season.phase === 'playoffs') {
     _advancePlayoffs();
+    closeFinanceWeek(true);   // fold prize money into the ledger
     // Reset weekly training choice
     G.weeklyTraining = 'rest';
     saveGame();
@@ -1288,6 +1284,7 @@ function hostFanEvent(eventKey) {
     return { ok: false, msg: 'Insufficient budget' };
   }
   team.budget -= def.cost;
+  finNote(team.id, 'fanEvents', -def.cost);
   team.fanEvents[eventKey] = week;
   team.fanEventWeek = { key: eventKey, bonus: def.fesBonus, week };
   if (def.trainingBlock > 0) {
@@ -1389,7 +1386,7 @@ function processFanEngagement(teamId) {
         return false;
       }
       // Deduct weekly cost
-      if (d.costPerWeek > 0) team.budget -= d.costPerWeek;
+      if (d.costPerWeek > 0) { team.budget -= d.costPerWeek; finNote(team.id, 'coStreaming', -d.costPerWeek); }
       return true;
     });
 
@@ -1449,6 +1446,7 @@ function _checkSponsorBonuses(teamId) {
       if (earned) {
         b.paid = true;
         t.budget += b.reward;
+        finNote(t.id, 'sponsorBonus', b.reward);
         addNews(`Sponsor bonus unlocked: ${sp.name} — "${b.label}" (+${fmtMoneySafe(b.reward)})`, 'info');
       }
     });
@@ -1527,6 +1525,7 @@ function buyPlayerFromTeam(playerId, offeredFee, salary, years) {
 
   team.budget -= offeredFee;
   sellerTeam.budget += offeredFee;
+  finNote(team.id, 'transfers', -offeredFee);
 
   // Remove from seller roster
   POSITIONS.forEach(pos => {
@@ -1658,6 +1657,7 @@ function startScouting(prospectId) {
   const { cost, weeks } = _scoutCostAndWeeks();
   if (G.teams[G.humanTeamId].budget < cost) return 'no_budget';
   G.teams[G.humanTeamId].budget -= cost;
+  finNote(G.humanTeamId, 'scouting', -cost);
   G.scouting.activeScouts.push({ targetId: prospectId, weeksLeft: weeks, weeksTotal: weeks });
   return 'started';
 }
@@ -1802,6 +1802,7 @@ function simulateAIMatch(match) {
   const loser  = homeWon ? away : home;
   winner.wins++;   winner.points += 3;
   loser.losses++;
+  payWinBonus(winner.id);
 
   _applyFanChange(match.homeId, homeWon);
   _applyFanChange(match.awayId, !homeWon);
@@ -1856,6 +1857,7 @@ function _advancePlayoffs() {
     addNews(`${champ.name} are the ${G.season.split === 'spring' ? 'Spring' : 'Summer'} Split ${G.season.year} Champions!`, 'match');
     G.season.phase = 'offseason';
     G.season.champion = gf.result.winnerId;
+    payPlayoffPrizes(pm);
     aiOffseasonRosterMoves();
   }
 }
