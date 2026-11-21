@@ -39,6 +39,13 @@ Build a Football Manager-style career sim set in the world of competitive esport
 
 ---
 
+## Phase 16C — Phone-first pass + shorter games ✅ *(Nov 2026)*
+- **Phone layout**: on phones the page itself scrolls (nested 100vh scroll boxes don't scroll reliably in iOS Safari); sticky top bar; bottom tab bar (Home · Squad · League · Money · More) with a More sheet for every other screen; champion/item browsers stack; match screens scroll; landscape supported
+- **Real touch testing**: playtest now drives phones with genuine finger swipes (CDP touch events in new-headless Chrome), navigates via the tab bar/More sheet, and asserts each screen actually scrolls and every tapped button was swiped into view first; runs on portrait + landscape phones and desktop
+- **Shorter games**: ~18 min median on the game clock (≈4.5 min to watch at 1×, was ~36 / ~9); faster movement, minion waves, phases and XP; an Ancient withers once its Heart falls so endgames don't stall; 24:00 cap
+- **3 item slots, 3 sponsor slots** (Main partner · Gear & apparel · Streaming platform); economy retuned so money matters: smaller budgets, halved staff wages, fixed transfer-fee formula (a 2-year star cost ~$12M before), smaller prizes/bonuses, no day-one fan bonuses
+- **Match feel**: dead champions stay where they fell and recalls/respawns blink instead of gliding across the map; health bars drain smoothly with a white "recent damage" chip and damage numbers; attacks only flash when hits land; ranged champions kite and melee shuffle; champions don't stack inside each other; 3D idles at low fps once a match is decided (battery)
+
 ## Phase 16B — Minions, Finances, Real Playtesting ✅ *(Nov 2026)*
 - **Minions in the sim**: lane waves every 12 ticks (melee/caster, siege every 3rd, super minions once a Heart falls); towers shoot minions before champions; laners shadow their wave and last-hit for CS gold; minion XP shared with nearby enemies
 - **Economy audit**: kills 300g+XP, assists 150g+XP (executions by minions/towers pay nothing); towers pay nearby champions + 75g team-wide; Shrine/Warden pay gold+XP; jungle camps gold+XP+CS; Hand of the Warden now actually buffs siege damage; 6 item slots (was 3, gold was piling up unused)

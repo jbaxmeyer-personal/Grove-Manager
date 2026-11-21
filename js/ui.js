@@ -6,6 +6,7 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
+  window.scrollTo(0, 0);   // phones scroll the whole page — start each screen at the top
 }
 
 function fmtMoney(n) {
@@ -83,6 +84,11 @@ function _escHtml(s) {
 
 // ─── Panel / Sidebar routing ──────────────────────────────────────────────────
 
+function toggleMoreSheet(open) {
+  const el = document.getElementById('more-sheet'); if (!el) return;
+  el.classList.toggle('open', open === undefined ? !el.classList.contains('open') : !!open);
+}
+
 function showMain(name) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -90,6 +96,13 @@ function showMain(name) {
   if (panel) panel.classList.add('active');
   const nav = document.querySelector(`.nav-item[data-screen="${name}"]`);
   if (nav) nav.classList.add('active');
+  // phone navigation
+  const bnKey = ['dashboard', 'squad', 'league', 'finances'].includes(name) ? name : 'more';
+  document.querySelectorAll('.bn-item').forEach(b => b.classList.toggle('active', b.dataset.bn === bnKey));
+  document.querySelectorAll('.more-item').forEach(b => b.classList.toggle('active', b.dataset.more === name));
+  toggleMoreSheet(false);
+  const mc = document.getElementById('main-content'); if (mc) mc.scrollTop = 0;
+  if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) window.scrollTo(0, 0);
   // Call panel-specific render
   switch (name) {
     case 'dashboard':  renderDashboard(); break;
@@ -2038,11 +2051,11 @@ function renderItemBrowser() {
 
   setHtml('items-content', `
     <div class="cb-filters">${filterBtns}</div>
-    <div style="display:flex;gap:14px;margin-top:12px;min-height:0;height:calc(100vh - 220px)">
-      <div style="flex:1;overflow-y:auto">
+    <div class="cb-layout ib-layout">
+      <div class="ib-list">
         <div class="ib-grid">${cards || '<div style="color:var(--text-dim);padding:20px">No items match this filter.</div>'}</div>
       </div>
-      ${_itemSelected ? `<div class="cb-detail" style="width:260px;flex-shrink:0">${detailHtml}</div>` : ''}
+      ${_itemSelected ? `<div class="cb-detail ib-detail">${detailHtml}</div>` : ''}
     </div>
   `);
 }
@@ -2810,6 +2823,8 @@ let _newsFilter = 'all';
 function _updateNewsBadge() {
   if (!G) return;
   const unread = G.news.filter(n => n.timestamp > (G.newsReadUntil || 0)).length;
+  const bnb = document.getElementById('bn-news-badge');
+  if (bnb) { bnb.textContent = unread > 9 ? '9+' : unread; bnb.style.display = unread > 0 ? 'inline-block' : 'none'; }
   const badge = document.getElementById('news-badge');
   if (!badge) return;
   if (unread > 0) {

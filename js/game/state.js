@@ -443,53 +443,53 @@ function _staffOverall(attrs) {
 
 const STAFF_POOL = [
   // ─ Head Coaches ─
-  { id:'st01', name:'Aldric Vale',     role:'headcoach',  wage:25000, nationality:'EU',
+  { id:'st01', name:'Aldric Vale',     role:'headcoach',  wage:12500, nationality:'EU',
     desc:'Former pro with championship experience. Accelerates player development.',
     attrs:{ tactics:16, development:15, motivation:14, communication:13, experience:17 } },
-  { id:'st02', name:'Brynn Ashford',   role:'headcoach',  wage:18000, nationality:'NA',
+  { id:'st02', name:'Brynn Ashford',   role:'headcoach',  wage:9000, nationality:'NA',
     desc:'Methodical coach known for structured practice routines.',
     attrs:{ tactics:12, development:13, motivation:11, communication:15, experience:10 } },
-  { id:'st03', name:'Oryn Marsh',      role:'headcoach',  wage:12000, nationality:'KOR',
+  { id:'st03', name:'Oryn Marsh',      role:'headcoach',  wage:6000, nationality:'KOR',
     desc:'Up-and-coming coach. Affordable and hungry to prove himself.',
     attrs:{ tactics:10, development:11, motivation:12, communication:9,  experience:7  } },
   // ─ Analysts ─
-  { id:'st04', name:'Selene Croft',    role:'analyst',    wage:20000, nationality:'EU',
+  { id:'st04', name:'Selene Croft',    role:'analyst',    wage:10000, nationality:'EU',
     desc:'Data-driven analyst. Dramatically improves draft counter-pick success.',
     attrs:{ filmStudy:17, draftReading:16, dataAnalysis:15, opponentScouting:16, adaptability:14 } },
-  { id:'st05', name:'Gael Winters',    role:'analyst',    wage:10000, nationality:'NA',
+  { id:'st05', name:'Gael Winters',    role:'analyst',    wage:5000, nationality:'NA',
     desc:'Self-taught analyst with sharp reads on opposing team tendencies.',
     attrs:{ filmStudy:10, draftReading:13, dataAnalysis:9,  opponentScouting:12, adaptability:11 } },
-  { id:'st13', name:'Yuki Strand',     role:'analyst',    wage:15000, nationality:'KOR',
+  { id:'st13', name:'Yuki Strand',     role:'analyst',    wage:7500, nationality:'KOR',
     desc:'VOD review specialist. Finds weaknesses opponents don\'t know they have.',
     attrs:{ filmStudy:14, draftReading:11, dataAnalysis:16, opponentScouting:15, adaptability:12 } },
   // ─ Marketing Managers ─
-  { id:'st14', name:'Cass Everly',     role:'marketing',  wage:18000, nationality:'NA',
+  { id:'st14', name:'Cass Everly',     role:'marketing',  wage:9000, nationality:'NA',
     desc:'Social media powerhouse. Turns wins into viral moments.',
     attrs:{ contentProduction:16, socialMedia:18, eventManagement:12, brandDeals:14, fanEngagement:15 } },
-  { id:'st15', name:'Dario Brent',     role:'marketing',  wage:12000, nationality:'EU',
+  { id:'st15', name:'Dario Brent',     role:'marketing',  wage:6000, nationality:'EU',
     desc:'Event specialist with strong brand partnership network.',
     attrs:{ contentProduction:11, socialMedia:10, eventManagement:15, brandDeals:16, fanEngagement:12 } },
-  { id:'st16', name:'Nadia Fell',      role:'marketing',  wage:9000,  nationality:'NA',
+  { id:'st16', name:'Nadia Fell',      role:'marketing',  wage:4500,  nationality:'NA',
     desc:'Budget-friendly content creator. Great for smaller orgs.',
     attrs:{ contentProduction:10, socialMedia:12, eventManagement:9,  brandDeals:8,  fanEngagement:11 } },
   // ─ Mental Coaches ─
-  { id:'st08', name:'Declan Holt',     role:'mental',     wage:16000, nationality:'NA',
+  { id:'st08', name:'Declan Holt',     role:'mental',     wage:8000, nationality:'NA',
     desc:'Sports psychologist specialising in high-pressure performance.',
     attrs:{ motivation:14, pressureHandling:16, conflictResolution:13, playerTrust:15, teamBuilding:12 } },
-  { id:'st09', name:'Vesper Gray',     role:'mental',     wage:11000, nationality:'EU',
+  { id:'st09', name:'Vesper Gray',     role:'mental',     wage:5500, nationality:'EU',
     desc:'Calm presence in the team room. Keeps volatile personalities in check.',
     attrs:{ motivation:11, pressureHandling:12, conflictResolution:15, playerTrust:13, teamBuilding:11 } },
-  { id:'st17', name:'Marek Thorn',     role:'mental',     wage:8000,  nationality:'KOR',
+  { id:'st17', name:'Marek Thorn',     role:'mental',     wage:4000,  nationality:'KOR',
     desc:'Young sports therapist with unconventional methods.',
     attrs:{ motivation:13, pressureHandling:9,  conflictResolution:10, playerTrust:11, teamBuilding:14 } },
   // ─ Scouts ─
-  { id:'st10', name:'Riven Blackwell', role:'scout',      wage:14000, nationality:'KOR',
+  { id:'st10', name:'Riven Blackwell', role:'scout',      wage:7000, nationality:'KOR',
     desc:'World-class scout. Finds hidden talent faster and cheaper than anyone.',
     attrs:{ networkReach:16, judgement:15, speed:14, costEfficiency:13, specialisation:17 } },
-  { id:'st11', name:'Calder Fenn',     role:'scout',      wage:8000,  nationality:'NA',
+  { id:'st11', name:'Calder Fenn',     role:'scout',      wage:4000,  nationality:'NA',
     desc:'Reliable regional scout with a good eye for young ADC talent.',
     attrs:{ networkReach:10, judgement:11, speed:12, costEfficiency:14, specialisation:13 } },
-  { id:'st18', name:'Priya Lake',      role:'scout',      wage:11000, nationality:'EU',
+  { id:'st18', name:'Priya Lake',      role:'scout',      wage:5500, nationality:'EU',
     desc:'Broad international network. Discovers overseas talent efficiently.',
     attrs:{ networkReach:15, judgement:12, speed:10, costEfficiency:11, specialisation:10 } },
 ];
@@ -780,7 +780,7 @@ function initGame(humanTeamId) {
   addNews(`Welcome to Grove Manager! You are now the manager of ${teams[humanTeamId].name}. Good luck!`, 'info');
   addNews(`The ${G.season.split === 'spring' ? 'Spring' : 'Summer'} Split ${G.season.year} is about to begin. Your first match is in Week 1.`, 'info');
 
-  if (typeof ensureFinanceState === 'function') { ensureFinanceState(); generateSponsorOffers(G.season.week || 1); }
+  if (typeof ensureFinanceState === 'function') { ensureFinanceState(); priceStartingSponsors(); generateSponsorOffers(G.season.week || 1); }
   return G;
 }
 
@@ -1475,7 +1475,9 @@ function calcTransferFee(playerId) {
   const ovr    = calcOverall(p);
   const salary = p.contract?.salary || 50000;
   const years  = p.contract?.yearsLeft || 1;
-  return Math.round(ovr * 3000 + years * salary * 26);
+  // salary is annual: fee ≈ rating premium + half a year's wages per contract year left
+  // (was years × salary × 26 — a 2-year $230K player cost ~$12M, more than any club's budget)
+  return Math.round(ovr * 3000 + years * salary * 0.5);
 }
 
 // CPU teams periodically list players with bad morale or expiring contracts

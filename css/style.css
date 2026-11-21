@@ -2572,7 +2572,7 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
    ═══════════════════════════════════════════════════════════════════════ */
 /* Intro: .screen is overflow:hidden + vertically centred, so on a phone the top of the card
    (incl. Continue Career) sat above the viewport and the Start button below it — unreachable. */
-.intro-screen { overflow-y: auto; justify-content: safe center; }
+.intro-screen { overflow-y: auto; justify-content: flex-start; padding-top: 5vh; }  /* "safe center" is unsupported in older Safari */
 @media (max-width: 720px) {
   .intro-screen { justify-content: flex-start; gap: 18px; padding: 18px 12px; }
   .intro-title { font-size: 34px; letter-spacing: 3px; }
@@ -2598,4 +2598,87 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
   .match-header { padding-left: 70px; padding-right: 6px; }
   .mh-chip-row, .mh-series-dots { display: none; }
   .mh-team-name { font-size: 12px; max-width: 26vw; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
+}
+@media (max-width: 720px) {
+  .fin-kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .fin-kpi { padding: 8px 10px; }
+  .fin-kpi-val { font-size: 16px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PHONE LAYOUT (≤ 900px wide, or a phone held sideways)
+   On phones the *document* scrolls — no nested 100vh scroll boxes (those don't
+   scroll reliably in iOS Safari) — with a sticky top bar and a bottom tab bar.
+   ═══════════════════════════════════════════════════════════════════════ */
+.bottom-nav, .more-sheet { display: none; }
+
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: visible; overscroll-behavior: auto; }
+  .screen { height: auto; min-height: 100vh; min-height: 100dvh; overflow: visible; }
+  .game-shell { height: auto; overflow: visible; }
+  .game-body { display: block; overflow: visible; }
+  .sidebar { display: none; }
+  .main-content { overflow: visible; padding: 12px 12px calc(78px + env(safe-area-inset-bottom)); }
+
+  .top-bar { position: sticky; top: 0; z-index: 50; height: auto; min-height: 50px;
+             padding: max(6px, env(safe-area-inset-top)) 10px 6px; gap: 8px; }
+  .top-bar-left { flex-direction: column; align-items: flex-start; gap: 0; min-width: 0; }
+  .top-team-name { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; }
+  .top-week { font-size: 11px; }
+  .btn-advance { padding: 10px 16px; font-size: 14px; white-space: nowrap; }
+
+  .bottom-nav {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    height: calc(60px + env(safe-area-inset-bottom)); padding: 0 4px env(safe-area-inset-bottom);
+    background: var(--panel); border-top: 1px solid var(--border2); box-shadow: 0 -6px 18px rgba(0,0,0,.35);
+  }
+  .bn-item { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+             gap: 2px; background: none; color: var(--text-dim); font-size: 11px; font-weight: 600; }
+  .bn-item span { font-size: 21px; line-height: 1; }
+  .bn-item.active { color: var(--gold); }
+  .bn-badge { position: absolute; top: 6px; left: 54%; font-style: normal; font-size: 10px; font-weight: 800;
+              background: var(--loss); color: #fff; border-radius: 8px; padding: 0 5px; }
+
+  .more-sheet { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.55); align-items: flex-end; }
+  .more-sheet.open { display: flex; }
+  .more-grid { width: 100%; background: var(--panel); border-top: 2px solid var(--gold-dim); border-radius: 14px 14px 0 0;
+               padding: 14px 12px calc(76px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .more-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 2px; border-radius: 10px;
+               background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-size: 11px; }
+  .more-item span { font-size: 22px; }
+  .more-item.active { border-color: var(--gold); color: var(--gold); }
+
+  /* intro: plain top-aligned page */
+  .intro-screen { justify-content: flex-start; overflow: visible; }
+
+  /* match: let the page scroll instead of fixed-height panes */
+  .mv-container { height: auto; overflow: visible; }
+  .pbp-container { height: auto; flex: none; overflow: visible; }
+  .mv-body { overflow: visible; }
+  #draft-phase { overflow: visible; padding: 12px; }
+  .match-header { position: sticky; top: 0; z-index: 40; }
+}
+/* landscape phones: shorter 3D view so the controls stay on screen */
+@media (max-height: 500px) and (pointer: coarse) {
+  .mv-3d { height: 78vh; }
+}
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  /* champion / item browsers: list then details, scrolling with the page */
+  .cb-layout { flex-direction: column; height: auto; }
+  .cb-grid { width: 100%; overflow: visible; }
+  .cb-detail { overflow: visible; max-height: none; }
+}
+.ib-list { flex: 1; overflow-y: auto; }
+.ib-detail { width: 260px; flex-shrink: 0; }
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .ib-list { overflow: visible; }
+  .ib-detail { width: 100%; }
+}
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  /* match result: a full-screen sheet that scrolls on its own (sticky Return button stays on screen) */
+  .pbp-results { position: fixed; inset: 0; z-index: 80; overflow-y: auto; overscroll-behavior: contain;
+                 padding-bottom: env(safe-area-inset-bottom); }
+}
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .res-actions { position: sticky; bottom: 0; background: #060d12; z-index: 2; }
 }
