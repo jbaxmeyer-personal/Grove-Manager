@@ -23,6 +23,7 @@
     <div id="team-select-grid" class="team-select-grid"></div>
     <button class="btn-start" id="btn-start" disabled onclick="onStartGame()">Start Career</button>
   </div>
+  <div class="app-version intro-version" data-version></div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
@@ -70,6 +71,7 @@
       <a class="nav-item" data-screen="statistics"  onclick="showMain('statistics')">📈 Statistics</a>
       <a class="nav-item" data-screen="league"     onclick="showMain('league')">🏆 League</a>
       <a class="nav-item" data-screen="schedule"   onclick="showMain('schedule')">📅 Schedule</a>
+      <div class="app-version" data-version></div>
     </nav>
 
     <main class="main-content" id="main-content">
@@ -250,6 +252,7 @@
   </nav>
   <div class="more-sheet" id="more-sheet" onclick="if (event.target === this) toggleMoreSheet(false)">
     <div class="more-grid">
+      <div class="app-version more-version" data-version></div>
       <button class="more-item" data-more="teaminfo" onclick="showMain('teaminfo')"><span>🏢</span>Club</button>
       <button class="more-item" data-more="training" onclick="showMain('training')"><span>🎯</span>Training</button>
       <button class="more-item" data-more="transfers" onclick="showMain('transfers')"><span>💼</span>Transfers</button>
@@ -418,6 +421,7 @@
 </div>
 
 <!-- Scripts -->
+<script src="js/version.js"></script>
 <script src="js/data/teams.js"></script>
 <script src="js/data/champions.js"></script>
 <script src="js/data/items.js"></script>
