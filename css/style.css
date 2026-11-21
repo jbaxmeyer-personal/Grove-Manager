@@ -2682,3 +2682,8 @@ button{cursor:pointer;border:none;outline:none;font-family:inherit;}
 @media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
   .res-actions { position: sticky; bottom: 0; background: #060d12; z-index: 2; }
 }
+
+/* build/version label */
+.app-version { font-size: 10px; color: var(--text-dim); opacity: .7; letter-spacing: .03em; padding: 10px 14px; user-select: text; }
+.intro-version { text-align: center; padding: 8px 0 16px; }
+.more-version { grid-column: 1 / -1; order: 99; text-align: center; padding: 4px 0 0; }
